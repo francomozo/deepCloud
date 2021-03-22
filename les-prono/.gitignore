@@ -1,0 +1,13 @@
+# Franco
+docs/
+les-venv/
+predictions/
+*.npy
+.vscode/
+*.pkl
+*.png
+*.log
+*.json
+__pycache__/
+CIM_module/
+new_CIM_module/
