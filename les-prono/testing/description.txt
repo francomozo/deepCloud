@@ -1,0 +1,30 @@
+Hey! This is the testing folder.
+
+Here we will simulate and check the correct behavior of the
+system.
+
+The system relies on the sat_data folder, that gets images
+and masks as time passes. There are many cases to be considered.
+
+1 - regular sequence of day images
+  base case. all are useful images and arrive regularly.
+  this means that the period is perfect.
+
+2 - irregular sequence of day images
+  2.1 - the period has some added noise, so it is not exactly
+  what it is supposed to be
+  2.2 - the period is perfect but there are holes
+    2.2.1 - only one absent image (day 106)
+    2.2.2 - more than one absent image in a row
+  2.3 - all of the above 2.1 + 2.2.1 + 2.2.2
+
+3 - sequence of night images
+  (the output should be zero)
+
+4 - transitions
+  4.1 - start of the day, from night images to day images
+  4.2 - end of the day, from day images to night images
+  4.3 - consecutive days (check all predictions are there)
+
+we will select period / doy in [113, 115]
+113 is regular, 115 has holes

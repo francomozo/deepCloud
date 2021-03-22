@@ -1,0 +1,185 @@
+---
+algorithm:  # select one or more
+  climatology:  # this is now as naive as forecasting 41.25 (historical pixel average)
+    enabled: True # include in computation and sending
+    priority: 0
+    # recompute: False #True
+    # winsize: 5  # this helps calculate climatology
+  persistence:
+    enabled: True
+    priority: 1
+    winsize: 5  # averaging window size (depracated)
+    kernel: 193  # (optimal) gaussian kernel size, should be odd
+  rls:
+    enabled: True
+    priority: 2
+    winsizes: [50, 100,]  # averaging window sizes (as ordered list)
+    n_values: [1,  2,]  # past obs considered for each size (0< _ <= psat buffer)
+  cmv:
+    enabled: True
+    priority: 3
+    kernel: 85
+    # value_winsize: 5  # not used anymore, blur is gaussian now
+    timestep: 10  # not tested for timestep > 59
+    # optical flow params (see https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga5d10ebbd59fe09c5f650289ec0ece5af)
+    pyr_scale: 0.39872  # scale of pyramid  # optimal params at 2 aug
+    levels: 4  # pyramid levels considered
+    winsize: 22  # window size 
+    iterations: 3  # iterations per level
+    poly_n: 5  # order of the expansion increases smoothness
+    poly_sigma: 0.848  # another param
+
+combine:  # select method
+  most_complex: False
+  average: False
+  trees: False
+  mlp: False
+  earth: True
+  # max leadtime to be combined is defined in <combine_supervised>
+
+forecasts:
+  limit: 4  # maximum lead time in hours
+  time_step: 10  # forecasting time step (divisor of 60 for regularity)
+
+crontab:
+  verbose: True
+  user: franchesoni
+  clear_all: True  # reset custom_crontab 
+  automatic_restart: True
+  preprocessing_period_in_minutes: 2  # max 59
+  algorithms_period_in_minutes: 10  # max 59
+  sender_period_in_minutes: 30  # max 59
+
+logging:  # see python logging
+  loglevel: DEBUG  # WARNING, etc.
+
+paths:
+  project: /home/franchesoni/les-prono/
+  sat: /home/franchesoni/stack_mirror/
+  psat: /home/franchesoni/siblings-les-prono/psat
+  some_fr_img: "/home/franchesoni/stack_mirror/FR/ART_2020131_135014.FR"
+  history: /home/franchesoni/siblings-les-prono/history
+
+buffers:
+  psat: 5
+  database: 1000
+
+locations:
+  loc1:
+    name: Example  # names can not be duplicated
+    lat: -30.3
+    lon: -70.4
+    enable: False
+  loc2:
+    name: LE
+    lat: -31.282778
+    lon: -57.918111
+    enable: False
+  loc3:
+    name: cardal
+    lat: -34.885562
+    lon: -56.148949
+    enable: False
+  loc4:
+    name:  P01
+    lat:  -31.2807
+    lon:  -57.9171
+    enable:  True
+  loc5:
+    name:  P02
+    lat:  -31.4321
+    lon:  -57.9084
+    enable:  True
+  loc6:
+    name:  P03
+    lat:  -30.4214
+    lon:  -57.4608
+    enable:  True
+  loc7:
+    name:  P04
+    lat:  -32.3871
+    lon:  -58.1328
+    enable:  True
+  loc8:
+    name:  P05
+    lat:  -32.286
+    lon:  -58.0266
+    enable:  True
+  loc9:
+    name:  P06
+    lat:  -32.2898
+    lon:  -58.0279
+    enable:  True
+  loc10:
+    name:  P07
+    lat:  -32.2867
+    lon:  -58.0299
+    enable:  True
+  loc11:
+    name:  P08
+    lat:  -32.2963
+    lon:  -58.0228
+    enable:  True
+  loc12:
+    name:  P09
+    lat:  -32.2945
+    lon:  -58.0251
+    enable:  True
+  loc13:
+    name:  P10
+    lat:  -32.2959
+    lon:  -58.0248
+    enable:  True
+  loc14:
+    name:  P11
+    lat:  -31.2627
+    lon:  -57.8709
+    enable:  True
+  loc15:
+    name:  P12
+    lat:  -31.4407
+    lon:  -57.8643
+    enable:  True
+  loc16:
+    name:  P13
+    lat:  -32.6079
+    lon:  -57.4372
+    enable:  True
+  loc17:
+    name:  P14
+    lat:  -30.8734
+    lon:  -57.4543
+    enable:  True
+  loc18:
+    name:  P15
+    lat:  -33.2617
+    lon:  -57.9917
+    enable:  True
+  loc19:
+    name:  P16
+    lat:  -32.686
+    lon:  -57.6066
+    enable:  True
+  loc20:
+    name:  P17
+    lat:  -32.2096
+    lon:  -58.005
+    enable:  True
+
+# -- P01 -31.2807 -57.9171   xx Nominal:  0.50 MW. ASAHI. MIEM/DNE. Check.
+# JA P02 -31.4321 -57.9084   xx Nominal: 50.00 MW. La Jacinta. Salto. FRV (Fotowatio). Check.
+# -- P03 -30.4214 -57.4608   xx Nominal: 20.00 MW. Alto Cielo. Tomás Gomensoro, Artigas. SolarPack. 26.4 MWp.
+# -- P04 -32.3871 -58.1328   xx Nominal:  8.00 MW. Raditon. Casablanca, Paysandú. Check.
+# -- P05 -32.2860 -58.0266   xx Nominal: 11.25 MW. Dicano. Bola de Oro. TecnoGroup.
+# -- P06 -32.2898 -58.0279   xx Nominal:  9.50 MW. Fenima. Bola de Oro. TecnoGroup.
+# -- P07 -32.2867 -58.0299   xx Nominal:  9.50 MW. Petilcoran. Bola de Oro. TecnoGroup.
+# -- P08 -32.2963 -58.0228   xx Nominal:  1.00 MW. Cerneral / Lafemir. Bola de Oro. TecnoGroup.
+# -- P09 -32.2945 -58.0251   xx Nominal:  1.00 MW. Vingano. Bola de Oro. TecnoGroup.
+# -- P10 -32.2959 -58.0248   xx Nominal:  1.00 MW. Gilpyn / AC Constructora. Bola de Oro. TecnoGroup.
+# -- P11 -31.2627 -57.8709   xx Nominal: 50.00 MW. Naranjal. SunEdison.
+# -- P12 -31.4407 -57.8643   xx Nominal: 16.00 MW. Del Litoral. SunEdison.
+# -- P13 -32.6079 -57.4372   xx Nominal: 20.00 MW. Menafra Solar. Young, Rio Negro. TecnoGroup. Check.
+# -- P14 -30.8734 -57.4543   xx Nominal: 10.00 MW. Arapey Solar. Arapey, Salto. TecnoGroup. Check.
+# -- P15 -33.2617 -57.9917   xx Nominal:  9.50 MW. Natelu. Mercedes, Soriano. TecnoGroup. Check.
+# -- P16 -32.6860 -57.6066   xx Nominal:  9.50 MW. Yarnel. Young, Rio Negro. TecnoGroup. Check.
+# -- P17 -32.2096 -58.0050   xx Nominal:  1.80 MW. Casalko. La Constancia, Paysandu. TecnoGroup. Check.
