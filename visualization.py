@@ -24,6 +24,14 @@ def matrix_graph (error_array):
     plt.show()
     
 def save_errorarray_as_csv(error_array, time_stamp, filename):
+    """ Generates a CSV file with the error of the predictions at the different times of the day
+
+    Args:
+        error_array (array): Array containing the values of the error of a prediction
+        time_stamp (list): Contains the diferent timestamps of the day
+        filename (string): path and name of the generated file
+    """    
+    
     M,N = error_array.shape
     fieldnames = []
     fieldnames.append('timestamp')
@@ -95,6 +103,11 @@ def barchart_compare(model1_values,model2_values):
     
     
 def plot_graph (model_values):
+    """Plots the errors of the predictions for a generated sequence
+
+    Args:
+        model_values (list): List containing the values of the errors 
+    """    
     labels = []
     for i in range(len(model_values)):
         labels.append(str(10* (i+1)))

@@ -99,7 +99,7 @@ def load_images_from_folder(folder, cutUruguay = True):
     return images, time_stamp
 
 def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filename, cutUruguay = True):
-    """Loads the first "list_size" iamges from "folder" if "current_imgs"=[],
+    """Loads the first "list_size" images from "folder" if "current_imgs"=[],
         if not, deletes the first element in the list, shift left on position, and
         reads the next image and time-stamp
 
@@ -107,8 +107,8 @@ def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filena
         folder (str): Where .npy arrays are stored
         current_imgs (list): Numpy arrays storing the images
         time_stamp ([type]): [description]
-        list_size ([type]): [description]
-        cutUruguay (bool, optional): [description]. Defaults to True.
+        list_size (int): Quantity of images to load , should be equal to the prediction horizon + 1
+        cutUruguay (bool, optional): Slices image to keep only the region containing Uruguay. Defaults to True.
     """
     
     dia_ref = datetime.datetime(2019,12,31)

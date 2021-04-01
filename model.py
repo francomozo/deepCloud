@@ -23,7 +23,8 @@ def persitence (image, img_timestamp, predict_horizon):
     return predictions , predict_timestamp
 
 def gauss_persitence (image, img_timestamp, predict_horizon, sigma):
-    """Takes an image adds gaussanian noise and uses it as the prediction for the next time stamps
+    """Takes an image adds gaussanian noise and uses it as the prediction for the next time stamps. 
+    Used only to have another model for the bar chart in visualization. 
 
     Args:
         image (array): Image used as prediction
