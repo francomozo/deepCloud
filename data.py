@@ -90,7 +90,7 @@ def load_images_from_folder(folder, cutUruguay = True):
             images.append(img[67:185,109:237])
             
         else:
-            images.append()
+            images.append(img)
         
         img_name = re.sub("[^0-9]", "", filename)
         dt_image = dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]),

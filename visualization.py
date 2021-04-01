@@ -1,6 +1,8 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import csv
 
 #rolo graph
 def matrix_graph (error_array):
@@ -21,6 +23,27 @@ def matrix_graph (error_array):
 
     plt.show()
     
+def save_errorarray_as_csv(error_array, time_stamp, filename):
+    M,N = error_array.shape
+    fieldnames = []
+    fieldnames.append('timestamp')
+    for i in range(N):
+        fieldnames.append(str(10*(i+1)) + 'min')
+    
+    with open( filename + '.csv', 'w', newline='') as csvfile:
+
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        for i in range(M):
+            row_dict = {}
+            row_dict['timestamp'] = time_stamp[i]
+            for j in range (N):
+                row_dict[str(10*(j+1)) + 'min']  = error_array[i,j]
+            
+            writer.writerow(row_dict)
+        
+
     
 def barchart_compare(model1_values,model2_values):
     """Takes the errors list of different models and plots them in a bar chart
