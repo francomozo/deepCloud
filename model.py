@@ -37,7 +37,7 @@ def gauss_persitence (image, img_timestamp, predict_horizon, sigma):
     
     predictions = []
     
-    for i in range(predict_horizon): #la i no se usa, ver mejor opcion
+    for _ in range(predict_horizon): 
         noisy_pred = np.clip(image + np.random.normal(0,sigma,(M,N)), 0,255)
         predictions.append(noisy_pred)
         
