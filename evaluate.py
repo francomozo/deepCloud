@@ -1,5 +1,5 @@
 import numpy as np
-from skimage.measure import compare_ssim as ssim
+from skimage.metrics import structural_similarity as ssim
 
 def evaluate_image(predictions, gt, metric, pixel_max_value =255):
     """
@@ -22,8 +22,9 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255):
     
     if (len_pred != len_gt):
         raise ValueError('Predictions and Ground truth must have the same length. len(predictions)=',len_pred, ', len(gt)=',len_gt)
+      
         
-    if type(predictions) == np.ndarray :
+    if type(predictions) == np.ndarray : #case the prediction input is an array instead of a list
         len_pred=1
     
     error= [] 

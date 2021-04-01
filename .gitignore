@@ -6,3 +6,9 @@ data/
 .idea/vcs.xml
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/.gitignore
+__pycache__/data.cpython-38.pyc
+__pycache__/evaluate.cpython-38.pyc
+__pycache__/helper_functions.cpython-38.pyc
+__pycache__/model.cpython-38.pyc
+__pycache__/visualization.cpython-38.pyc
+__pycache__/preprocessing_functions.cpython-38.pyc
