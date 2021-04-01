@@ -83,7 +83,7 @@ def load_images_from_folder(folder, cutUruguay = True):
     time_stamp = []
     dia_ref = datetime.datetime(2019,12,31)
     
-    for filename in os.listdir(folder):
+    for filename in np.sort(os.listdir(folder)):
         img = np.load(os.path.join(folder, filename))
         
         if cutUruguay:
