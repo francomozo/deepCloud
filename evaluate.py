@@ -21,7 +21,10 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255):
     len_gt = len(gt)
     
     if (len_pred != len_gt):
-            raise ValueError('Predictions and Ground truth must have the same length.')
+        raise ValueError('Predictions and Ground truth must have the same length. len(predictions)=',len_pred, ', len(gt)=',len_gt)
+        
+    if type(predictions) == np.ndarray :
+        len_pred=1
     
     error= [] 
     
@@ -36,7 +39,11 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255):
             error.append(np.mean((predictions[i]-gt[i])**2) ) 
         elif (metric == 'PSNR' ):
             mse = np.mean((predictions[i]-gt[i])**2)
-            error.append(10* np.log10(pixel_max_value**2/mse))       
+            if (mse != 0 ):
+                error.append(10* np.log10(pixel_max_value**2/mse)) 
+            else:
+                error.append(20*np.log10(pixel_max_value))
+     
         elif (metric == 'SSIM'):
             error.append(ssim(predictions[i] , gt[i]))
             
