@@ -45,7 +45,11 @@ def save_imgs_2npy(meta_path='data/meta',
     """
 
     for filename in os.listdir(img_folder_path):
-        img = load_img(img_name=filename
+        img = load_img(  # added needed arguments (franchesoni)
+                    meta_path=meta_path,
+                    img_name=filename,
+                    mk_folder_path=mk_folder_path,
+                    img_folder_path=img_folder_path,
         )
         img = np.asarray(img)
 
