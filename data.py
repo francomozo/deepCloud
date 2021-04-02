@@ -115,7 +115,8 @@ def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filena
     sorted_img_list = np.sort(os.listdir(folder))
     
     if current_imgs == []:
-        for nth_img in range(list_size + 1):
+        #for nth_img in range(list_size + 1):
+        for nth_img in range(list_size ):
             filename = sorted_img_list[nth_img] # stores last img
             img = np.load(os.path.join(folder, filename))
             
