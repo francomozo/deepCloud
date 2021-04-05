@@ -1,0 +1,37 @@
+├── Makefile           <- Makefile with commands like `make data` or `make train` (por ahora no)
+├── README.md          <- The top-level README for developers using this project.
+├── data               <- Stores the data, metadata, y los .npy
+│
+├── docs               <- (por ahora no)
+│
+├── models             <- Trained and serialized models, model predictions, or model summaries
+│
+├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
+│                         the creator's initials, and a short `-` delimited description, e.g.
+│                         `1.0-jqp-initial-data-exploration`.
+│
+├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
+│   │── figures        <- Generated graphics and figures to be used in reporting
+│   └── csv            <- csv with errors, etc
+│
+├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
+│                         generated with `pip freeze > requirements.txt`
+│
+├── setup.py           <- Make this project pip installable with `pip install -e` (ver de agregar a futuro)
+├── src                <- Source code for use in this project.
+│   ├── __init__.py    <- Makes src a Python module
+│   │
+│   ├── data.py        <- Scripts to download or generate data
+│   │
+│   ├── features       <- Scripts to turn raw data into features for modeling
+│   │   └── build_features.py
+│   │
+│   ├── models         
+│   │   │              
+│   │   ├── predict_model.py
+│   │   └── train_model.py
+│   │
+│   └── visualization  <- Scripts to create exploratory and results oriented visualizations
+│       └── visualize.py
+│
+└── main.ipynb          <- Por ahora un .ipynb, luego pasarlo a .py
