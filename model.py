@@ -83,7 +83,7 @@ def cmv (dcfg, imgi,imgf, period,delta_t, predict_horizon):
         predict_horizon (int): Length of the prediction horizon (Cuantity of images returned)
 
     Returns:
-        [numpy.ndarray]: Predicted image
+        [list]: List with predicted images
     """    
     
     #get_cmv (dcfg, imgi,imgf, period)
@@ -105,7 +105,8 @@ def cmv (dcfg, imgi,imgf, period,delta_t, predict_horizon):
     
     #get_mapping(cmv, delta_t)
     
-    base_img = imgf
+    base_img = imgf  #base_img imagen a la que le voy a aplicar el campo
+    
     predictions = []
     for i in range(predict_horizon):
     
@@ -113,7 +114,7 @@ def cmv (dcfg, imgi,imgf, period,delta_t, predict_horizon):
         i_idx, j_idx = np.meshgrid(
             np.arange(cmv.shape[1]), np.arange(cmv.shape[0])
         )
-        map_i = i_idx + cmv[:, :, 0] * (delta_t * (i+1))
+        map_i = i_idx + cmv[:, :, 0] * (delta_t * (i+1)) #cmv[...] * x , donde x es la cantidad de segundos hacia adelante
         map_j = j_idx + cmv[:, :, 1] * (delta_t * (i+1))
         map_x, map_y = map_i.astype(np.float32), map_j.astype(np.float32)
 
@@ -127,11 +128,12 @@ def cmv (dcfg, imgi,imgf, period,delta_t, predict_horizon):
             map_y,
             cv.INTER_LINEAR,
             borderMode=cv.BORDER_CONSTANT,
-            #borderValue=np.nan,
+            #borderValue=np.nan,  # valor que se agrega al mover los bordes
             borderValue=0,
         )
         # if show_for_debugging:
         #     show_for_debugging2(base_img, next_img, cmv, delta_t)
     
         predictions.append(next_img)
+        
     return predictions
