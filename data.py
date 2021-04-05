@@ -56,17 +56,17 @@ def save_imgs_2npy(meta_path='data/meta',
         if split_days_into_folders:
             day = re.sub("[^0-9]", "", filename)[4:7].lstrip("0")
             try:
-                os.mkdir(destintation_path + "/dia_" + day)
+                os.makedirs(os.path.join(os.getcwd(), destintation_path, "dia_" + day))
             except:
                 pass
-            path = destintation_path + "/dia_" + day + "/" + os.path.splitext(filename)[0] + ".npy"
+            path = os.path.join(destintation_path, "dia_" + day, os.path.splitext(filename)[0] + ".npy")
         
         else:
             try:
-                os.mkdir(destintation_path + "/loaded_images")
+                os.makedirs(os.path.join(os.getcwd(), destintation_path, "loaded_images"))
             except:
                 pass
-            path = destintation_path + "/loaded_images/" + os.path.splitext(filename)[0] + ".png"
+            path = os.path.join(destintation_path, 'loaded_images', os.path.splitext(filename)[0] + ".npy")
 
         np.save(path, img)
         
