@@ -1,4 +1,6 @@
 data/
+__pycache__/
+*.pyc
 .vscode/settings.json
 .idea/deepCloud.iml
 .idea/misc.xml
@@ -6,5 +8,4 @@ data/
 .idea/vcs.xml
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/.gitignore
-__pycache__/
 Code Add On.txt
