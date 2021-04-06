@@ -143,3 +143,24 @@ def plot_graph (model_values):
     plt.ylabel('Error Metric') 
     plt.show()
     
+def show_image_list (images_list,rows):
+
+    num = 0
+    len_list = len(images_list)
+    
+    if len_list % rows == 0: cols = len_list//rows
+    else: cols = len_list//rows + 1
+    
+     
+    plt.figure(figsize=(10, 5))
+    for img in images_list:
+
+        plt.subplot(rows,cols ,num+1)
+        plt.title('img' + str(num))
+        plt.axis('off')
+        plt.imshow(img)
+        num += 1
+        
+    plt.subplots_adjust(wspace=1, hspace=1)
+    plt.tight_layout()
+    plt.show()
