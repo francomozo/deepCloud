@@ -4,6 +4,7 @@ import re
 import src.lib.preprocessing_functions as pf
 import cv2 as cv
 import datetime
+from torch.utils.data import Dataset
 
 def load_img(meta_path='data/meta',
              img_name='ART_2020020_111017.FR',
@@ -151,3 +152,55 @@ def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filena
         filename = new_img_filename
     
     return current_imgs, time_stamp, filename
+
+class SatelliteImagesDataset(Dataset):
+    """ South America Satellite Images Dataset
+
+    Args:
+        root_dir (string): Directory with all images from day n.
+        transform (callable, optional): Optional transform to be applied on a sample.
+        
+    Returns:
+        [dict]: {'image': image, 'time_stamp': time_stamp}
+    """
+
+    dia_ref = datetime.datetime(2019,12,31)
+    
+    def __init__(self, root_dir, transform=None):
+        self.root_dir = root_dir
+        self.images_list = np.sort(os.listdir(self.root_dir))
+        self.transform = transform
+    
+    def __len__(self):
+        return len(self.images_list)
+    
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.root_dir, 
+                                self.images_list[idx])
+        image = np.load(img_name)
+        if self.transform:
+            image = self.transform(image)
+        
+        img_name = re.sub("[^0-9]", "", self.images_list[idx])
+        time_stamp = self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]), 
+                                                  minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
+        
+        sample = {'image': image,
+                  'time_stamp': time_stamp}
+        
+        return sample
+    
+class CropImage(object):
+    """ Whether to crop the images or not
+    
+    Args:
+        limits (list): [x1, x2, y1, y2] where to crop the image.
+    """
+
+    def __init__(self, limits):
+        self.x1, self.x2 = limits[0], limits[1]
+        self.y1, self.y2 = limits[2], limits[3]
+        
+    def __call__(self, image):
+        return image[self.y1:self.y2,self.x1:self.x2]
+        
