@@ -4,34 +4,61 @@
 │
 ├── docs               <- (por ahora no)
 │
-├── models             <- Trained and serialized models, model predictions, or model summaries
+├── models             <- Trained and serialized models, model predictions, or model summaries (por ahora no)
 │
 ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
 │                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
+│                         `1.0-jqp-initial-data-exploration`. For data exploration, etc
 │
 ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
 │   │── figures        <- Generated graphics and figures to be used in reporting
 │   └── csv            <- csv with errors, etc
 │
 ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
+│                         generated with `pip freeze > requirements.txt` (por ahora no)
 │
-├── setup.py           <- Make this project pip installable with `pip install -e` (ver de agregar a futuro)
+├── setup.py           <- Make this project pip installable with `pip install -e` (por ahora no)
 ├── src                <- Source code for use in this project.
 │   ├── __init__.py    <- Makes src a Python module
 │   │
 │   ├── data.py        <- Scripts to download or generate data
 │   │
-│   ├── features       <- Scripts to turn raw data into features for modeling
-│   │   └── build_features.py
+│   ├── evaluate.py
 │   │
-│   ├── models         
-│   │   │              
-│   │   ├── predict_model.py
-│   │   └── train_model.py
+│   ├── models.py        
 │   │
-│   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-│       └── visualize.py
+│   └── visualization.py
+│
+└── main.ipynb          <- Por ahora un .ipynb, luego pasarlo a .py
+
+──────────────────> Al momento sería <─────────────────────────────────
+
+
+├── README.md 
+│          
+├── data/         
+│ 
+├── notebooks/          <- For data exploration, etc
+│
+├── reports/
+│   │── figures
+│   │
+│   └── csv
+│
+├── src/                
+│   ├── __init__.py    
+│   │
+│   ├── data.py 
+│   │
+│   ├── evaluate.py
+│   │
+│   ├── models.py        
+│   │
+│   └── visualization.py
+│
+├── lib/                <- Helper library functions but not the core statistical analysis.
+│   │── preprocessing_functions.py
+│   │
+│   └── useful_functions.py
 │
 └── main.ipynb          <- Por ahora un .ipynb, luego pasarlo a .py
