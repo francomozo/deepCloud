@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import csv
+import time
+import IPython
 
 #rolo graph
 def matrix_graph (error_array):
@@ -164,3 +166,27 @@ def show_image_list (images_list,rows):
     plt.subplots_adjust(wspace=1, hspace=1)
     plt.tight_layout()
     plt.show()
+    
+def plot_day_images(dataset, sleep_secs=0, start=0):
+    """Shows images from dataset on a Jupyter Notebook
+
+    Args:
+        dataset (class): Dataset of one day of images
+        sleep_secs (int): Time between each image in seconds
+        start (int): Where to start in the images sequence.
+    """
+    
+    for n in range(start, len(dataset)):
+        sample = dataset[n]
+        image, time_stamp = sample['image'], sample['time_stamp']
+        
+        fig, ax = plt.subplots()
+        
+        ax.title.set_text(f'Image: {n+1} {time_stamp}')
+        fig.tight_layout()
+        
+        plt.imshow(image, cmap='gray')
+        plt.show()
+        
+        time.sleep(sleep_secs)
+        IPython.display.clear_output(wait=True)

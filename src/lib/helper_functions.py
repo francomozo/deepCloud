@@ -1,5 +1,6 @@
 import datetime
 
+
 def datetime2str(datetime_obj):
     """ 
         Receives a datetiem object and returns a string
@@ -19,5 +20,4 @@ def str2datetime(date_str):
     return datetime.datetime(int(year), int(month), int(day), 
                              int(hr), int(mins), int(secs)
                             )
-    
     

@@ -37,6 +37,7 @@ def save_imgs_2npy(meta_path='data/meta',
             split_days_into_folders=True
     ):
     """Saves images as Numpy arrays
+       (Uses load_img() function)
 
     Args:
         meta_path (str, optional): Defaults to 'data/meta'.
