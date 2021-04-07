@@ -117,7 +117,7 @@ def save_imgs_list_2npy(imgs_list=[],
         np.save(path, img)
         
 def load_images_from_folder(folder, cutUruguay = True):
-    """Loads images stored as Numpy arrays of day X to a list
+    """Loads images stored as Numpy arrays of nth-day  to a list
 
     Args:
         folder (str): Where the images of day X are stored
