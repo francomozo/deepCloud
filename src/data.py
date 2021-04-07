@@ -61,7 +61,7 @@ def save_imgs_2npy(meta_path='data/meta',
                 os.makedirs(os.path.join(os.getcwd(), destintation_path, "dia_" + day))
             except:
                 pass
-            path = os.path.join(destintation_path, "dia_" + day, os.path.splitext(filename)[0] + ".npy")
+            path = os.path.join(destintation_path, "day_" + day, os.path.splitext(filename)[0] + ".npy")
         
         else:
             try:
@@ -72,6 +72,49 @@ def save_imgs_2npy(meta_path='data/meta',
 
         np.save(path, img)
         
+def save_imgs_list_2npy(imgs_list=[],
+            meta_path='data/meta',
+            mk_folder_path='data/C02-MK/2020',
+            img_folder_path='data/C02-FR/2020',
+            destintation_path='data/images',
+            split_days_into_folders=True
+    ):
+    """Saves images as Numpy arrays to folders
+
+    Args:
+        imgs_list[] (list): List containing the names of the images to be saved. ie: days.
+        meta_path (str, optional): Defaults to 'data/meta'.
+        mk_folder_path (str, optional): Defaults to 'data/C02-MK/2020'.
+        img_folder_path (str, optional): Defaults to 'data/C02-FR/2020'.
+        destintation_path (str, optional): Defaults to 'data/images'.
+        split_days_into_folders (bool, optional): Defaults to False.
+    """
+
+    for filename in imgs_list:
+        img = load_img(  # added needed arguments (franchesoni)
+                    meta_path=meta_path,
+                    img_name=filename,
+                    mk_folder_path=mk_folder_path,
+                    img_folder_path=img_folder_path,
+        )
+        img = np.asarray(img)
+
+        if split_days_into_folders:
+            day = re.sub("[^0-9]", "", filename)[4:7].lstrip("0")
+            try:
+                os.makedirs(os.path.join(os.getcwd(), destintation_path, "dia_" + day))
+            except:
+                pass
+            path = os.path.join(destintation_path, "dia_" + day, os.path.splitext(filename)[0] + ".npy")
+        
+        else:
+            try:
+                os.makedirs(os.path.join(os.getcwd(), destintation_path, "loaded_images"))
+            except:
+                pass
+            path = os.path.join(destintation_path, 'loaded_images', os.path.splitext(filename)[0] + ".npy")
+
+        np.save(path, img)
         
 def load_images_from_folder(folder, cutUruguay = True):
     """Loads images stored as Numpy arrays of day X to a list
