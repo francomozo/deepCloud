@@ -2,6 +2,7 @@ import numpy as np
 import os
 import re
 import src.lib.preprocessing_functions as pf
+import src.lib.helper_functions as hf
 import cv2 as cv
 import datetime
 from torch.utils.data import Dataset
@@ -186,7 +187,7 @@ class SatelliteImagesDataset(Dataset):
                                                   minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
         
         sample = {'image': image,
-                  'time_stamp': time_stamp}
+                  'time_stamp': hf.datetime2str(time_stamp)}
         
         return sample
     
