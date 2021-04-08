@@ -190,3 +190,14 @@ def plot_day_images(dataset, sleep_secs=0, start=0):
         
         time.sleep(sleep_secs)
         IPython.display.clear_output(wait=True)
+        
+def plot_histogram(values,bins):        
+    plt.figure(figsize=(10, 5))
+    plt.hist(values, bins=bins, density=True)
+    l1 = plt.axvline(np.mean(values), c='r')
+    l2 = plt.axvline(np.mean(values)+np.std(values), c='g')
+    l3 = plt.axvline(np.mean(values)-np.std(values), c='g')
+    plt.legend((l1, l2, l3), ['mean of values', 'std of values'])
+    plt.ylabel('p(x)')
+    plt.xlabel('value')
+    plt.show()
