@@ -146,7 +146,12 @@ def plot_graph (model_values):
     plt.show()
     
 def show_image_list (images_list,rows):
+    """ Shows the images passed in a grid
 
+    Args:
+        images_list (list): Each element is a numpy array 
+        rows (int): Number of rows in the grid
+    """
     num = 0
     len_list = len(images_list)
     
@@ -190,3 +195,15 @@ def plot_day_images(dataset, sleep_secs=0, start=0):
         
         time.sleep(sleep_secs)
         IPython.display.clear_output(wait=True)
+        
+def plot_histogram(values,bins):     
+    
+    plt.figure(figsize=(10, 5))
+    plt.hist(values, bins=bins, density=True)
+    l1 = plt.axvline(np.mean(values), c='r')
+    l2 = plt.axvline(np.mean(values)+np.std(values), c='g')
+    l3 = plt.axvline(np.mean(values)-np.std(values), c='g')
+    plt.legend((l1, l2, l3), ['mean of values', 'std of values'])
+    plt.ylabel('p(x)')
+    plt.xlabel('value')
+    plt.show()
