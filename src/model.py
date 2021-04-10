@@ -29,8 +29,8 @@ class NoisyPersitence():
                                         periods= predict_horizon, freq = '10min')
 
         return predictions, predict_timestamp
+    
 class BlurredPersitence():
-
     def __init__(self, kernel_size = (5,5)):
         self.kernel_size = kernel_size
 
@@ -158,7 +158,7 @@ class Cmv2(Cmv):
         return predictions
 
 
-def persitence (image, img_timestamp, predict_horizon):
+def persitence(image, img_timestamp, predict_horizon):
     """Takes an image and uses it as the prediction for the next time stamps
 
     Args:
@@ -175,7 +175,7 @@ def persitence (image, img_timestamp, predict_horizon):
 
     return predictions , predict_timestamp
 
-def noisy_persitence (image, img_timestamp, predict_horizon, sigma):
+def noisy_persitence(image, img_timestamp, predict_horizon, sigma):
     """Takes an image adds gaussanian noise and uses it as the prediction for the next time stamps. 
     Used only to have another model for the bar chart in visualization. 
 
@@ -200,7 +200,7 @@ def noisy_persitence (image, img_timestamp, predict_horizon, sigma):
 
     return predictions , predict_timestamp
 
-def blurred_persitence (image, img_timestamp, predict_horizon, kernel_size = (5,5)):
+def blurred_persitence(image, img_timestamp, predict_horizon, kernel_size = (5,5)):
     """Takes an image and blurs it with a gaussanian window and uses it as the prediction for the next time stamps. 
 
     Args:
@@ -227,7 +227,7 @@ def blurred_persitence (image, img_timestamp, predict_horizon, kernel_size = (5,
 
 # img(t) + k*cmv estático -> img(t+k)
 
-def cmv1 (dcfg, imgi,imgf, period,delta_t, predict_horizon):
+def cmv1(dcfg, imgi,imgf, period,delta_t, predict_horizon):
     """Predicts next image using openCV optical Flow
 
     Args:
@@ -299,7 +299,7 @@ def cmv1 (dcfg, imgi,imgf, period,delta_t, predict_horizon):
 
 # img(t+k) + cmv estático -> img(t+k+1)
 
-def cmv2 (dcfg, imgi,imgf, period,delta_t, predict_horizon):
+def cmv2(dcfg, imgi,imgf, period,delta_t, predict_horizon):
     """Predicts next image using openCV optical Flow
 
     Args:
