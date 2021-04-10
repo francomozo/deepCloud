@@ -207,3 +207,17 @@ def plot_histogram(values,bins):
     plt.ylabel('p(x)')
     plt.xlabel('value')
     plt.show()
+    
+def show_image_w_colorbar (image):
+    """
+    Shows the image with a colorbar 
+
+    Args:
+        image (array): Array containing the values of the image
+    """    
+    fig, (ax1) = plt.subplots(figsize=(13, 3), ncols=1)
+    image_ = ax1.imshow(image, interpolation='none')
+    #grafica = ax1.imshow(error_array[70:100], interpolation='none')
+    fig.colorbar(image_, ax=ax1)
+    ax1.title.set_text('Image')
+    plt.show()
