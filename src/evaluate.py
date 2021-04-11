@@ -65,7 +65,7 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255):
         elif (metric == 'FS'):
             rmse = np.sqrt(np.mean((predictions[i]-gt[i])**2))
             rmse_persistence = np.sqrt(np.mean((predictions[0]-gt[i])**2))
-            if rmse_persistence == 0:
+            if rmse_persistence == 0 :
                 fs = 1
                 error.append(fs)
             else: 

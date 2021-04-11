@@ -38,7 +38,8 @@ def save_errorarray_as_csv(error_array, time_stamp, filename):
     fieldnames = []
     fieldnames.append('timestamp')
     for i in range(N):
-        fieldnames.append(str(10*(i+1)) + 'min')
+        #fieldnames.append(str(10*(i+1)) + 'min')
+        fieldnames.append(str(10*(i)) + 'min')
     
     with open( filename + '.csv', 'w', newline='') as csvfile:
 
@@ -49,7 +50,8 @@ def save_errorarray_as_csv(error_array, time_stamp, filename):
             row_dict = {}
             row_dict['timestamp'] = time_stamp[i]
             for j in range (N):
-                row_dict[str(10*(j+1)) + 'min']  = error_array[i,j]
+                #row_dict[str(10*(j+1)) + 'min']  = error_array[i,j]
+                row_dict[str(10*(j)) + 'min']  = error_array[i,j]
             
             writer.writerow(row_dict)
         
@@ -196,15 +198,29 @@ def plot_day_images(dataset, sleep_secs=0, start=0):
         time.sleep(sleep_secs)
         IPython.display.clear_output(wait=True)
         
-def plot_histogram(values,bins):     
-    
+def plot_histogram(values,bins, normalize = True):     
+    """Takes a list of values or an image and it plots the histogram, showing the mean and standard 
+    deviation.
+
+    Args:
+        values (list / np.array): Values to plot in histogram
+        bins (int): Quanitity of bins to separate the values
+        normalize (bool): if True the histogram is normalize
+    """    
     plt.figure(figsize=(10, 5))
-    plt.hist(values, bins=bins, density=True)
+    
+    if (type(values) == np.ndarray):
+        M,N = values.shape
+        values = np.reshape(values,(M*N))
+             
+    plt.hist(values, bins=bins, density=normalize)
     l1 = plt.axvline(np.mean(values), c='r')
     l2 = plt.axvline(np.mean(values)+np.std(values), c='g')
     l3 = plt.axvline(np.mean(values)-np.std(values), c='g')
     plt.legend((l1, l2, l3), ['mean of values', 'std of values'])
-    plt.ylabel('p(x)')
+    if (normalize): plt.ylabel('p(x)')
+    else: plt.ylabel('Quantity')
+    
     plt.xlabel('value')
     plt.show()
     

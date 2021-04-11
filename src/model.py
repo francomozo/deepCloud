@@ -5,7 +5,8 @@ import cv2 as cv
 import yaml
 
 class Persistence:
-
+    """ Class that predicts the next images using naive prediction.
+    """    
     def predict(self, image, img_timestamp, predict_horizon):
         """Takes an image and predicts the next images on the predict_horizon depending on class instance
             normal: identical image
@@ -38,11 +39,21 @@ class Persistence:
         return predictions, predict_timestamp
 
 class NoisyPersistence(Persistence):
+    """Sub class of Persistence, adds white noise to predictions.
+
+    Args:
+        Persistence ([type]): [description]
+    """    
     def __init__(self, sigma):
         #sigma (int): standard deviation of the gauss noise
         self.sigma = sigma
         
 class BlurredPersistence(Persistence):
+    """Sub class of Persistence, returns predictions after passign through a gauss filter.
+
+    Args:
+        Persistence ([type]): [description]
+    """    
     def __init__(self, kernel_size):
         #kernel_size (tuple): size of kernel
         self.kernel_size = kernel_size
@@ -127,7 +138,7 @@ class Cmv2(Cmv):
     pass
 
 
-def persitence(image, img_timestamp, predict_horizon):
+def persistence(image, img_timestamp, predict_horizon):
     """Takes an image and uses it as the prediction for the next time stamps
 
     Args:
@@ -144,7 +155,7 @@ def persitence(image, img_timestamp, predict_horizon):
 
     return predictions , predict_timestamp
 
-def noisy_persitence(image, img_timestamp, predict_horizon, sigma):
+def noisy_persistence(image, img_timestamp, predict_horizon, sigma):
     """Takes an image adds gaussanian noise and uses it as the prediction for the next time stamps. 
     Used only to have another model for the bar chart in visualization. 
 
@@ -169,8 +180,9 @@ def noisy_persitence(image, img_timestamp, predict_horizon, sigma):
 
     return predictions , predict_timestamp
 
-def blurred_persitence(image, img_timestamp, predict_horizon, kernel_size = (5,5)):
-    """Takes an image and blurs it with a gaussanian window and uses it as the prediction for the next time stamps. 
+def blurred_persistence(image, img_timestamp, predict_horizon, kernel_size = (5,5)):
+    """Takes an image and blurs it with a gaussanian window and uses it as 
+    the prediction for the next time stamps. 
 
     Args:
         image (array): Image used as prediction
