@@ -117,12 +117,12 @@ def save_imgs_list_2npy(imgs_list=[],
 
         np.save(path, img)
         
-def load_images_from_folder(folder, cutUruguay = True):
-    """Loads images stored as Numpy arrays of nth-day  to a list
+def load_images_from_folder(folder, crop_region = 0):
+    """Loads images stored as Numpy arrays of nth-day to a list
 
     Args:
         folder (str): Where the images of day X are stored
-        cutUruguay (bool, optional): Whether to crop to Uruguay. Defaults to True.
+        crop_region (bool, optional): Regions 0(dont crop), 1, 2 and 3(Uruguay).
 
     Returns:
         images (list): List of Numpy arrays containing the images
@@ -135,11 +135,15 @@ def load_images_from_folder(folder, cutUruguay = True):
     
     for filename in np.sort(os.listdir(folder)):
         img = np.load(os.path.join(folder, filename))
-        
-        if cutUruguay:
-            images.append(img[67:185,109:237])
+    
+        if crop_region == 1:
+            current_imgs.append(img[300:2500, 600:2800])
+        elif crop_region == 2:
+            current_imgs.append(img[500:2100, 800:2400])
+        elif crop_region == 3:
+            current_imgs.append(img[700:1700, 1200:2200])
         else:
-            images.append(img)
+            current_imgs.append(img)
         
         img_name = re.sub("[^0-9]", "", filename)
         dt_image = dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]),
@@ -148,7 +152,7 @@ def load_images_from_folder(folder, cutUruguay = True):
 
     return images, time_stamp
 
-def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filename, cutUruguay = True):
+def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filename="", crop_region=0):
     """Loads the first "list_size" images from "folder" if "current_imgs"=[],
         if not, deletes the first element in the list, shift left on position, and
         reads the next image and time-stamp
@@ -158,7 +162,7 @@ def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filena
         current_imgs (list): Numpy arrays storing the images
         time_stamp ([type]): [description]
         list_size (int): Quantity of images to load , should be equal to the prediction horizon + 1
-        cutUruguay (bool, optional): Slices image to keep only the region containing Uruguay. Defaults to True.
+        crop_region (bool, optional): Regions 0(dont crop), 1, 2 and 3(Uruguay).
     """
     
     dia_ref = datetime.datetime(2019,12,31)
@@ -169,9 +173,13 @@ def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filena
         for nth_img in range(list_size ):
             filename = sorted_img_list[nth_img] # stores last img
             img = np.load(os.path.join(folder, filename))
-            
-            if cutUruguay:
-                current_imgs.append(img[67:185,109:237])
+                
+            if crop_region == 1:
+                current_imgs.append(img[300:2500, 600:2800])
+            elif crop_region == 2:
+                current_imgs.append(img[500:2100, 800:2400])
+            elif crop_region == 3:
+                current_imgs.append(img[700:1700, 1200:2200])
             else:
                 current_imgs.append(img)
 
@@ -197,6 +205,7 @@ def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filena
         filename = new_img_filename
     
     return current_imgs, time_stamp, filename
+
 
 class SatelliteImagesDataset(Dataset):
     """ South America Satellite Images Dataset
@@ -239,13 +248,25 @@ class CropImage(object):
     """ Whether to crop the images or not
     
     Args:
-        limits (list): [x1, x2, y1, y2] where to crop the image.
+        crop_region (int):  1 - size=2200x2200.
+                            2 - size=1600x1600.
+                            3 - size=1000x1000 (Uruguay).
     """
 
-    def __init__(self, limits):
-        self.x1, self.x2 = limits[0], limits[1]
-        self.y1, self.y2 = limits[2], limits[3]
-        
+    def __init__(self, crop_region):
+        if crop_region == 1:
+            self.x1, self.x2 = 300, 2500           
+            self.y1, self.y2 = 600, 2800  
+        elif crop_region == 2:
+            self.x1, self.x2 = 500, 2100
+            self.y1, self.y2 = 800, 2400
+        elif crop_region == 3:
+            self.x1, self.x2 = 700, 1700 
+            self.y1, self.y2 = 1200, 2200
+            
+
+            
+                
     def __call__(self, image):
-        return image[self.y1:self.y2,self.x1:self.x2]
+        return image[self.x1:self.x2,self.y1:self.y2]
         
