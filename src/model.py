@@ -24,9 +24,9 @@ class Persistence:
         M,N = image.shape
 
         for _ in range(predict_horizon): 
-            if (isinstance(self, NoisyPersitence)):
+            if (isinstance(self, NoisyPersistence)):
                 predictions.append(np.clip(image + np.random.normal(0,self.sigma,(M,N)), 0,255))
-            elif (isinstance(self, BlurredPersitence)):
+            elif (isinstance(self, BlurredPersistence)):
                 blurred_pred = cv.GaussianBlur(image,self.kernel_size,0)
                 predictions.append(blurred_pred)
                 image = blurred_pred
@@ -37,12 +37,12 @@ class Persistence:
                                     periods= predict_horizon+1, freq = '10min')
         return predictions, predict_timestamp
 
-class NoisyPersitence(Persistence):
+class NoisyPersistence(Persistence):
     def __init__(self, sigma):
         #sigma (int): standard deviation of the gauss noise
         self.sigma = sigma
         
-class BlurredPersitence(Persistence):
+class BlurredPersistence(Persistence):
     def __init__(self, kernel_size):
         #kernel_size (tuple): size of kernel
         self.kernel_size = kernel_size
@@ -84,7 +84,7 @@ class Cmv:
 
         #get_mapping(cmv, delta_t)
         base_img = imgf  #base_img imagen a la que le voy a aplicar el campo
-        predictions = [imgi]
+        predictions = [imgf]
 
         for i in range(predict_horizon):
             i_idx, j_idx = np.meshgrid(
