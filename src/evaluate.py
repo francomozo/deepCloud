@@ -1,8 +1,10 @@
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
 import skimage.metrics
+import math
 
-def evaluate_image(predictions, gt, metric, pixel_max_value =255):
+def evaluate_image(predictions, gt, metric, pixel_max_value =255, 
+                   small_eval_window = False,window_pad_height=0,window_pad_width =0 ):
     """
     Evaluates the precision of the prediction compared to the gorund truth using different metrics
 
@@ -18,6 +20,10 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255):
         'ReRMSE' : Relative RMSE rmse(pred-gt) / rmse( gt - mean(gt))
         'FS': Forecast skill ,realtive comparison with persistence
         - pixel_max_value (int): Maximum value a pixel can take (used for PSNR)
+        - small_eval_window(bool) : If true the evaluation window shrinks by window_pad_height rows and
+                                    window_pad_width columns
+        - window_pad_height : If M,N size of image -> eval window is [w_p_h//2 : M - w_p_h//2]
+        - window_pad_width : If M,N size of image -> eval window is [w_p_w//2 : N - w_p_w//2]
 
     Returns:
         [list]: list containing the erorrs of each predicted image 
@@ -27,6 +33,8 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255):
     #length must be the same
     len_pred = len(predictions)
     len_gt = len(gt)
+    M,N = predictions[0].shape
+    
     
     if (len_pred != len_gt):
         raise ValueError('Predictions and Ground truth must have the same length. len(predictions)=',len_pred, ', len(gt)=',len_gt)
@@ -37,34 +45,46 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255):
     
     error= [] 
     
+    if (small_eval_window):
+        p = window_pad_height//2
+        q = window_pad_width//2
+    else:
+        p = 0
+        q = 0
+    
+    #Check for NANs in last image    
+    if (math.isnan(np.sum(predictions[-1][p:M-p,q:N-q]  ))) :
+        raise ValueError('Last prediction has np.nan values')
+        
+    
     for i in range (len_pred):
         
-        if (predictions[i].shape != gt[i].shape):
+        if (predictions[i][p:M-p,q:N-q].shape != gt[i][p:M-p,q:N-q].shape):
             raise ValueError('Input images must have the same dimensions.')
         
         if(metric == 'RMSE'):
-            error.append(np.sqrt(np.mean((predictions[i]-gt[i])**2)) )   
+            error.append(np.sqrt(np.mean((predictions[i][p: M-p, q:N-q ] -gt[i][p: M-p, q:N-q ] )**2)) )   
         elif (metric == 'MSE' ):
-            error.append(np.mean((predictions[i]-gt[i])**2) ) 
+            error.append(np.mean((predictions[i][p: M-p, q:N-q ] -gt[i][p: M-p, q:N-q ] )**2) ) 
         elif (metric == 'PSNR' ):            
-            mse = np.mean((predictions[i]-gt[i])**2)
+            mse = np.mean((predictions[i][p:M-p,q:N-q] -gt[i][p:M-p,q:N-q ])**2)
             if (mse != 0 ):
                 error.append(10* np.log10(pixel_max_value**2/mse)) 
             else:
                 error.append(20*np.log10(pixel_max_value))
      
         elif (metric == 'SSIM'):
-            error.append(ssim(predictions[i] , gt[i]))
+            error.append(ssim(predictions[i][p:M-p,q:N-q],gt[i][p:M-p,q:N-q]))
         elif (metric == 'NRMSE'):
-            nrmse = skimage.metrics.normalized_root_mse(gt[i],predictions[i])
+            nrmse = skimage.metrics.normalized_root_mse(gt[i][p:M-p,q:N-q] ,predictions[i][p:M-p,q:N-q])
             error.append(nrmse)
         elif (metric == 'ReRMSE'):
             eps = 0.0001
-            re_rmse = np.sqrt(np.mean((predictions[i]-gt[i])**2))/(np.sqrt(np.mean((np.mean(gt[i])-gt[i])**2))+eps)
+            re_rmse = np.sqrt(np.mean((predictions[i][p:M-p,q:N-q]-gt[i][p:M-p,q:N-q])**2))/(np.sqrt(np.mean((np.mean(gt[i][p: M-p, q:N-q ] )-gt[i][p: M-p, q:N-q ] )**2))+eps)
             error.append(re_rmse)
         elif (metric == 'FS'):
-            rmse = np.sqrt(np.mean((predictions[i]-gt[i])**2))
-            rmse_persistence = np.sqrt(np.mean((predictions[0]-gt[i])**2))
+            rmse = np.sqrt(np.mean((predictions[i][p: M-p, q:N-q ] -gt[i][p: M-p, q:N-q ] )**2))
+            rmse_persistence = np.sqrt(np.mean((predictions[0][p:M-p,q:N-q] -gt[i][p:M-p,q:N-q] )**2))
             if rmse_persistence == 0 :
                 fs = 1
                 error.append(fs)
