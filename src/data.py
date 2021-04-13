@@ -1,8 +1,15 @@
+# USAGE:
+#   Functions to load images, custom datasets, dataloaders and collate_fn,
+#   train/val/test splits, date computations.
+#
+
+
+
 import numpy as np
 import os
 import re
 import src.lib.preprocessing_functions as pf
-import src.lib.helper_functions as hf
+import src.lib.utils as utils
 import cv2 as cv
 import datetime
 from torch.utils.data import Dataset
@@ -240,7 +247,7 @@ class SatelliteImagesDataset(Dataset):
                                                   minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
         
         sample = {'image': image,
-                  'time_stamp': hf.datetime2str(time_stamp)}
+                  'time_stamp': utils.datetime2str(time_stamp)}
         
         return sample
     
@@ -264,9 +271,6 @@ class CropImage(object):
             self.x1, self.x2 = 700, 1700 
             self.y1, self.y2 = 1200, 2200
             
-
-            
-                
     def __call__(self, image):
         return image[self.x1:self.x2,self.y1:self.y2]
         

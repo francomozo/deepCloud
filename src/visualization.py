@@ -1,3 +1,7 @@
+# USAGE:
+#   Barcharts, plots, graphs, histograms, functions to view dataset, etc
+#
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np

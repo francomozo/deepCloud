@@ -1,3 +1,7 @@
+# USAGE:
+#   Model predictions evaluation functions
+#
+
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
 import skimage.metrics

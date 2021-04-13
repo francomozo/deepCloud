@@ -1,9 +1,13 @@
-import datetime
+# USAGE:
+#   Utility functions and functions that perform part of the computation 
+#   for functions in other modules. Should be used as little as possible.
+#
 
+import datetime
 
 def datetime2str(datetime_obj):
     """ 
-        Receives a datetiem object and returns a string
+        Receives a datetime object and returns a string
         in format 'day/month/year hr:mins:secs' 
     """
     
