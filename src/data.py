@@ -11,6 +11,61 @@ import src.lib.utils as utils
 import cv2 as cv
 import datetime
 from torch.utils.data import Dataset
+from torch.utils.data._utils.collate import default_collate
+
+class SatelliteImagesDatasetSW(Dataset):
+    """ South America Satellite Images Dataset
+
+    Args:
+        root_dir (string): Directory with all images from day n.
+        transform (callable, optional): Optional transform to be applied on a sample.
+        
+    Returns:
+        [dict]: {'image': image, 'time_stamp': time_stamp}
+    """
+
+    dia_ref = datetime.datetime(2019,12,31)
+    
+    def __init__(self, root_dir, window=1, transform=None):
+        self.root_dir = root_dir
+        self.images_list = np.sort(os.listdir(self.root_dir))
+        self.transform = transform
+        self.window = window
+    
+    def __len__(self):
+        return len(self.images_list) - self.window
+    
+    def __getitem__(self, idx):
+        try:
+            img_names = [os.path.join(self.root_dir, self.images_list[idx])
+                         for idx in np.arange(idx, self.window + idx, 1)]
+
+            images = np.array([np.load(img_name) for img_name in img_names])
+
+            if self.transform:
+                images = np.array([self.transform(image) for image in images])
+            
+            img_names = [re.sub("[^0-9]", "", self.images_list[idx]) 
+                         for idx in np.arange(idx, self.window + idx, 1)]
+           
+            time_stamps = [self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), 
+                                                             hours=int(img_name[7:9]), 
+                                                             minutes=int(img_name[9:11]), 
+                                                             seconds = int(img_name[11:]))
+                            for img_name in img_names]
+
+            samples = {'images': images,
+                      'time_stamps': [utils.datetime2str(ts) for ts in time_stamps]}
+            
+            return samples        
+        except IndexError:
+            print('End of sliding window')
+
+def collate_fn_sw(batch):
+    samples = default_collate(batch)
+    samples['images'] = samples['images'].squeeze()
+    samples['time_stamps'] = [''.join(ts) for ts in samples['time_stamps']]
+    return samples
 
 class SatelliteImagesDataset(Dataset):
     """ South America Satellite Images Dataset
