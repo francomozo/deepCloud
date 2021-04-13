@@ -116,7 +116,7 @@ def load_images_from_folder(folder, crop_region = 0):
         time_stamp (list): List with datetime of the images
     """
     
-    images = []
+    current_imgs = []
     time_stamp = []
     dia_ref = datetime.datetime(2019,12,31)
     
@@ -137,7 +137,7 @@ def load_images_from_folder(folder, crop_region = 0):
                     minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
         time_stamp.append(dt_image)
 
-    return images, time_stamp
+    return current_imgs, time_stamp
 
 def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filename="", crop_region=0):
     """Loads the first "list_size" images from "folder" if "current_imgs"=[],
