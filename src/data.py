@@ -3,8 +3,6 @@
 #   train/val/test splits, date computations.
 #
 
-
-
 import numpy as np
 import os
 import re
@@ -14,116 +12,43 @@ import cv2 as cv
 import datetime
 from torch.utils.data import Dataset
 
-def load_img(meta_path='data/meta',
-             img_name='ART_2020020_111017.FR',
-             mk_folder_path='data/C02-MK/2020',
-             img_folder_path='data/C02-FR/2020'
-    ):
-   
-    lats, lons = pf.read_meta(meta_path)
-    
-    dtime = pf.get_dtime(img_name)
-    
-
-    cosangs, cos_mask = pf.get_cosangs(dtime, lats, lons)
-    img_mask = pf.load_mask(
-      img_name, mk_folder_path, lats.size, lons.size
-    )
-    img = pf.load_img(
-      img_name, img_folder_path, lats.size, lons.size
-    )
-    rimg = cv.inpaint(img, img_mask, 3, cv.INPAINT_NS)
-    rp_image = pf.normalize(rimg, cosangs, 0.15)
-    
-    return rp_image   
-
-def save_imgs_2npy(meta_path='data/meta',
-            mk_folder_path='data/C02-MK/2020',
-            img_folder_path='data/C02-FR/2020',
-            destintation_path='data/images',
-            split_days_into_folders=True
-    ):
-    """Saves images as Numpy arrays
-       (Uses load_img() function)
+class SatelliteImagesDataset(Dataset):
+    """ South America Satellite Images Dataset
 
     Args:
-        meta_path (str, optional): Defaults to 'data/meta'.
-        mk_folder_path (str, optional): Defaults to 'data/C02-MK/2020'.
-        img_folder_path (str, optional): Defaults to 'data/C02-FR/2020'.
-        destintation_path (str, optional): Defaults to 'data/images'.
-        split_days_into_folders (bool, optional): Defaults to False.
+        root_dir (string): Directory with all images from day n.
+        transform (callable, optional): Optional transform to be applied on a sample.
+        
+    Returns:
+        [dict]: {'image': image, 'time_stamp': time_stamp}
     """
 
-    for filename in os.listdir(img_folder_path):
-        img = load_img(  # added needed arguments (franchesoni)
-                    meta_path=meta_path,
-                    img_name=filename,
-                    mk_folder_path=mk_folder_path,
-                    img_folder_path=img_folder_path,
-        )
-        img = np.asarray(img)
-
-        if split_days_into_folders:
-            day = re.sub("[^0-9]", "", filename)[4:7].lstrip("0")
-            try:
-                os.makedirs(os.path.join(os.getcwd(), destintation_path, "dia_" + day))
-            except:
-                pass
-            path = os.path.join(destintation_path, "day_" + day, os.path.splitext(filename)[0] + ".npy")
+    dia_ref = datetime.datetime(2019,12,31)
+    
+    def __init__(self, root_dir, transform=None):
+        self.root_dir = root_dir
+        self.images_list = np.sort(os.listdir(self.root_dir))
+        self.transform = transform
+    
+    def __len__(self):
+        return len(self.images_list)
+    
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.root_dir, 
+                                self.images_list[idx])
+        image = np.load(img_name)
+        if self.transform:
+            image = self.transform(image)
         
-        else:
-            try:
-                os.makedirs(os.path.join(os.getcwd(), destintation_path, "loaded_images"))
-            except:
-                pass
-            path = os.path.join(destintation_path, 'loaded_images', os.path.splitext(filename)[0] + ".npy")
-
-        np.save(path, img)
+        img_name = re.sub("[^0-9]", "", self.images_list[idx])
+        time_stamp = self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]), 
+                                                  minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
         
-def save_imgs_list_2npy(imgs_list=[],
-            meta_path='data/meta',
-            mk_folder_path='data/C02-MK/2020',
-            img_folder_path='data/C02-FR/2020',
-            destintation_path='data/images',
-            split_days_into_folders=True
-    ):
-    """Saves images as Numpy arrays to folders
-
-    Args:
-        imgs_list[] (list): List containing the names of the images to be saved. ie: days.
-        meta_path (str, optional): Defaults to 'data/meta'.
-        mk_folder_path (str, optional): Defaults to 'data/C02-MK/2020'.
-        img_folder_path (str, optional): Defaults to 'data/C02-FR/2020'.
-        destintation_path (str, optional): Defaults to 'data/images'.
-        split_days_into_folders (bool, optional): Defaults to False.
-    """
-
-    for filename in imgs_list:
-        img = load_img(  # added needed arguments (franchesoni)
-                    meta_path=meta_path,
-                    img_name=filename,
-                    mk_folder_path=mk_folder_path,
-                    img_folder_path=img_folder_path,
-        )
-        img = np.asarray(img)
-
-        if split_days_into_folders:
-            day = re.sub("[^0-9]", "", filename)[4:7].lstrip("0")
-            try:
-                os.makedirs(os.path.join(os.getcwd(), destintation_path, "dia_" + day))
-            except:
-                pass
-            path = os.path.join(destintation_path, "dia_" + day, os.path.splitext(filename)[0] + ".npy")
+        sample = {'image': image,
+                  'time_stamp': utils.datetime2str(time_stamp)}
         
-        else:
-            try:
-                os.makedirs(os.path.join(os.getcwd(), destintation_path, "loaded_images"))
-            except:
-                pass
-            path = os.path.join(destintation_path, 'loaded_images', os.path.splitext(filename)[0] + ".npy")
-
-        np.save(path, img)
-        
+        return sample
+    
 def load_images_from_folder(folder, crop_region = 0):
     """Loads images stored as Numpy arrays of nth-day to a list
 
@@ -213,64 +138,122 @@ def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filena
     
     return current_imgs, time_stamp, filename
 
-
-class SatelliteImagesDataset(Dataset):
-    """ South America Satellite Images Dataset
+def load_img(meta_path='data/meta',
+             img_name='ART_2020020_111017.FR',
+             mk_folder_path='data/C02-MK/2020',
+             img_folder_path='data/C02-FR/2020'
+    ):
+    """ Loads image from .FR .MK and metadata files into Numpy array
 
     Args:
-        root_dir (string): Directory with all images from day n.
-        transform (callable, optional): Optional transform to be applied on a sample.
-        
-    Returns:
-        [dict]: {'image': image, 'time_stamp': time_stamp}
+        meta_path (str, optional): Defaults to 'data/meta'.
+        img_name (str, optional): Defaults to 'ART_2020020_111017.FR'.
+        mk_folder_path (str, optional): Defaults to 'data/C02-MK/2020'.
+        img_folder_path (str, optional): Defaults to 'data/C02-FR/2020'.
     """
+   
+    lats, lons = pf.read_meta(meta_path)
+    
+    dtime = pf.get_dtime(img_name)
+    
 
-    dia_ref = datetime.datetime(2019,12,31)
+    cosangs, cos_mask = pf.get_cosangs(dtime, lats, lons)
+    img_mask = pf.load_mask(
+      img_name, mk_folder_path, lats.size, lons.size
+    )
+    img = pf.load_img(
+      img_name, img_folder_path, lats.size, lons.size
+    )
+    rimg = cv.inpaint(img, img_mask, 3, cv.INPAINT_NS)
+    rp_image = pf.normalize(rimg, cosangs, 0.15)
     
-    def __init__(self, root_dir, transform=None):
-        self.root_dir = root_dir
-        self.images_list = np.sort(os.listdir(self.root_dir))
-        self.transform = transform
-    
-    def __len__(self):
-        return len(self.images_list)
-    
-    def __getitem__(self, idx):
-        img_name = os.path.join(self.root_dir, 
-                                self.images_list[idx])
-        image = np.load(img_name)
-        if self.transform:
-            image = self.transform(image)
-        
-        img_name = re.sub("[^0-9]", "", self.images_list[idx])
-        time_stamp = self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]), 
-                                                  minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
-        
-        sample = {'image': image,
-                  'time_stamp': utils.datetime2str(time_stamp)}
-        
-        return sample
-    
-class CropImage(object):
-    """ Whether to crop the images or not
-    
+    return rp_image   
+
+def save_imgs_2npy(meta_path='data/meta',
+            mk_folder_path='data/C02-MK/2020',
+            img_folder_path='data/C02-FR/2020',
+            destintation_path='data/images',
+            split_days_into_folders=True
+    ):
+    """Saves images from "img_folder_path" to "destintation_path" as Numpy arrays
+       (Uses load_img() function)
+
     Args:
-        crop_region (int):  1 - size=2200x2200.
-                            2 - size=1600x1600.
-                            3 - size=1000x1000 (Uruguay).
+        meta_path (str, optional): Defaults to 'data/meta'.
+        mk_folder_path (str, optional): Defaults to 'data/C02-MK/2020'.
+        img_folder_path (str, optional): Defaults to 'data/C02-FR/2020'.
+        destintation_path (str, optional): Defaults to 'data/images'.
+        split_days_into_folders (bool, optional): Defaults to False.
     """
 
-    def __init__(self, crop_region):
-        if crop_region == 1:
-            self.x1, self.x2 = 300, 2500           
-            self.y1, self.y2 = 600, 2800  
-        elif crop_region == 2:
-            self.x1, self.x2 = 500, 2100
-            self.y1, self.y2 = 800, 2400
-        elif crop_region == 3:
-            self.x1, self.x2 = 700, 1700 
-            self.y1, self.y2 = 1200, 2200
-            
-    def __call__(self, image):
-        return image[self.x1:self.x2,self.y1:self.y2]
+    for filename in os.listdir(img_folder_path):
+        img = load_img(  # added needed arguments (franchesoni)
+                    meta_path=meta_path,
+                    img_name=filename,
+                    mk_folder_path=mk_folder_path,
+                    img_folder_path=img_folder_path,
+        )
+        img = np.asarray(img)
+
+        if split_days_into_folders:
+            day = re.sub("[^0-9]", "", filename)[4:7].lstrip("0")
+            try:
+                os.makedirs(os.path.join(os.getcwd(), destintation_path, "dia_" + day))
+            except:
+                pass
+            path = os.path.join(destintation_path, "day_" + day, os.path.splitext(filename)[0] + ".npy")
+        
+        else:
+            try:
+                os.makedirs(os.path.join(os.getcwd(), destintation_path, "loaded_images"))
+            except:
+                pass
+            path = os.path.join(destintation_path, 'loaded_images', os.path.splitext(filename)[0] + ".npy")
+
+        np.save(path, img)
+        
+def save_imgs_list_2npy(imgs_list=[],
+            meta_path='data/meta',
+            mk_folder_path='data/C02-MK/2020',
+            img_folder_path='data/C02-FR/2020',
+            destintation_path='data/images',
+            split_days_into_folders=True
+    ):
+    """Saves images as Numpy arrays to folders
+
+    Args:
+        imgs_list[] (list): List containing the names of the images to be saved. ie: days.
+        meta_path (str, optional): Defaults to 'data/meta'.
+        mk_folder_path (str, optional): Defaults to 'data/C02-MK/2020'.
+        img_folder_path (str, optional): Defaults to 'data/C02-FR/2020'.
+        destintation_path (str, optional): Defaults to 'data/images'.
+        split_days_into_folders (bool, optional): Defaults to False.
+    """
+
+    for filename in imgs_list:
+        img = load_img(  # added needed arguments (franchesoni)
+                    meta_path=meta_path,
+                    img_name=filename,
+                    mk_folder_path=mk_folder_path,
+                    img_folder_path=img_folder_path,
+        )
+        img = np.asarray(img)
+
+        if split_days_into_folders:
+            day = re.sub("[^0-9]", "", filename)[4:7].lstrip("0")
+            try:
+                os.makedirs(os.path.join(os.getcwd(), destintation_path, "dia_" + day))
+            except:
+                pass
+            path = os.path.join(destintation_path, "dia_" + day, os.path.splitext(filename)[0] + ".npy")
+        
+        else:
+            try:
+                os.makedirs(os.path.join(os.getcwd(), destintation_path, "loaded_images"))
+            except:
+                pass
+            path = os.path.join(destintation_path, 'loaded_images', os.path.splitext(filename)[0] + ".npy")
+
+        np.save(path, img)
+
         
