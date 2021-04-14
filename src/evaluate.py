@@ -7,6 +7,8 @@ from skimage.metrics import structural_similarity as ssim
 import skimage.metrics
 import math
 
+import src.lib.utils as utils
+
 def evaluate_image(predictions, gt, metric, pixel_max_value =255, 
                    small_eval_window = False,window_pad_height=0,window_pad_width =0 ,
                    dynamic_window = False):
@@ -51,9 +53,11 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255,
     error= [] 
     
     if (dynamic_window):
-        #funcion nacho
-        p = 0
-        q = 0
+        xmin, xmax, ymin, ymax = utils.find_inner_image(predictions[-1])
+        pi = xmin
+        pf = M - xmax
+        qi = ymin
+        qf = N - ymax
     
     elif (small_eval_window):
         pi = window_pad_height//2
