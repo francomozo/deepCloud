@@ -30,8 +30,9 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255,
         - pixel_max_value (int): Maximum value a pixel can take (used for PSNR)
         - small_eval_window(bool) : If true the evaluation window shrinks by window_pad_height rows and
                                     window_pad_width columns
-        - window_pad_height : If M,N size of image -> eval window is [w_p_h//2 : M - w_p_h//2]
-        - window_pad_width : If M,N size of image -> eval window is [w_p_w//2 : N - w_p_w//2]
+        - window_pad_height(int) : If M,N size of image -> eval window is [w_p_h//2 : M - w_p_h//2]
+        - window_pad_width(int) : If M,N size of image -> eval window is [w_p_w//2 : N - w_p_w//2]
+        -dynamic_window(bool) :  
 
     Returns:
         [list]: list containing the erorrs of each predicted image 
