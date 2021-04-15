@@ -123,8 +123,8 @@ class Cmv:
                 map_y,
                 cv.INTER_LINEAR,
                 borderMode=cv.BORDER_CONSTANT,
-                #borderValue=np.nan,  # valor que se agrega al mover los bordes
-                borderValue=0,
+                borderValue=np.nan,  # valor que se agrega al mover los bordes
+                #borderValue=0,
             )
             # if show_for_debugging:
             #     show_for_debugging2(base_img, next_img, cmv, delta_t)

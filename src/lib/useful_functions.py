@@ -464,3 +464,38 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     sys.__excepthook__(exc_type, exc_value, exc_traceback)
     return
 
+def biggest_window_wo_nan(array_w_nan):
+    
+    M,N = array_w_nan.shape
+    
+    if (math.isnan(np.sum(array_w_nan ))) :
+        index_list = np.argwhere(np.isnan(array_w_nan))
+        print(index_list)
+        biggest_row = 0
+        smallest_row = M
+        biggest_col = 0
+        smallest_col = N
+        #find unaffected rows
+        for index in index_list:
+            if (index[0]> biggest_row):
+                #print('big row')
+                biggest_row = index[0]
+            if (index[0]< smallest_row):
+                smallest_row = index[0]
+        #within unaffected rows find unaffected cols
+        for index in index_list:
+            if ( smallest_row <index[0]<biggest_row):
+                
+                if (index[1]> biggest_col):
+                    #print('big col')
+                    biggest_col = index[1]
+                if (index[1]< smallest_col):
+                    smallest_col = index[1]
+                
+    else:  
+        biggest_row = M
+        smallest_row = 0
+        biggest_col = N
+        smallest_col = 0     
+        
+    return smallest_row,biggest_row,smallest_col,biggest_col
