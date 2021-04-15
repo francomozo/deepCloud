@@ -135,7 +135,7 @@ def barchart_compare3(model1_values,model1_name,model2_values,model2_name,model3
     fig.tight_layout()
     plt.show() 
     
-def plot_graph (model_values):
+def plot_graph(model_values):
     """Plots the errors of the predictions for a generated sequence
 
     Args:
@@ -151,7 +151,7 @@ def plot_graph (model_values):
     plt.ylabel('Error Metric') 
     plt.show()
     
-def show_image_list (images_list,rows):
+def show_image_list(images_list, rows):
     """ Shows the images passed in a grid
 
     Args:

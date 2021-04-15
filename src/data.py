@@ -18,10 +18,12 @@ class SatelliteImagesDatasetSW(Dataset):
 
     Args:
         root_dir (string): Directory with all images from day n.
+        window (int): Size of the moving window to load the images.
         transform (callable, optional): Optional transform to be applied on a sample.
         
+        
     Returns:
-        [dict]: {'image': image, 'time_stamp': time_stamp}
+        [dict]: {'images': images, 'time_stamps': time_stamps}
     """
 
     dia_ref = datetime.datetime(2019,12,31)
@@ -62,6 +64,12 @@ class SatelliteImagesDatasetSW(Dataset):
             print('End of sliding window')
 
 def collate_fn_sw(batch):
+    """Custom collate_fn to load images into batches
+       using a moving window
+
+    Returns:
+        [dict]: {'images': images, 'time_stamps': time_stamps} 
+    """
     samples = default_collate(batch)
     samples['images'] = samples['images'].squeeze()
     samples['time_stamps'] = [''.join(ts) for ts in samples['time_stamps']]
