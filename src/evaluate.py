@@ -6,6 +6,7 @@ import numpy as np
 from skimage.metrics import structural_similarity as ssim
 import skimage.metrics
 import math
+import torch
 
 import src.lib.utils as utils
 
@@ -16,8 +17,8 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255,
     Evaluates the precision of the prediction compared to the gorund truth using different metrics
 
     Args:
-        - predictions (list): list containing the predicted images
-        - gt (list): list containing the ground truth images corresponding to the predicted ones
+        - predictions (Numpy Array): Numpy array containing the predicted images
+        - gt (pyTorch Tensor): tensor containing the ground truth images corresponding to the predicted ones
         - metric (string): 
         RMSE, 
         MSE, 
@@ -37,18 +38,18 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255,
         compared to the according ground truth image
     """   
 
+    if torch.is_tensor(gt): 
+        gt = gt.numpy()
+
     #length must be the same
-    len_pred = len(predictions)
-    len_gt = len(gt)
-    M,N = predictions[0].shape
+    C, M, N = predictions.shape
+    len_gt = gt.shape[0]
     
     
-    if (len_pred != len_gt):
-        raise ValueError('Predictions and Ground truth must have the same length. len(predictions)=',len_pred, ', len(gt)=',len_gt)
-      
-        
-    if type(predictions) == np.ndarray : #case the prediction input is an array instead of a list
-        len_pred=1
+    
+    if (C != len_gt):
+        raise ValueError('Predictions and Ground truth must have the same length. len(predictions)=',C, ', len(gt)=',len_gt)
+
     
     error= [] 
     
@@ -65,41 +66,41 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255,
         qi = window_pad_width//2
         qf = N - window_pad_width//2
     else:
-        pi,pf,qi ,qf= 0,M,0,N
+        pi,pf,qi,qf = 0,M,0,N
         
     #Check for NANs in last image    
     if (math.isnan(np.sum(predictions[-1][pi:pf,qi:qf]  ))) :
         raise ValueError('Last prediction has np.nan values')
         
     
-    for i in range (len_pred):
+    for i in range (C):
         
-        if (predictions[i][pi:pf,qi:qf].shape != gt[i][pi:pf,qi:qf].shape):
+        if (predictions[i,pi:pf,qi:qf].shape != gt[i,pi:pf,qi:qf].shape):
             raise ValueError('Input images must have the same dimensions.')
         
         if(metric == 'RMSE'):
-            error.append(np.sqrt(np.mean((predictions[i][pi:pf,qi:qf] -gt[i][pi:pf,qi:qf] )**2)) )   
+            error.append(np.sqrt(np.mean((predictions[i,pi:pf,qi:qf] -gt[i,pi:pf,qi:qf] )**2)) )   
         elif (metric == 'MSE' ):
-            error.append(np.mean((predictions[i][pi:pf,qi:qf] -gt[i][pi:pf,qi:qf] )**2) ) 
+            error.append(np.mean((predictions[i,pi:pf,qi:qf] -gt[i,pi:pf,qi:qf] )**2) ) 
         elif (metric == 'PSNR' ):            
-            mse = np.mean((predictions[i][pi:pf,qi:qf] -gt[i][pi:pf,qi:qf])**2)
+            mse = np.mean((predictions[i,pi:pf,qi:qf] -gt[i,pi:pf,qi:qf])**2)
             if (mse != 0 ):
                 error.append(10* np.log10(pixel_max_value**2/mse)) 
             else:
                 error.append(20*np.log10(pixel_max_value))
      
         elif (metric == 'SSIM'):
-            error.append(ssim(predictions[i][pi:pf,qi:qf],gt[i][pi:pf,qi:qf]))
+            error.append(ssim(predictions[i,pi:pf,qi:qf],gt[i,pi:pf,qi:qf]))
         elif (metric == 'NRMSE'):
-            nrmse = skimage.metrics.normalized_root_mse(gt[i][pi:pf,qi:qf],predictions[i][pi:pf,qi:qf])
+            nrmse = skimage.metrics.normalized_root_mse(gt[i,pi:pf,qi:qf],predictions[i,pi:pf,qi:qf])
             error.append(nrmse)
         elif (metric == 'ReRMSE'):
             eps = 0.0001
-            re_rmse = np.sqrt(np.mean((predictions[i][pi:pf,qi:qf]-gt[i][pi:pf,qi:qf])**2))/(np.sqrt(np.mean((np.mean(gt[i][pi:pf,qi:qf] )-gt[i][pi:pf,qi:qf])**2))+eps)
+            re_rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]-gt[i,pi:pf,qi:qf])**2))/(np.sqrt(np.mean((np.mean(gt[i,pi:pf,qi:qf] )-gt[i,pi:pf,qi:qf])**2))+eps)
             error.append(re_rmse)
         elif (metric == 'FS'):
-            rmse = np.sqrt(np.mean((predictions[i][pi:pf,qi:qf] -gt[i][pi:pf,qi:qf])**2))
-            rmse_persistence = np.sqrt(np.mean((predictions[0][pi:pf,qi:qf] -gt[i][pi:pf,qi:qf] )**2))
+            rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf] -gt[i,pi:pf,qi:qf])**2))
+            rmse_persistence = np.sqrt(np.mean((predictions[0,pi:pf,qi:qf] -gt[i,pi:pf,qi:qf] )**2))
             if rmse_persistence == 0 :
                 fs = 1
                 error.append(fs)

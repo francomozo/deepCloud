@@ -7,6 +7,7 @@ import datetime as datetime
 import numpy as np
 import cv2 as cv
 import yaml
+import torch
 
 class Persistence:
     """ Class that predicts the next images using naive prediction.
@@ -23,7 +24,7 @@ class Persistence:
             predict_horizon (int): Length of the prediction horizon.
 
         Returns:
-            [list], [list]: list containing preditions and list containing timestamps
+            [Numpy array], [list]: Array containing preditions and list containing timestamps
         """   
         predictions = [np.array(image)]
         M,N = image.shape
@@ -40,7 +41,7 @@ class Persistence:
 
         predict_timestamp = pd.date_range(start = img_timestamp,
                                     periods= predict_horizon+1, freq = '10min')
-        return predictions, predict_timestamp
+        return np.array(predictions), predict_timestamp
 
 class NoisyPersistence(Persistence):
     """Sub class of Persistence, adds white noise to predictions.
@@ -79,8 +80,13 @@ class Cmv:
             predict_horizon (int): Length of the prediction horizon (Cuantity of images returned)
 
         Returns:
-            [list]: List with predicted images
+            [Numpy array]: Numpy array with predicted images
         """    
+        
+        if torch.is_tensor(imgi): 
+            imgi = imgi.numpy()
+            imgf = imgf.numpy()
+            
         #get_cmv (dcfg, imgi,imgf, period)
         cmvcfg = self.dcfg["algorithm"]["cmv"]
         flow = cv.calcOpticalFlowFarneback(
@@ -133,7 +139,7 @@ class Cmv:
             if (isinstance(self, Cmv2)):
                 base_img = next_img
 
-        return predictions
+        return np.array(predictions)
 
 class Cmv1(Cmv):
     pass

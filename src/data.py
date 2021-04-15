@@ -11,6 +11,7 @@ import src.lib.utils as utils
 import cv2 as cv
 import datetime
 from torch.utils.data import Dataset
+import torch
 from torch.utils.data._utils.collate import default_collate
 
 class SatelliteImagesDatasetSW(Dataset):
@@ -28,11 +29,14 @@ class SatelliteImagesDatasetSW(Dataset):
 
     dia_ref = datetime.datetime(2019,12,31)
     
+    
+    
     def __init__(self, root_dir, window=1, transform=None):
         self.root_dir = root_dir
         self.images_list = np.sort(os.listdir(self.root_dir))
         self.transform = transform
         self.window = window
+        
     
     def __len__(self):
         return len(self.images_list) - self.window
@@ -43,9 +47,10 @@ class SatelliteImagesDatasetSW(Dataset):
                          for idx in np.arange(idx, self.window + idx, 1)]
 
             images = np.array([np.load(img_name) for img_name in img_names])
-
+            
             if self.transform:
                 images = np.array([self.transform(image) for image in images])
+                # images = np.array([self.transform(Image.fromarray(image)) for image in images])
             
             img_names = [re.sub("[^0-9]", "", self.images_list[idx]) 
                          for idx in np.arange(idx, self.window + idx, 1)]

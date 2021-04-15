@@ -2,6 +2,10 @@
 #   Custom preprocessing classes and functions
 #
 
+from torchvision.transforms import Resize
+from PIL import Image
+import torchvision.transforms.functional as F
+
 class CropImage(object):
     """ Whether to crop the images or not
     
@@ -24,3 +28,26 @@ class CropImage(object):
             
     def __call__(self, image):
         return image[self.x1:self.x2,self.y1:self.y2]
+    
+# class ResizeImage(object):
+#     def __init__(self, size, interpolation=Image.BILINEAR, max_size=None):
+#         self.size = size
+#         self.interpolation = interpolation
+#         self.max_size = max_size
+    
+#     def forward(self, img):
+#         """
+#         Args:
+#             img (Numpy ndarray): Image to be scaled.
+#         Returns:
+#             PIL Image or Tensor: Rescaled image.
+#         """
+#         return F.resize(Image.fromarray(img), self.size, self.interpolation)    
+    
+#     def __repr__(self):
+#         interpolate_str = self.interpolation.value
+#         return self.__class__.__name__ + '(size={0}, interpolation={1}, max_size={2})'.format(
+#             self.size, interpolate_str, self.max_size)
+        
+#     def __call__(self, img):
+#         return self.forward(img)

@@ -28,37 +28,6 @@ def matrix_graph (error_array):
     ax1.set_ylabel('Day time')
 
     plt.show()
-    
-def save_errorarray_as_csv(error_array, time_stamp, filename):
-    """ Generates a CSV file with the error of the predictions at the different times of the day
-
-    Args:
-        error_array (array): Array containing the values of the error of a prediction
-        time_stamp (list): Contains the diferent timestamps of the day
-        filename (string): path and name of the generated file
-    """    
-    
-    M,N = error_array.shape
-    fieldnames = []
-    fieldnames.append('timestamp')
-    for i in range(N):
-        #fieldnames.append(str(10*(i+1)) + 'min')
-        fieldnames.append(str(10*(i)) + 'min')
-    
-    with open( filename + '.csv', 'w', newline='') as csvfile:
-
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-        writer.writeheader()
-        for i in range(M):
-            row_dict = {}
-            row_dict['timestamp'] = time_stamp[i]
-            for j in range (N):
-                #row_dict[str(10*(j+1)) + 'min']  = error_array[i,j]
-                row_dict[str(10*(j)) + 'min']  = error_array[i,j]
-            
-            writer.writerow(row_dict)
-        
 
     
 def barchart_compare2(model1_values,model1_name,model2_values,model2_name ):
@@ -173,6 +142,27 @@ def show_image_list(images_list, rows):
         plt.axis('off')
         plt.imshow(img)
         num += 1
+        
+    plt.subplots_adjust(wspace=1, hspace=1)
+    plt.tight_layout()
+    plt.show()
+    
+def show_sample_dict(sample_dict , rows):
+    images_array = sample_dict['images']
+    ts_list = sample_dict['time_stamps']
+    
+    C = images_array.shape[0]
+    
+    if C % rows == 0: cols = C//rows
+    else: cols = C//rows + 1
+    
+    plt.figure(figsize=(10, 5))
+    for i in range(C):
+
+        plt.subplot(rows,cols ,i+1)
+        plt.title(ts_list[i])
+        plt.axis('off')
+        plt.imshow(images_array[i,:,:])
         
     plt.subplots_adjust(wspace=1, hspace=1)
     plt.tight_layout()
