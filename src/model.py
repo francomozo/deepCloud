@@ -67,10 +67,11 @@ class BlurredPersistence(Persistence):
         self.kernel_size = kernel_size
 
 class Cmv:
-    def __init__(self):
+    def __init__(self, kernel_size = (0,0)):
         # Load configuration
         stream = open("les-prono/admin_scripts/config.yaml", 'r')
         self.dcfg = yaml.load(stream, yaml.FullLoader)  # dict
+        self.kernel_size = kernel_size
 
     def predict(self, imgi, imgf, period, delta_t, predict_horizon):
         """Predicts next image using openCV optical Flow
@@ -135,10 +136,20 @@ class Cmv:
                 borderValue=np.nan,  # valor que se agrega al mover los bordes
                 #borderValue=0,
             )
+            if self.kernel_size[0] == 0 and self.kernel_size[1] == 0 :
+                predictions.append(next_img)
+            else:
+                aux = np.ones_like(next_img)
+                aux[np.isnan(next_img)]=np.nan
+                next_img[np.isnan(next_img)]=0
+                blurred_pred = cv.GaussianBlur(next_img,self.kernel_size,0)
+                blurred_pred = blurred_pred * aux
+                predictions.append(blurred_pred)
+                
+            
             # if show_for_debugging:
             #     show_for_debugging2(base_img, next_img, cmv, delta_t)
         
-            predictions.append(next_img)
             if (isinstance(self, Cmv2)):
                 base_img = next_img
 
