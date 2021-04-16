@@ -26,7 +26,10 @@ class Persistence:
         Returns:
             [Numpy array], [list]: Array containing preditions and list containing timestamps
         """   
-        predictions = [np.array(image)]
+        if torch.is_tensor(image): 
+            image = image.numpy()
+                
+        predictions = [image]
         M,N = image.shape
 
         for _ in range(predict_horizon): 
