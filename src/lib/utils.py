@@ -27,6 +27,10 @@ def str2datetime(date_str):
                             )
     
 def find_inner_image(image):
+    """
+        Receives and image with some values equal to np.nan
+        and returns a window with no np.nans
+    """
     step = 5
     found_xmin = found_ymin = found_xmax = found_ymax = False
     xmin = ymin = xmax = ymax = 0
