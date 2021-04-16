@@ -28,6 +28,10 @@ def str2datetime(date_str):
                             )
     
 def find_inner_image(image):
+    """
+        Receives and image with some values equal to np.nan
+        and returns a window with no np.nans
+    """
     step = 5
     found_xmin = found_ymin = found_xmax = found_ymax = False
     xmin = ymin = xmax = ymax = 0
@@ -35,11 +39,12 @@ def find_inner_image(image):
         range_x = len(image[0]) - (xmin+xmax)
         range_y = len(image[0]) - (ymin+ymax)
         found_xmin_aux = found_ymin_aux = found_xmax_aux = found_ymax_aux = True
+        ymin_aux, ymax_aux, xmin_aux, xmax_aux = ymin, ymax, xmin, xmax
         for i in range(range_x):
-            if (found_ymin == False and found_ymin_aux == True and np.isnan(image[xmin+i][ymin])):
+            if (found_ymin == False and found_ymin_aux == True and np.isnan(image[xmin_aux+i][ymin_aux])):
                 ymin += step
                 found_ymin_aux = False
-            if (found_ymax == False and found_ymax_aux == True and np.isnan(image[-(xmax+i+1)][-(ymax+1)])):
+            if (found_ymax == False and found_ymax_aux == True and np.isnan(image[-(xmax_aux+i+1)][-(ymax_aux+1)])):
                 ymax += step
                 found_ymax_aux = False
             if (i == range_x-1):
@@ -47,10 +52,10 @@ def find_inner_image(image):
                 found_ymax = found_ymax_aux
 
         for i in range(range_y):
-            if (found_xmin == False and found_xmin_aux == True and np.isnan(image[xmin][ymin+i]) ):
+            if (found_xmin == False and found_xmin_aux == True and np.isnan(image[xmin_aux][ymin_aux+i]) ):
                 xmin += step
                 found_xmin_aux = False
-            if (found_xmax == False and found_xmax_aux == True and np.isnan(image[-(xmax+1)][-(ymax+i+1)])):
+            if (found_xmax == False and found_xmax_aux == True and np.isnan(image[-(xmax_aux+1)][-(ymax_aux+i+1)])):
                 xmax += step
                 found_xmax_aux = False
             if (i == range_y-1):
