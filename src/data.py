@@ -361,6 +361,13 @@ def save_imgs_2npy(meta_path='data/meta',
                     img_folder_path=img_folder_path,
         )
         img = np.asarray(img)
+        if (True): #sets pixel over 100 to 100
+            img = np.clip(img,0,100)
+        if (False):#sets pixel over 100 to image mean
+            img[img>100] = np.mean(img)
+        if (False):#sets pixel over 100+std to image mean and pixel between 100 and 100+std to 100
+            img[img>100 +np.std(img)] = np.mean(img)
+            img[img>100] = 100
 
         if split_days_into_folders:
             day = re.sub("[^0-9]", "", filename)[4:7].lstrip("0")
@@ -405,6 +412,16 @@ def save_imgs_list_2npy(imgs_list=[],
                     img_folder_path=img_folder_path,
         )
         img = np.asarray(img)
+        #image clipping
+        
+        if (True): #sets pixel over 100 to 100
+            img = np.clip(img,0,100)
+        if (False):#sets pixel over 100 to image mean
+            img[img>100] = np.mean(img)
+        if (False):#sets pixel over 100+std to image mean and pixel between 100 and 100+std to 100
+            img[img>100 +np.std(img)] = np.mean(img)
+            img[img>100] = 100
+        
 
         if split_days_into_folders:
             day = re.sub("[^0-9]", "", filename)[4:7].lstrip("0")
