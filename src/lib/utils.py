@@ -98,9 +98,7 @@ def save_errorarray_as_csv(error_array, time_stamp, filename):
             writer.writerow(row_dict)
             
 def get_cosangs_mask(meta_path='data/meta',
-                    img_name='ART_2020020_111017.FR',
-                    mk_folder_path='data/C02-MK/2020',
-                    img_folder_path='data/C02-FR/2020'
+                    img_name='ART_2020020_111017.FR'
     ):
     """ Returns zenithal cos from img_name, with and whitout threshold
 
