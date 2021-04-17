@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 import torch
 from torch.utils.data._utils.collate import default_collate
 
-class SatelliteImagesDatasetSW_v2(Dataset):
+class SatelliteImagesDatasetSW(Dataset):
     """ South America Satellite Images Dataset
 
     Args:
@@ -26,16 +26,8 @@ class SatelliteImagesDatasetSW_v2(Dataset):
     Returns:
         [dict]: {'images': images, 'time_stamps': time_stamps}
     """
-
-    # DELETE AFTER SUCCESSFUL IMPLEMENTATION:
-    # The idea is to store the images in a variable of the instance when the
-    # it is created. The when i call instance[i] to modify this variable
-    # mantaining the memory allocation of the images. 
-    
-
+ 
     dia_ref = datetime.datetime(2019,12,31)
-    
-    
     
     def __init__(self, root_dir, window=1, transform=None):
         self.root_dir = root_dir
@@ -72,10 +64,6 @@ class SatelliteImagesDatasetSW_v2(Dataset):
         if idx == 0:
             return self.__samples
         else:
-            # load the next image
-            # delete the first image in the dict
-            # append loaded img and ts to dict
-            # return self.__samples
             
             next_image = os.path.join(self.root_dir, self.images_list[idx + self.window - 1])
             
@@ -91,12 +79,6 @@ class SatelliteImagesDatasetSW_v2(Dataset):
                                                             minutes=int(img_name[9:11]), 
                                                             seconds=int(img_name[11:]))
 
-            # here i have the img in image and the ts in time_stamp
-            # i have to load it to the dict
-            
-            # self.__samples['images'] = np.delete(self.__samples['images'], obj=0 ,axis=0)
-            # self.__samples['images'] = np.append(self.__samples['images'], values=image[np.newaxis, ...] ,axis=0)
-            # i do it in one step
             self.__samples['images'] = np.append(
                                             np.delete(self.__samples['images'],
                                                 obj=0, 
@@ -105,16 +87,16 @@ class SatelliteImagesDatasetSW_v2(Dataset):
                                             values=image[np.newaxis, ...], 
                                             axis=0
                                         )
-            
-            # as for the timestamp:
+
             del self.__samples['time_stamps'][0]
             self.__samples['time_stamps'].append(utils.datetime2str(time_stamp))
             
             return self.__samples        
 
 
-class SatelliteImagesDatasetSW(Dataset):
-    """ South America Satellite Images Dataset
+class SatelliteImagesDatasetSW_v1(Dataset):
+    """ [WARNING]: This function is depracated. Too slow. Use SatelliteImagesDatasetSW instea.
+        South America Satellite Images Dataset
 
     Args:
         root_dir (string): Directory with all images from day n.
@@ -180,7 +162,8 @@ def collate_fn_sw(batch):
     return samples
 
 class SatelliteImagesDataset(Dataset):
-    """ South America Satellite Images Dataset
+    """ First version of a simple dataset class for one image at a time.
+        South America Satellite Images Dataset
 
     Args:
         root_dir (string): Directory with all images from day n.
