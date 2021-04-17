@@ -24,7 +24,7 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255,
         MSE, 
         PSNR, 
         SSIM : Compute the mean structural similarity index between two images.
-        NRMSE = || im_true - im_pred || / || im_true ||
+        NRMSE = rmse( im_true - im_pred ) / || im_true ||
         'ReRMSE' : Relative RMSE rmse(pred-gt) / rmse( gt - mean(gt))
         'FS': Forecast skill ,realtive comparison with persistence
         - pixel_max_value (int): Maximum value a pixel can take (used for PSNR)

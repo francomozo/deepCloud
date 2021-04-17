@@ -14,6 +14,105 @@ from torch.utils.data import Dataset
 import torch
 from torch.utils.data._utils.collate import default_collate
 
+class SatelliteImagesDatasetSW_v2(Dataset):
+    """ South America Satellite Images Dataset
+
+    Args:
+        root_dir (string): Directory with all images from day n.
+        window (int): Size of the moving window to load the images.
+        transform (callable, optional): Optional transform to be applied on a sample.
+        
+        
+    Returns:
+        [dict]: {'images': images, 'time_stamps': time_stamps}
+    """
+
+    # DELETE AFTER SUCCESSFUL IMPLEMENTATION:
+    # The idea is to store the images in a variable of the instance when the
+    # it is created. The when i call instance[i] to modify this variable
+    # mantaining the memory allocation of the images. 
+    
+
+    dia_ref = datetime.datetime(2019,12,31)
+    
+    
+    
+    def __init__(self, root_dir, window=1, transform=None):
+        self.root_dir = root_dir
+        self.images_list = np.sort(os.listdir(self.root_dir))
+        self.transform = transform
+        self.window = window
+        
+        # Load the first "window" images to mem
+        img_names = [os.path.join(self.root_dir, self.images_list[idx])
+                         for idx in range(self.window)]
+
+        images = np.array([np.load(img_name) for img_name in img_names])
+        
+        if self.transform:
+                images = np.array([self.transform(image) for image in images])
+        
+        img_names = [re.sub("[^0-9]", "", self.images_list[idx]) 
+                         for idx in range(self.window)]
+        
+        time_stamps = [self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), 
+                                                         hours=int(img_name[7:9]), 
+                                                         minutes=int(img_name[9:11]), 
+                                                         seconds=int(img_name[11:]))
+                        for img_name in img_names]
+
+        self.__samples = {'images': images,
+                   'time_stamps': [utils.datetime2str(ts) for ts in time_stamps]}
+        
+    
+    def __len__(self):
+        return len(self.images_list) - self.window + 1
+    
+    def __getitem__(self, idx):
+        if idx == 0:
+            return self.__samples
+        else:
+            # load the next image
+            # delete the first image in the dict
+            # append loaded img and ts to dict
+            # return self.__samples
+            
+            next_image = os.path.join(self.root_dir, self.images_list[idx + self.window - 1])
+            
+            image = np.load(next_image)
+                  
+            if self.transform:
+                image = np.array(self.transform(image))
+            
+            img_name = re.sub("[^0-9]", "", self.images_list[idx + self.window - 1]) 
+            
+            time_stamp = self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), 
+                                                            hours=int(img_name[7:9]), 
+                                                            minutes=int(img_name[9:11]), 
+                                                            seconds=int(img_name[11:]))
+
+            # here i have the img in image and the ts in time_stamp
+            # i have to load it to the dict
+            
+            # self.__samples['images'] = np.delete(self.__samples['images'], obj=0 ,axis=0)
+            # self.__samples['images'] = np.append(self.__samples['images'], values=image[np.newaxis, ...] ,axis=0)
+            # i do it in one step
+            self.__samples['images'] = np.append(
+                                            np.delete(self.__samples['images'],
+                                                obj=0, 
+                                                axis=0
+                                            ), 
+                                            values=image[np.newaxis, ...], 
+                                            axis=0
+                                        )
+            
+            # as for the timestamp:
+            del self.__samples['time_stamps'][0]
+            self.__samples['time_stamps'].append(utils.datetime2str(time_stamp))
+            
+            return self.__samples        
+
+
 class SatelliteImagesDatasetSW(Dataset):
     """ South America Satellite Images Dataset
 
@@ -39,7 +138,7 @@ class SatelliteImagesDatasetSW(Dataset):
         
     
     def __len__(self):
-        return len(self.images_list) - self.window
+        return len(self.images_list) - self.window + 1
     
     def __getitem__(self, idx):
         try:
@@ -58,7 +157,7 @@ class SatelliteImagesDatasetSW(Dataset):
             time_stamps = [self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), 
                                                              hours=int(img_name[7:9]), 
                                                              minutes=int(img_name[9:11]), 
-                                                             seconds = int(img_name[11:]))
+                                                             seconds=int(img_name[11:]))
                             for img_name in img_names]
 
             samples = {'images': images,
@@ -110,7 +209,7 @@ class SatelliteImagesDataset(Dataset):
         
         img_name = re.sub("[^0-9]", "", self.images_list[idx])
         time_stamp = self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]), 
-                                                  minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
+                                                   minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
         
         sample = {'image': image,
                   'time_stamp': utils.datetime2str(time_stamp)}
@@ -147,7 +246,7 @@ def load_images_from_folder(folder, crop_region = 0):
         
         img_name = re.sub("[^0-9]", "", filename)
         dt_image = dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]),
-                    minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
+                     minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
         time_stamp.append(dt_image)
 
     return current_imgs, time_stamp
@@ -185,7 +284,7 @@ def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filena
 
             img_name = re.sub("[^0-9]", "", filename)
             dt_image = dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]),
-                    minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
+                     minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
             time_stamp.append(dt_image)
     else:
         del current_imgs[0]
@@ -199,7 +298,7 @@ def load_by_batches(folder, current_imgs, time_stamp, list_size, last_img_filena
     
         img_name = re.sub("[^0-9]", "", new_img_filename)
         dt_image = dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]),
-                    minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
+                     minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
         time_stamp.append(dt_image)
         
         filename = new_img_filename

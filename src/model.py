@@ -138,7 +138,7 @@ class Cmv:
             )
             if self.kernel_size[0] == 0 and self.kernel_size[1] == 0 :
                 predictions.append(next_img)
-            else:
+            else: #add blur to prediction
                 aux = np.ones_like(next_img)
                 aux[np.isnan(next_img)]=np.nan
                 next_img[np.isnan(next_img)]=0
