@@ -7,6 +7,9 @@ import datetime
 import numpy as np
 import csv
 
+import src.lib.preprocessing_functions as pf
+
+
 def datetime2str(datetime_obj):
     """ 
         Receives a datetime object and returns a string
@@ -93,3 +96,30 @@ def save_errorarray_as_csv(error_array, time_stamp, filename):
                 row_dict[str(10*(j)) + 'min']  = error_array[i,j]
             
             writer.writerow(row_dict)
+            
+def get_cosangs_mask(meta_path='data/meta',
+                    img_name='ART_2020020_111017.FR',
+                    mk_folder_path='data/C02-MK/2020',
+                    img_folder_path='data/C02-FR/2020'
+    ):
+    """ Returns zenithal cos from img_name, with and whitout threshold
+
+    Args:
+        meta_path (str, optional): Defaults to 'data/meta'.
+        img_name (str, optional): Defaults to 'ART_2020020_111017.FR'.
+        mk_folder_path (str, optional): Defaults to 'data/C02-MK/2020'.
+        img_folder_path (str, optional): Defaults to 'data/C02-FR/2020'.
+    """
+   
+    lats, lons = pf.read_meta(meta_path)
+    
+    dtime = pf.get_dtime(img_name)
+    
+    cosangs, _ = pf.get_cosangs(dtime, lats, lons)
+    
+    cosangs_thresh = cosangs.copy()
+    
+    cosangs_thresh[(0 < cosangs) & (cosangs <= 0.15)] = 0.5
+    cosangs_thresh[0.15 < cosangs] = 1    
+    
+    return cosangs, cosangs_thresh  
