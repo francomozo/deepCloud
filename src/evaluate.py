@@ -10,15 +10,16 @@ import torch
 
 import src.lib.utils as utils
 
-def evaluate_image(predictions, gt, metric, pixel_max_value =255, 
+def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100, 
                    small_eval_window = False,window_pad_height=0,window_pad_width =0 ,
-                   dynamic_window = False):
+                   dynamic_window = False, evaluate_day_pixels = True):
     """
     Evaluates the precision of the prediction compared to the gorund truth using different metrics
 
     Args:
         - predictions (Numpy Array): Numpy array containing the predicted images
         - gt (pyTorch Tensor): tensor containing the ground truth images corresponding to the predicted ones
+        - gt_ts (list): Contains strings with date and time of the gt images, for cosz 
         - metric (string): 
         RMSE, 
         MSE, 
@@ -32,7 +33,9 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255,
                                     window_pad_width columns
         - window_pad_height(int) : If M,N size of image -> eval window is [w_p_h//2 : M - w_p_h//2]
         - window_pad_width(int) : If M,N size of image -> eval window is [w_p_w//2 : N - w_p_w//2]
-        -dynamic_window(bool) :  
+        - dynamic_window(bool) : generate biggest window without nans in prediction and evaluate only in 
+                                those pixels
+        -evaluate_day_pixels: generate cosz map and evaluate only in pixels with cosz over 
 
     Returns:
         [list]: list containing the erorrs of each predicted image 
@@ -45,13 +48,10 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255,
     #length must be the same
     C, M, N = predictions.shape
     len_gt = gt.shape[0]
-    
-    
-    
+     
     if (C != len_gt):
         raise ValueError('Predictions and Ground truth must have the same length. len(predictions)=',C, ', len(gt)=',len_gt)
-
-    
+ 
     error= [] 
     
     if (dynamic_window):
@@ -73,35 +73,44 @@ def evaluate_image(predictions, gt, metric, pixel_max_value =255,
     if (math.isnan(np.sum(predictions[-1][pi:pf,qi:qf]  ))) :
         raise ValueError('Last prediction has np.nan values')
         
+    cosangs_map = np.ones((pf-pi, qf-qi))
     
     for i in range (C):
         
         if (predictions[i,pi:pf,qi:qf].shape != gt[i,pi:pf,qi:qf].shape):
             raise ValueError('Input images must have the same dimensions.')
         
+        if evaluate_day_pixels:
+            _ , cosangs_thresh = utils.get_cosangs_mask(meta_path='data/meta',
+                                                            img_name=gt_ts[i])
+
+            cosangs_map = cosangs_thresh[pi:pf,qi:qf] 
+        
+            
         if(metric == 'RMSE'):
-            error.append(np.sqrt(np.mean((predictions[i,pi:pf,qi:qf] -gt[i,pi:pf,qi:qf] )**2)) )   
+            rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1) - gt[i,pi:pf,qi:qf]*(cosangs_map==1))**2))
+            error.append(rmse )   
         elif (metric == 'MSE' ):
-            error.append(np.mean((predictions[i,pi:pf,qi:qf] -gt[i,pi:pf,qi:qf] )**2) ) 
+            error.append(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf]*(cosangs_map==1))**2) ) 
         elif (metric == 'PSNR' ):            
-            mse = np.mean((predictions[i,pi:pf,qi:qf] -gt[i,pi:pf,qi:qf])**2)
+            mse = np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf]**(cosangs_map==1))**2)
             if (mse != 0 ):
                 error.append(10* np.log10(pixel_max_value**2/mse)) 
             else:
                 error.append(20*np.log10(pixel_max_value))
      
         elif (metric == 'SSIM'):
-            error.append(ssim(predictions[i,pi:pf,qi:qf],gt[i,pi:pf,qi:qf]))
+            error.append(ssim(predictions[i,pi:pf,qi:qf]*(cosangs_map==1),gt[i,pi:pf,qi:qf]*(cosangs_map==1)))
         elif (metric == 'NRMSE'):
-            nrmse = skimage.metrics.normalized_root_mse(gt[i,pi:pf,qi:qf],predictions[i,pi:pf,qi:qf])
+            nrmse = skimage.metrics.normalized_root_mse(gt[i,pi:pf,qi:qf]*(cosangs_map==1),predictions[i,pi:pf,qi:qf]*(cosangs_map==1))
             error.append(nrmse)
         elif (metric == 'ReRMSE'):
             eps = 0.0001
-            re_rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]-gt[i,pi:pf,qi:qf])**2))/(np.sqrt(np.mean((np.mean(gt[i,pi:pf,qi:qf] )-gt[i,pi:pf,qi:qf])**2))+eps)
+            re_rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf]*(cosangs_map==1))**2))/(np.sqrt(np.mean((np.mean(gt[i,pi:pf,qi:qf]*(cosangs_map==1))-gt[i,pi:pf,qi:qf]*(cosangs_map==1))**2))+eps)
             error.append(re_rmse)
         elif (metric == 'FS'):
-            rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf] -gt[i,pi:pf,qi:qf])**2))
-            rmse_persistence = np.sqrt(np.mean((predictions[0,pi:pf,qi:qf] -gt[i,pi:pf,qi:qf] )**2))
+            rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf]*(cosangs_map==1))**2))
+            rmse_persistence = np.sqrt(np.mean((predictions[0,pi:pf,qi:qf]*(cosangs_map==1) -gt[i,pi:pf,qi:qf]*(cosangs_map==1) )**2))
             if rmse_persistence == 0 :
                 fs = 1
                 error.append(fs)

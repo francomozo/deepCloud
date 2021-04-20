@@ -73,7 +73,7 @@ class Cmv:
         self.dcfg = yaml.load(stream, yaml.FullLoader)  # dict
         self.kernel_size = kernel_size
 
-    def predict(self, imgi, imgf, period, delta_t, predict_horizon):
+    def predict(self, imgi, imgf, imgf_ts,period, delta_t, predict_horizon):
         """Predicts next image using openCV optical Flow
 
         Args:
@@ -153,7 +153,9 @@ class Cmv:
             if (isinstance(self, Cmv2)):
                 base_img = next_img
 
-        return np.array(predictions)
+        predict_timestamp = pd.date_range(start = imgf_ts,
+                                    periods= predict_horizon+1, freq = str(delta_t//60) +'min')
+        return np.array(predictions), predict_timestamp
 
 class Cmv1(Cmv):
     pass

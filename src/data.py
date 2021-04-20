@@ -95,7 +95,7 @@ class SatelliteImagesDatasetSW(Dataset):
 
 
 class SatelliteImagesDatasetSW_v1(Dataset):
-    """ [WARNING]: This function is depracated. Too slow. Use SatelliteImagesDatasetSW instea.
+    """ [WARNING]: This function is depracated. Too slow. Use SatelliteImagesDatasetSW instead.
         South America Satellite Images Dataset
 
     Args:

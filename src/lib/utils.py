@@ -104,16 +104,19 @@ def get_cosangs_mask(meta_path='data/meta',
 
     Args:
         meta_path (str, optional): Defaults to 'data/meta'.
-        img_name (str, optional): Defaults to 'ART_2020020_111017.FR'.
-        mk_folder_path (str, optional): Defaults to 'data/C02-MK/2020'.
-        img_folder_path (str, optional): Defaults to 'data/C02-FR/2020'.
+        img_name (str, optional): 'ART....FR' or 'dd/mm/yyyy hh:mm:ss'
     """
    
     lats, lons = pf.read_meta(meta_path)
     
-    dtime = pf.get_dtime(img_name)
-    
+    if (img_name[0:3] == 'ART'):
+        dtime = pf.get_dtime(img_name)
+    else:
+        dtime = datetime.datetime(year =int(img_name[6:10]) ,month = int(img_name[3:5]), day = int(img_name[0:2]), 
+                          hour=int(img_name[11:13]), minute=int(img_name[14:16]) ,second=int(img_name[17:]))
+        
     cosangs, _ = pf.get_cosangs(dtime, lats, lons)
+    
     
     cosangs_thresh = cosangs.copy()
     
