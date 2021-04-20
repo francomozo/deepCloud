@@ -35,7 +35,7 @@ def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100,
         - window_pad_width(int) : If M,N size of image -> eval window is [w_p_w//2 : N - w_p_w//2]
         - dynamic_window(bool) : generate biggest window without nans in prediction and evaluate only in 
                                 those pixels
-        -evaluate_day_pixels: generate cosz map and evaluate only in pixels with cosz over 
+        -evaluate_day_pixels(bool): generate cosz map and evaluate only in pixels with cosz over 
 
     Returns:
         [list]: list containing the erorrs of each predicted image 
