@@ -88,29 +88,29 @@ def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100,
         
             
         if(metric == 'RMSE'):
-            rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1) - gt[i,pi:pf,qi:qf]*(cosangs_map==1))**2))
+            rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1) - gt[i,pi:pf,qi:qf])**2))
             error.append(rmse )   
         elif (metric == 'MSE' ):
-            error.append(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf]*(cosangs_map==1))**2) ) 
+            error.append(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf])**2) ) 
         elif (metric == 'PSNR' ):            
-            mse = np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf]**(cosangs_map==1))**2)
+            mse = np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf])**2)
             if (mse != 0 ):
                 error.append(10* np.log10(pixel_max_value**2/mse)) 
             else:
                 error.append(20*np.log10(pixel_max_value))
      
         elif (metric == 'SSIM'):
-            error.append(ssim(predictions[i,pi:pf,qi:qf]*(cosangs_map==1),gt[i,pi:pf,qi:qf]*(cosangs_map==1)))
+            error.append(ssim(predictions[i,pi:pf,qi:qf]*(cosangs_map==1),gt[i,pi:pf,qi:qf] , win_size=101  ))
         elif (metric == 'NRMSE'):
-            nrmse = skimage.metrics.normalized_root_mse(gt[i,pi:pf,qi:qf]*(cosangs_map==1),predictions[i,pi:pf,qi:qf]*(cosangs_map==1))
+            nrmse = skimage.metrics.normalized_root_mse(gt[i,pi:pf,qi:qf],predictions[i,pi:pf,qi:qf]*(cosangs_map==1))
             error.append(nrmse)
         elif (metric == 'ReRMSE'):
             eps = 0.0001
-            re_rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf]*(cosangs_map==1))**2))/(np.sqrt(np.mean((np.mean(gt[i,pi:pf,qi:qf]*(cosangs_map==1))-gt[i,pi:pf,qi:qf]*(cosangs_map==1))**2))+eps)
+            re_rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf])**2))/(np.sqrt(np.mean((np.mean(gt[i,pi:pf,qi:qf])-gt[i,pi:pf,qi:qf])**2))+eps)
             error.append(re_rmse)
         elif (metric == 'FS'):
-            rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf]*(cosangs_map==1))**2))
-            rmse_persistence = np.sqrt(np.mean((predictions[0,pi:pf,qi:qf]*(cosangs_map==1) -gt[i,pi:pf,qi:qf]*(cosangs_map==1) )**2))
+            rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf])**2))
+            rmse_persistence = np.sqrt(np.mean((predictions[0,pi:pf,qi:qf]*(cosangs_map==1) -gt[i,pi:pf,qi:qf] )**2))
             if rmse_persistence == 0 :
                 fs = 1
                 error.append(fs)
