@@ -29,6 +29,137 @@ class SatelliteImagesDatasetSW(Dataset):
  
     dia_ref = datetime.datetime(2019,12,31)
     
+    def __init__(self, root_dir, window=1, transform=None, load_cosangs=False, meta_path='data/meta'):
+        self.root_dir = root_dir
+        self.images_list = np.sort(os.listdir(self.root_dir))
+        self.transform = transform
+        self.window = window
+        self.load_cosangs = load_cosangs
+        
+        if load_cosangs:
+            self.meta_path = meta_path
+            
+        
+        # Load the first "window" images to mem
+        img_names = [os.path.join(self.root_dir, self.images_list[idx]) # esto es todo el path
+                         for idx in range(self.window)]
+
+        images = np.array([np.load(img_name) for img_name in img_names]) # cargo imagenes
+        
+        if self.transform:
+                images = np.array([self.transform(image) for image in images])
+              
+        parsed_img_names = [re.sub("[^0-9]", "", self.images_list[idx]) 
+                            for idx in range(self.window)]
+        
+        time_stamps = [self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), 
+                                                         hours=int(img_name[7:9]), 
+                                                         minutes=int(img_name[9:11]), 
+                                                         seconds=int(img_name[11:]))
+                        for img_name in parsed_img_names]
+
+        self.__samples = {'images': images,
+                          'time_stamps': [utils.datetime2str(ts) for ts in time_stamps]}
+        
+        if self.load_cosangs:
+            cosangs_masks = np.array([
+                utils.get_cosangs_mask(meta_path=self.meta_path, img_name=img_name)[1] 
+                for img_name in self.images_list
+            ])
+            
+            if self.transform:
+                cosangs_masks = np.array([self.transform(mask) for mask in cosangs_masks])    
+            
+            self.__samples['cosangs_masks'] = cosangs_masks
+        
+    
+    def __len__(self):
+        return len(self.images_list) - self.window + 1
+    
+    def __getitem__(self, idx):
+        if idx == 0:
+            return self.__samples
+        else:
+            
+            next_image = os.path.join(self.root_dir, self.images_list[idx + self.window - 1])
+            
+            image = np.load(next_image)
+                  
+            if self.transform:
+                image = np.array(self.transform(image))
+            
+            img_name = re.sub("[^0-9]", "", self.images_list[idx + self.window - 1]) 
+            
+            time_stamp = self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), 
+                                                            hours=int(img_name[7:9]), 
+                                                            minutes=int(img_name[9:11]), 
+                                                            seconds=int(img_name[11:]))
+
+            self.__samples['images'] = np.append(
+                                            np.delete(self.__samples['images'],
+                                                obj=0, 
+                                                axis=0
+                                            ), 
+                                            values=image[np.newaxis, ...], 
+                                            axis=0
+                                        )
+
+            del self.__samples['time_stamps'][0]
+            self.__samples['time_stamps'].append(utils.datetime2str(time_stamp))
+            
+            # cosangs mask update:
+            if self.load_cosangs:
+                cosangs_mask = utils.get_cosangs_mask(
+                                    meta_path=self.meta_path, 
+                                    img_name=self.images_list[idx + self.window - 1]
+                                    )[1]
+
+                if self.transform:
+                    cosangs_mask = np.array(self.transform(cosangs_mask))
+                
+                self.__samples['cosangs_masks'] = np.append(
+                                                    np.delete(self.__samples['cosangs_masks'],
+                                                        obj=0, 
+                                                        axis=0
+                                                    ), 
+                                                    values=cosangs_mask[np.newaxis, ...], 
+                                                    axis=0
+                                                )    
+                
+            return self.__samples        
+
+
+def collate_fn_sw(batch):
+    """Custom collate_fn to load images into batches
+       using a moving window
+
+    Returns:
+        [dict]: {'images': images, 'time_stamps': time_stamps} 
+                Includes key 'cosangs_masks' if load_mask = True 
+                in SatelliteImagesDatasetSW.
+    """
+    samples = default_collate(batch)
+    samples['images'] = samples['images'].squeeze()
+    samples['time_stamps'] = [''.join(ts) for ts in samples['time_stamps']]
+    
+    if len(samples.keys()) == 3:
+        samples['cosangs_masks'] = samples['cosangs_masks'].squeeze()
+    return samples
+
+class SatelliteImagesDatasetSW_NoMasks(Dataset):
+    """ South America Satellite Images Dataset
+    Args:
+        root_dir (string): Directory with all images from day n.
+        window (int): Size of the moving window to load the images.
+        transform (callable, optional): Optional transform to be applied on a sample.
+        
+        
+    Returns:
+        [dict]: {'images': images, 'time_stamps': time_stamps}
+    """
+ 
+    dia_ref = datetime.datetime(2019,12,31)
+    
     def __init__(self, root_dir, window=1, transform=None):
         self.root_dir = root_dir
         self.images_list = np.sort(os.listdir(self.root_dir))
@@ -92,112 +223,7 @@ class SatelliteImagesDatasetSW(Dataset):
             self.__samples['time_stamps'].append(utils.datetime2str(time_stamp))
             
             return self.__samples        
-
-
-class SatelliteImagesDatasetSW_v1(Dataset):
-    """ [WARNING]: This function is depracated. Too slow. Use SatelliteImagesDatasetSW instead.
-        South America Satellite Images Dataset
-
-    Args:
-        root_dir (string): Directory with all images from day n.
-        window (int): Size of the moving window to load the images.
-        transform (callable, optional): Optional transform to be applied on a sample.
         
-        
-    Returns:
-        [dict]: {'images': images, 'time_stamps': time_stamps}
-    """
-
-    dia_ref = datetime.datetime(2019,12,31)
-    
-    
-    
-    def __init__(self, root_dir, window=1, transform=None):
-        self.root_dir = root_dir
-        self.images_list = np.sort(os.listdir(self.root_dir))
-        self.transform = transform
-        self.window = window
-        
-    
-    def __len__(self):
-        return len(self.images_list) - self.window + 1
-    
-    def __getitem__(self, idx):
-        try:
-            img_names = [os.path.join(self.root_dir, self.images_list[idx])
-                         for idx in np.arange(idx, self.window + idx, 1)]
-
-            images = np.array([np.load(img_name) for img_name in img_names])
-            
-            if self.transform:
-                images = np.array([self.transform(image) for image in images])
-                # images = np.array([self.transform(Image.fromarray(image)) for image in images])
-            
-            img_names = [re.sub("[^0-9]", "", self.images_list[idx]) 
-                         for idx in np.arange(idx, self.window + idx, 1)]
-           
-            time_stamps = [self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), 
-                                                             hours=int(img_name[7:9]), 
-                                                             minutes=int(img_name[9:11]), 
-                                                             seconds=int(img_name[11:]))
-                            for img_name in img_names]
-
-            samples = {'images': images,
-                      'time_stamps': [utils.datetime2str(ts) for ts in time_stamps]}
-            
-            return samples        
-        except IndexError:
-            print('End of sliding window')
-
-def collate_fn_sw(batch):
-    """Custom collate_fn to load images into batches
-       using a moving window
-
-    Returns:
-        [dict]: {'images': images, 'time_stamps': time_stamps} 
-    """
-    samples = default_collate(batch)
-    samples['images'] = samples['images'].squeeze()
-    samples['time_stamps'] = [''.join(ts) for ts in samples['time_stamps']]
-    return samples
-
-class SatelliteImagesDataset(Dataset):
-    """ First version of a simple dataset class for one image at a time.
-        South America Satellite Images Dataset
-
-    Args:
-        root_dir (string): Directory with all images from day n.
-        transform (callable, optional): Optional transform to be applied on a sample.
-        
-    Returns:
-        [dict]: {'image': image, 'time_stamp': time_stamp}
-    """
-
-    dia_ref = datetime.datetime(2019,12,31)
-    
-    def __init__(self, root_dir, transform=None):
-        self.root_dir = root_dir
-        self.images_list = np.sort(os.listdir(self.root_dir))
-        self.transform = transform
-    
-    def __len__(self):
-        return len(self.images_list)
-    
-    def __getitem__(self, idx):
-        img_name = os.path.join(self.root_dir, 
-                                self.images_list[idx])
-        image = np.load(img_name)
-        if self.transform:
-            image = self.transform(image)
-        
-        img_name = re.sub("[^0-9]", "", self.images_list[idx])
-        time_stamp = self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]), 
-                                                   minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
-        
-        sample = {'image': image,
-                  'time_stamp': utils.datetime2str(time_stamp)}
-        
-        return sample
     
 def load_images_from_folder(folder, crop_region = 0):
     """Loads images stored as Numpy arrays of nth-day to a list
