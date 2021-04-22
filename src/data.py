@@ -29,11 +29,19 @@ class SatelliteImagesDatasetSW(Dataset):
  
     dia_ref = datetime.datetime(2019,12,31)
     
-    def __init__(self, root_dir, window=1, transform=None, load_cosangs=False, meta_path='data/meta'):
+    def __init__(self, 
+                 root_dir, 
+                 window=1, 
+                 transform=None, 
+                 fading_window = True,
+                 load_cosangs=False, 
+                 meta_path='data/meta' 
+                 ):
         self.root_dir = root_dir
         self.images_list = np.sort(os.listdir(self.root_dir))
         self.transform = transform
         self.window = window
+        self.fading_window = fading_window
         self.load_cosangs = load_cosangs
         
         if load_cosangs:
@@ -74,61 +82,70 @@ class SatelliteImagesDatasetSW(Dataset):
         
     
     def __len__(self):
-        return len(self.images_list) - self.window + 1
+        if self.fading_window:
+            return len(self.images_list)
+        else:
+            return len(self.images_list) - self.window + 1
     
     def __getitem__(self, idx):
         if idx == 0:
             return self.__samples
         else:
-            
-            next_image = os.path.join(self.root_dir, self.images_list[idx + self.window - 1])
-            
-            image = np.load(next_image)
-                  
-            if self.transform:
-                image = np.array(self.transform(image))
-            
-            img_name = re.sub("[^0-9]", "", self.images_list[idx + self.window - 1]) 
-            
-            time_stamp = self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), 
-                                                            hours=int(img_name[7:9]), 
-                                                            minutes=int(img_name[9:11]), 
-                                                            seconds=int(img_name[11:]))
-
-            self.__samples['images'] = np.append(
-                                            np.delete(self.__samples['images'],
-                                                obj=0, 
-                                                axis=0
-                                            ), 
-                                            values=image[np.newaxis, ...], 
-                                            axis=0
-                                        )
-
+            # 1) Delete whats left out of the window
+            self.__samples['images'] = np.delete(self.__samples['images'], obj=0, axis=0)
             del self.__samples['time_stamps'][0]
-            self.__samples['time_stamps'].append(utils.datetime2str(time_stamp))
             
-            # cosangs mask update:
             if self.load_cosangs:
-                cosangs_mask = utils.get_cosangs_mask(
-                                    meta_path=self.meta_path, 
-                                    img_name=self.images_list[idx + self.window - 1]
-                                    )[1]
-
+                self.__samples['cosangs_masks'] = np.delete(self.__samples['cosangs_masks'], obj=0, axis=0)
+            
+            # If i have images left to load:
+            #   a) Load images, ts, cosangs (if load_cosangs)
+            #   b) Append to dictionary
+            if idx < len(self.images_list) - self.window + 1: # 
+                next_image = os.path.join(self.root_dir, self.images_list[idx + self.window - 1])
+                
+                image = np.load(next_image)
+                  
                 if self.transform:
-                    cosangs_mask = np.array(self.transform(cosangs_mask))
-                
-                self.__samples['cosangs_masks'] = np.append(
-                                                    np.delete(self.__samples['cosangs_masks'],
-                                                        obj=0, 
-                                                        axis=0
-                                                    ), 
-                                                    values=cosangs_mask[np.newaxis, ...], 
-                                                    axis=0
-                                                )    
-                
-            return self.__samples        
+                    image = np.array(self.transform(image))  
 
+                self.__samples['images'] = np.append(
+                                                self.__samples['images'], 
+                                                values=image[np.newaxis, ...], 
+                                                axis=0
+                )
+                
+                img_name = re.sub("[^0-9]", "", self.images_list[idx + self.window - 1]) 
+                
+                time_stamp = self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), 
+                                                                hours=int(img_name[7:9]), 
+                                                                minutes=int(img_name[9:11]), 
+                                                                seconds=int(img_name[11:])) 
 
+                self.__samples['time_stamps'].append(utils.datetime2str(time_stamp))
+                
+                if self.load_cosangs:
+                    cosangs_mask = utils.get_cosangs_mask(
+                                        meta_path=self.meta_path, 
+                                        img_name=self.images_list[idx + self.window - 1]
+                                        )[1]
+
+                    if self.transform:
+                        cosangs_mask = np.array(self.transform(cosangs_mask))
+                        
+                    self.__samples['cosangs_masks'] = np.append(
+                                                            self.__samples['cosangs_masks'], 
+                                                            values=cosangs_mask[np.newaxis, ...], 
+                                                            axis=0
+                                                        )
+            # If i dont have images left:
+            else:
+                if self.fading_window:
+                    self.window -= 1
+            
+            return self.__samples
+            
+            
 def collate_fn_sw(batch):
     """Custom collate_fn to load images into batches
        using a moving window
@@ -145,6 +162,7 @@ def collate_fn_sw(batch):
     if len(samples.keys()) == 3:
         samples['cosangs_masks'] = samples['cosangs_masks'].squeeze()
     return samples
+
 
 class SatelliteImagesDatasetSW_NoMasks(Dataset):
     """ South America Satellite Images Dataset
