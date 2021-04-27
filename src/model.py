@@ -73,7 +73,7 @@ class Cmv:
         self.dcfg = yaml.load(stream, yaml.FullLoader)  # dict
         self.kernel_size = kernel_size
 
-    def predict(self, imgi, imgf, imgf_ts,period, delta_t, predict_horizon):
+    def predict(self, imgi, imgf, imgf_ts,period, delta_t, predict_horizon, trial=None):
         """Predicts next image using openCV optical Flow
 
         Args:
@@ -82,6 +82,7 @@ class Cmv:
             period (int): time difference between imgi and imgf in seconds
             delta_t (int): time passed between imgf and predicted image in seconds
             predict_horizon (int): Length of the prediction horizon (Cuantity of images returned)
+            trial (optuna.trial): optuna trial object
 
         Returns:
             [Numpy array]: Numpy array with predicted images
@@ -93,11 +94,15 @@ class Cmv:
             
         #get_cmv (dcfg, imgi,imgf, period)
         cmvcfg = self.dcfg["algorithm"]["cmv"]
+        if trial == None:
+            pyr_scale=cmvcfg["pyr_scale"]
+        else:
+            pyr_scale = trial.suggest_float("pyr_scale", 0.3, 0.5)
         flow = cv.calcOpticalFlowFarneback(
             imgi,
             imgf,
             None,
-            pyr_scale=cmvcfg["pyr_scale"],
+            pyr_scale=pyr_scale,
             levels=cmvcfg["levels"],
             winsize=cmvcfg["winsize"],
             iterations=cmvcfg["iterations"],
