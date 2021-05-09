@@ -96,18 +96,29 @@ class Cmv:
         cmvcfg = self.dcfg["algorithm"]["cmv"]
         if trial == None:
             pyr_scale=cmvcfg["pyr_scale"]
+            levels=cmvcfg["levels"]
+            winsize=cmvcfg["winsize"]
+            iterations=cmvcfg["iterations"]
+            poly_n=cmvcfg["poly_n"]
+            poly_sigma=cmvcfg["poly_sigma"]
         else:
-            pyr_scale = trial.suggest_float("pyr_scale", 0.3, 0.5)
+            pyr_scale = trial.suggest_float("pyr_scale", 0.3, 0.7)
+            levels = trial.suggest_int("levels", 2, 5)
+            winsize=cmvcfg["winsize"] #winsize = trial.suggest_int("winsize", 15, 24)
+            iterations = trial.suggest_int("iterations", 2, 4)
+            poly_n = trial.suggest_int("poly_n", 5, 7)
+            poly_sigma= trial.suggest_float("poly_sigma", 0.8, 1.5)
+
         flow = cv.calcOpticalFlowFarneback(
             imgi,
             imgf,
             None,
             pyr_scale=pyr_scale,
-            levels=cmvcfg["levels"],
-            winsize=cmvcfg["winsize"],
-            iterations=cmvcfg["iterations"],
-            poly_n=cmvcfg["poly_n"],
-            poly_sigma=cmvcfg["poly_sigma"],
+            levels=levels,
+            winsize=winsize,
+            iterations=iterations,
+            poly_n=poly_n,
+            poly_sigma=poly_sigma,
             flags=0,
         )
         cmv = - flow / period
