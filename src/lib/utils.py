@@ -1,12 +1,12 @@
 # USAGE:
-#   Utility functions and functions that perform part of the computation 
+#   Utility functions and functions that perform part of the computation
 #   for functions in other modules. Should be used as little as possible.
 #
 
-import datetime
-import numpy as np
 import csv
+import datetime
 
+import numpy as np
 import src.lib.preprocessing_functions as pf
 
 
@@ -15,8 +15,9 @@ def datetime2str(datetime_obj):
         Receives a datetime object and returns a string
         in format 'day/month/year hr:mins:secs' 
     """
-    
+
     return datetime_obj.strftime('%d/%m/%Y %H:%M:%S')
+
 
 def str2datetime(date_str):
     """
@@ -26,10 +27,11 @@ def str2datetime(date_str):
     date, time = date_str.split()
     day, month, year = date.split('/')
     hr, mins, secs = time.split(':')
-    return datetime.datetime(int(year), int(month), int(day), 
+    return datetime.datetime(int(year), int(month), int(day),
                              int(hr), int(mins), int(secs)
-                            )
-    
+                             )
+
+
 def find_inner_image(image):
     """
         Receives and image with some values equal to np.nan
@@ -55,7 +57,7 @@ def find_inner_image(image):
                 found_ymax = found_ymax_aux
 
         for i in range(range_y):
-            if (found_xmin == False and found_xmin_aux == True and np.isnan(image[xmin_aux][ymin_aux+i]) ):
+            if (found_xmin == False and found_xmin_aux == True and np.isnan(image[xmin_aux][ymin_aux+i])):
                 xmin += step
                 found_xmin_aux = False
             if (found_xmax == False and found_xmax_aux == True and np.isnan(image[-(xmax_aux+1)][-(ymax_aux+i+1)])):
@@ -64,8 +66,9 @@ def find_inner_image(image):
             if (i == range_y-1):
                 found_xmin = found_xmin_aux
                 found_xmax = found_xmax_aux
-                
+
     return xmin, xmax, ymin, ymax
+
 
 def save_errorarray_as_csv(error_array, time_stamp, filename):
     """ Generates a CSV file with the error of the predictions at the different times of the day
@@ -74,16 +77,16 @@ def save_errorarray_as_csv(error_array, time_stamp, filename):
         error_array (array): Array containing the values of the error of a prediction
         time_stamp (list): Contains the diferent timestamps of the day
         filename (string): path and name of the generated file
-    """    
-    
-    M,N = error_array.shape
+    """
+
+    M, N = error_array.shape
     fieldnames = []
     fieldnames.append('timestamp')
     for i in range(N):
         #fieldnames.append(str(10*(i+1)) + 'min')
         fieldnames.append(str(10*(i)) + 'min')
-    
-    with open( filename + '.csv', 'w', newline='') as csvfile:
+
+    with open(filename + '.csv', 'w', newline='') as csvfile:
 
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -91,36 +94,51 @@ def save_errorarray_as_csv(error_array, time_stamp, filename):
         for i in range(M):
             row_dict = {}
             row_dict['timestamp'] = time_stamp[i]
-            for j in range (N):
+            for j in range(N):
                 #row_dict[str(10*(j+1)) + 'min']  = error_array[i,j]
-                row_dict[str(10*(j)) + 'min']  = error_array[i,j]
-            
+                row_dict[str(10*(j)) + 'min'] = error_array[i, j]
+
             writer.writerow(row_dict)
-            
+
+
 def get_cosangs_mask(meta_path='data/meta',
                      img_name='ART_2020020_111017.FR'
-    ):
+                     ):
     """ Returns zenithal cos from img_name, with and whitout threshold
 
     Args:
         meta_path (str, optional): Defaults to 'data/meta'.
         img_name (str, optional): 'ART....FR' or 'dd/mm/yyyy hh:mm:ss'
     """
-   
+
     lats, lons = pf.read_meta(meta_path)
-    
+
     if (img_name[0:3] == 'ART'):
         dtime = pf.get_dtime(img_name)
     else:
-        dtime = datetime.datetime(year =int(img_name[6:10]) ,month = int(img_name[3:5]), day = int(img_name[0:2]), 
-                          hour=int(img_name[11:13]), minute=int(img_name[14:16]) ,second=int(img_name[17:]))
-        
+        dtime = datetime.datetime(year=int(img_name[6:10]), month=int(img_name[3:5]), day=int(img_name[0:2]),
+                                  hour=int(img_name[11:13]), minute=int(img_name[14:16]), second=int(img_name[17:]))
+
     cosangs, _ = pf.get_cosangs(dtime, lats, lons)
-    
-    
+
     cosangs_thresh = cosangs.copy()
-    
+
     cosangs_thresh[(0 < cosangs) & (cosangs <= 0.15)] = 0.5
-    cosangs_thresh[0.15 < cosangs] = 1    
-    
-    return cosangs, cosangs_thresh  
+    cosangs_thresh[0.15 < cosangs] = 1
+
+    return cosangs, cosangs_thresh
+
+
+def print_cuda_memory():
+    print('Memory Usage:')
+    print(f'\t Allocated: {(torch.cuda.memory_allocated(0)/1024**2):.5f} MB.')
+    print(f'\t Cached: {(torch.cuda.memory_reserved(0)/1024**2):.5f} MB.')
+    return
+
+
+def get_last_checkpoint(path):
+    checkpoints = os.listdir(path)
+    epochs = [int(epoch)
+              for cp in checkpoints for epoch in re.findall(r'\d+', cp)]
+    last_epoch = max(epochs)
+    return last_epoch
