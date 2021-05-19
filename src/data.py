@@ -74,7 +74,7 @@ class MovingMnistDataset(Dataset):
         idxs = np.arange(self.rel_idx, self.rel_idx + 4)
 
         inputs = self.images[self.rel_idx:self.rel_idx + 3, :, :]
-        target = self.images[self.rel_idx + 3, :, :].unsqueeze(dim=1)
+        target = self.images[self.rel_idx + 3, :, :].unsqueeze(dim=0)
 
         return self.curr_seq, idxs, inputs, target
 
