@@ -19,8 +19,14 @@ import src.lib.utils as utils
 
 
 class MovingMnistDataset(Dataset):
-    # The idea is that the dataset loads one day (sequence of length 20) at a time
-    # the first version is of fixed length of 3. takes 3 images and predicts the 4th
+    """Dataset for loading sequences of the moving mnist dataset.
+
+    Args:
+        path (str): Path to the .npy files
+        csv ([type]): .csv containing the files names
+        shuffle (bool, optional): Whether to shuffle the sequences. Defaults to False.    
+    """
+
     def __init__(self, path, csv, shuffle=False):
         super(MovingMnistDataset, self).__init__()
 
@@ -29,19 +35,22 @@ class MovingMnistDataset(Dataset):
         self.df = pd.read_csv(csv, header=None)
         self.shuffle = shuffle
 
-        # holds the sequence (1 from the 9000 sequences)
+        # Holds the names for one sequence at a time.
         self.sequence_names = self.df.iloc[0]
 
         self.curr_seq = 0
-        self.relative_idx = 0
+        # Relative index to the current sequence
+        self.rel_idx = 0
+        # Fixes the gap between the __getitem__ idx and the index in the
+        # sequences. (The first idx is a linear idx wo jumps, and the second
+        # jumps from one sequence to the next when the sliding window in one
+        # sequence reaches the end).
         self.gap = 0
 
     def __getitem__(self, idx):
-        # get item returns the seq number, the indxs of the imgs, and the images
-        # within the current window
         if idx == 0:
             self.curr_seq = 0
-            self.relative_idx = 0
+            self.rel_idx = 0
             self.gap = 0
             if self.shuffle:
                 self.df = self.df.sample(frac=1)
@@ -61,25 +70,17 @@ class MovingMnistDataset(Dataset):
 
         idx += self.gap
 
-        self.relative_idx = idx % 20
-        indxs = np.arange(self.relative_idx, self.relative_idx + 4)
+        self.rel_idx = idx % 20
+        idxs = np.arange(self.rel_idx, self.rel_idx + 4)
 
-        return self.curr_seq, indxs, self.images[self.relative_idx:self.relative_idx + 4, :, :]
+        inputs = self.images[self.rel_idx:self.rel_idx + 3, :, :]
+        target = self.images[self.rel_idx + 3, :, :].unsqueeze(dim=1)
 
-        # cuando indice es 16 retorno 16, 17, 18, 19
-        # cuando indice es 17 retorno nueva secuencia 0, 1, 2, 3
-
-        # las imagenes van de cero a 19 en indices, entonces si el
-        # indice esta entre 0 y 17 todo bien, si vale 18 o 19
+        return self.curr_seq, idxs, inputs, target
 
     def __len__(self):
         return (len(self.sequence_names) - 3) * (self.df.shape[0])
-        # cundo hago getitem quiero que devuelve de a 3 imagenes en una ventana movible
 
-
-# la idea final es: quiero que cada vez que llamo al dataloader me tire de a
-# 3 imagenes, 2 son las que paso por la red para generar la tercera y la comparo
-# con al ground truth
 
 class SatelliteImagesDatasetSW(Dataset):
     """ South America Satellite Images Dataset
