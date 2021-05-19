@@ -21,29 +21,59 @@ import src.lib.utils as utils
 class MovingMnistDataset(Dataset):
     # The idea is that the dataset loads one day (sequence of length 20) at a time
     # the first version is of fixed length of 3. takes 3 images and predicts the 4th
-    def __init__(self, path, csv):
+    def __init__(self, path, csv, shuffle=False):
         super(MovingMnistDataset, self).__init__()
 
         self.path = path
         self.csv = csv
-        self.df = pd.read_csv(csv)
+        self.df = pd.read_csv(csv, header=None)
+        self.shuffle = shuffle
 
         # holds the sequence (1 from the 9000 sequences)
-        self.sequence = self.df.iloc[0]
-        self.sequence_num = 0
-        # holds the images from one sequence
-        self.images = torch.FloatTensor([np.load(path + img_name)
-                                        for img_name in self.sequence])
+        self.sequence_names = self.df.iloc[0]
+
+        self.curr_seq = 0
+        self.relative_idx = 0
+        self.gap = 0
 
     def __getitem__(self, idx):
+        # get item returns the seq number, the indxs of the imgs, and the images
+        # within the current window
+        if idx == 0:
+            self.curr_seq = 0
+            self.relative_idx = 0
+            self.gap = 0
+            if self.shuffle:
+                self.df = self.df.sample(frac=1)
+
+            self.sequence_names = self.df.iloc[self.curr_seq]
+
+            self.images = torch.FloatTensor([np.load(self.path + img_name)
+                                             for img_name in self.sequence_names])
+
+        if (idx + 3 * (self.curr_seq + 1)) % 20 == 0:
+            self.curr_seq += 1
+            self.gap = self.curr_seq * 3
+            self.sequence_names = self.df.iloc[self.curr_seq]
+
+            self.images = torch.FloatTensor([np.load(self.path + img_name)
+                                             for img_name in self.sequence_names])
+
+        idx += self.gap
+
+        self.relative_idx = idx % 20
+        indxs = np.arange(self.relative_idx, self.relative_idx + 4)
+
+        return self.curr_seq, indxs, self.images[self.relative_idx:self.relative_idx + 4, :, :]
+
+        # cuando indice es 16 retorno 16, 17, 18, 19
+        # cuando indice es 17 retorno nueva secuencia 0, 1, 2, 3
+
         # las imagenes van de cero a 19 en indices, entonces si el
         # indice esta entre 0 y 17 todo bien, si vale 18 o 19
-        idxs = [idx, idx + 1, idx + 2]
-        return idxs, self.images[idx:idx + 3, :, :]
 
     def __len__(self):
-        print(len(self.sequence), self.df.shape[0])
-        return (len(self.sequence) - 2) * (self.df.shape[0] + 1)
+        return (len(self.sequence_names) - 3) * (self.df.shape[0])
         # cundo hago getitem quiero que devuelve de a 3 imagenes en una ventana movible
 
 
