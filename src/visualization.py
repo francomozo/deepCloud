@@ -231,3 +231,22 @@ def show_image_w_colorbar (image):
     fig.colorbar(image_, ax=ax1)
     ax1.title.set_text('Image')
     plt.show()
+    
+    
+def show_images_diff(img1,img2):
+    """
+    Shows the difference between two images with a colorbar 
+
+    Args:
+        img1(array): Array containing the values of the image 1
+        img2(array): Array containing the values of the image 2
+    """    
+    if (img1.shape != img2.shape):
+        raise ValueError('Images must have the same shape, img1:',img1.shape,'img2:',img2.shape)
+    diff = abs(img1-img2)
+    fig, (ax1) = plt.subplots(figsize=(14, 4), ncols=1)
+    image_ = ax1.imshow(diff, interpolation='none')
+    #grafica = ax1.imshow(error_array[70:100], interpolation='none')
+    fig.colorbar(image_, ax=ax1)
+    ax1.title.set_text('Image')
+    plt.show()
