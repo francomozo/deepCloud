@@ -31,10 +31,14 @@ def train_model(model,
         print_cuda_mem (bool, optional): Defaults to False.
     """
 
+    if not train_for:
+        return loss_history
     last_epoch = train_for + curr_epoch
 
-    if curr_epoch > 1:
-        curr_epoch += 1  # If curr_epoch not zero, the argument passed to
+    curr_epoch += 1
+    # No entiendo xq es necesario este if:  ---borrar---
+    # if curr_epoch > 1:
+    #     curr_epoch += 1  # If curr_epoch not zero, the argument passed to
         # curr_epoch is the last epoch the
         # model was trained in the loop before
 
@@ -45,7 +49,7 @@ def train_model(model,
         if verbose:
             print("EPOCH:", curr_epoch,  end=' ')
         start = time.time()
-        for (data, targets) in loader:
+        for (curr_seq, idxs, data, targets) in loader:
 
             data = data.to(device=device)
             targets = targets.to(device=device)
@@ -81,8 +85,7 @@ def train_model(model,
                     'loss_history': loss_history,
                 }, PATH)
 
-        if train_for:
-            if curr_epoch == last_epoch:
-                return loss_history
+        if curr_epoch == last_epoch:
+            return loss_history
 
         curr_epoch += 1
