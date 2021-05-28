@@ -4,6 +4,8 @@
 import time
 
 import torch
+import optuna
+import numpy as np
 
 from src.lib.utils import print_cuda_memory
 
@@ -18,7 +20,9 @@ def train_model(model,
                 train_for=0,
                 verbose=True,
                 checkpoint_every=0,
-                print_cuda_mem=False):
+                print_cuda_mem=False,
+                loader_val=None,
+                trial=None):
     """Trains model, prints cuda mem, saves checkpoints, resumes training.
 
     Args:
@@ -31,6 +35,8 @@ def train_model(model,
         print_cuda_mem (bool, optional): Defaults to False.
     """
 
+    loss_history_val = []
+    val_step = 0
     if not train_for:
         return loss_history
     last_epoch = train_for + curr_epoch
@@ -49,6 +55,9 @@ def train_model(model,
         if verbose:
             print("EPOCH:", curr_epoch,  end=' ')
         start = time.time()
+        image_number = 0
+        loss_average = 0
+        loss_count = 0
         for (curr_seq, idxs, data, targets) in loader:
 
             data = data.to(device=device)
@@ -56,11 +65,38 @@ def train_model(model,
 
             scores = model(data)
             loss = criterion(scores, targets)
+            loss_average += loss.item()
+            loss_count += 1
 
             optimizer.zero_grad()
             loss.backward()
 
             optimizer.step()
+
+            # Validation
+            image_number += data.shape[0]
+            if loader_val is not None and image_number >= 200:
+                image_number = 0
+                model.eval()
+                loss_val_total = 0
+                loss_val_count = 0
+                for (curr_seq, idxs, data_val, targets_val) in loader_val:
+                    data_val = data_val.to(device=device)
+                    targets_val = targets_val.to(device=device)
+
+                    scores_val = model(data_val)
+                    loss_val = criterion(scores_val, targets_val)
+                    loss_val_total += loss_val.item()
+                    loss_val_count += 1
+
+                loss_val_average = loss_val_total/loss_val_count
+                loss_history_val.append(np.array(loss_val_average))
+                model.train()
+                if trial is not None:
+                    trial.report(loss_val_average, val_step)
+                    val_step += 1
+                    if trial.should_prune():
+                        raise optuna.exceptions.TrialPruned()
 
         if print_cuda_mem:
             print()
@@ -72,7 +108,7 @@ def train_model(model,
         if verbose:
             print(f'Time elapsed: {(end - start):.2f} secs.')
 
-        loss_history.append(loss.clone().detach().cpu().numpy())
+        loss_history.append(np.array(loss_average/loss_count))
 
         PATH = "checkpoints/model_epoch" + str(curr_epoch) + ".pt"
 
@@ -86,6 +122,6 @@ def train_model(model,
                 }, PATH)
 
         if curr_epoch == last_epoch:
-            return loss_history
+            return loss_history, loss_history_val
 
         curr_epoch += 1
