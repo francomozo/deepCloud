@@ -11,75 +11,101 @@ import cv2 as cv
 import numpy as np
 import pandas as pd
 import torch
+import random
 from torch.utils.data import Dataset
 from torch.utils.data._utils.collate import default_collate
 
 import src.lib.preprocessing_functions as pf
 import src.lib.utils as utils
 
+class MontevideoDataset(Dataset):
+    def __init__(self, path,path_sequence_csv,in_channel=3 ,out_channel=1 ,shuffle=False):
+        super(MontevideoDataset, self).__init__()
+
+        self.path = path
+        self.path_sequence_csv = path_sequence_csv
+        self.shuffle = shuffle
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        
+        self.sequence_df = pd.read_csv(path_sequence_csv,header=None)
+        if shuffle:
+            np.random.shuffle(self.sequence_df.values)
+        
+    def __getitem__(self, index):
+                  
+        # images loading
+        
+        for i in range(self.in_channel + self.out_channel):
+            if i == 0: #first image in in_frames
+                in_frames = np.load(os.path.join(self.path, self.sequence_df.values[index][i]) )
+                in_frames = in_frames[np.newaxis]
+            if i>0 and i<self.in_channel: #next images in in_frames
+                aux = np.load(os.path.join(self.path, self.sequence_df.values[index][i]) )
+                aux = aux[np.newaxis]
+                in_frames = np.concatenate((in_frames,aux),axis=0)  
+            if i == self.in_channel: #first image in out_frames
+                out_frames = np.load(os.path.join(self.path, self.sequence_df.values[index][i]) )
+                out_frames = out_frames[np.newaxis]
+            if i > in_channel:
+                aux = np.load(os.path.join(self.path, self.sequence_df.values[index][i]) )
+                aux = aux[np.newaxis]
+                out_frames = np.concatenate((out_frames,aux),axis=0)
+            
+        return in_frames , out_frames
+
+    def __len__(self):
+        return (len(self.sequence_df))
 
 class MovingMnistDataset(Dataset):
-    """Dataset for loading sequences of the moving mnist dataset.
-
-    Args:
-        path (str): Path to the .npy files
-        csv ([type]): .csv containing the files names
-        shuffle (bool, optional): Whether to shuffle the sequences. Defaults to False.    
-    """
-
-    def __init__(self, path, csv, shuffle=False):
+    def __init__(self, path, n_frames=4, shuffle=False):
         super(MovingMnistDataset, self).__init__()
 
         self.path = path
-        self.csv = csv
-        self.df = pd.read_csv(csv, header=None)
         self.shuffle = shuffle
+        self.n_frames = n_frames
+        self.filenames = sorted(os.listdir(path))
 
-        # Holds the names for one sequence at a time.
-        self.sequence_names = self.df.iloc[0]
-
-        self.curr_seq = 0
-        # Relative index to the current sequence
+        # Aux variables for indexing correctly
+        self.seq_num = 0
         self.rel_idx = 0
-        # Fixes the gap between the __getitem__ idx and the index in the
-        # sequences. (The first idx is a linear idx wo jumps, and the second
-        # jumps from one sequence to the next when the sliding window in one
-        # sequence reaches the end).
-        self.gap = 0
+        self.seq_length = np.load(
+            self.path + self.filenames[self.seq_num]).shape[0]
 
     def __getitem__(self, idx):
+
+        # some initialization for each epoch
+        if idx == 0 and self.shuffle:
+            random.shuffle(self.filenames)
         if idx == 0:
-            self.curr_seq = 0
-            self.rel_idx = 0
-            self.gap = 0
-            if self.shuffle:
-                self.df = self.df.sample(frac=1)
+            self.seq_num = 0
 
-            self.sequence_names = self.df.iloc[self.curr_seq]
+        # sequence number management
+        if (idx + (self.n_frames - 1) * (self.seq_num + 1)) % self.seq_length == 0:
+            self.seq_num += 1
 
-            self.images = torch.FloatTensor([np.load(self.path + img_name)
-                                             for img_name in self.sequence_names])
+        # index within the sequence
+        self.rel_idx = (idx + (self.n_frames - 1) *
+                        self.seq_num) % self.seq_length
+        if idx <= self.seq_length - self.n_frames:
+            self.rel_idx = idx
 
-        if (idx + 3 * (self.curr_seq + 1)) % 20 == 0:
-            self.curr_seq += 1
-            self.gap = self.curr_seq * 3
-            self.sequence_names = self.df.iloc[self.curr_seq]
+        # images loading
+        if self.rel_idx == 0:
+            self.images = torch.FloatTensor(
+                [np.load(self.path + self.filenames[self.seq_num])]
+            ).squeeze()
 
-            self.images = torch.FloatTensor([np.load(self.path + img_name)
-                                             for img_name in self.sequence_names])
+        frames_in = self.images[self.rel_idx: self.rel_idx+self.n_frames-1]
+        frames_out = self.images[self.n_frames-1].unsqueeze(dim=0)
 
-        idx += self.gap
+        # return indexes
+        curr_idxs = np.arange(self.rel_idx, self.rel_idx + self.n_frames)
 
-        self.rel_idx = idx % 20
-        idxs = np.arange(self.rel_idx, self.rel_idx + 4)
-
-        inputs = self.images[self.rel_idx:self.rel_idx + 3, :, :]
-        target = self.images[self.rel_idx + 3, :, :].unsqueeze(dim=0)
-
-        return self.curr_seq, idxs, inputs, target
+        return self.seq_num, curr_idxs, frames_in, frames_out
 
     def __len__(self):
-        return (len(self.sequence_names) - 3) * (self.df.shape[0])
+        return ((self.seq_length - self.n_frames) * len(self.filenames))
 
 
 class SatelliteImagesDatasetSW(Dataset):

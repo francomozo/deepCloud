@@ -167,3 +167,18 @@ def evaluate_pixel(predictions,gt,metric,pixel_max_value =255,pixel= (0,0)):
             
     return error
 
+
+def test_model(model, loader, criterion, device):
+    model.eval()
+    loss_average = 0
+    loss_count = 0
+    for (curr_seq, idxs, data, targets) in loader:
+        data = data.to(device=device)
+        targets = targets.to(device=device)
+
+        scores = model(data)
+        loss = criterion(scores, targets)
+        loss_average += loss.item()
+        loss_count += 1
+
+    return loss_average/loss_count
