@@ -5,6 +5,8 @@
 
 import csv
 import datetime
+import os
+import shutil
 
 import numpy as np
 import src.lib.preprocessing_functions as pf
@@ -142,3 +144,71 @@ def get_last_checkpoint(path):
               for cp in checkpoints for epoch in re.findall(r'\d+', cp)]
     last_epoch = max(epochs)
     return last_epoch
+
+def image_sequence_generator(path, in_channel,out_channel, min_time_diff, max_time_diff, csv_path):
+    """Recieves a folder with images named as ART_2020XXX_hhmmss.npy and it generates a csv file with the 
+    available sequences of a specified length.
+
+    Args:
+        path (str): path to folder containing images
+        in_channel (int): Quantity of input images in sequence
+        out_channel (int): Quantity of output images in sequence
+        min_time_diff (int): Images separated by less than this time cannot be a sequence
+        max_time_diff (int): Images separated by more than this time cannot be a sequence
+        csv_path (int): Path and name og generated csv. 
+    """    
+     #file names
+    onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
+    
+    days_list = []
+    dict_day = {}
+
+    for i in range(len(onlyfiles)):
+        day = int(onlyfiles[i][8:11]) #dia el anio
+        if day not in(days_list):
+            days_list.append(day)
+        if day in dict_day.keys():
+        dict_day[day].append(onlyfiles[i])
+        else:
+            dict_day[day] = []
+            dict_day[day].append(onlyfiles[i])
+    
+    fieldnames = []
+    for i in range(in_channel+out_channel):
+        if i < in_channel:
+            fieldnames.append('input'+str(i))
+        else:
+            fieldnames.append('output'+str(i-in_channel))
+
+    dt_min =timedelta(minutes = min_time_diff)
+    dt_max =timedelta(minutes = max_time_diff)
+
+    with open(csv_path, 'w', encoding='UTF8',newline='') as f:
+        writer = csv.writer(f)
+        for day in dict_day.keys(): #recorro cada dia por separado
+            len_day = len(dict_day[day]) 
+            for i in range(len_day - (in_channel+out_channel)): #me fijo si puedo completar un conjunto de datos
+                complete_seq = True
+                image_sequence = []
+                for j in range(in_channel+out_channel-1): #veo si puede rellenar un dato
+                    if complete_seq:
+                        dt_i = datetime(1997,5,28,hour = int(dict_day[day][i+j][12:14]), 
+                                        minute = int(dict_day[day][i+j][14:16]), 
+                                        second = int(dict_day[day][i+j][16:18]) )
+                        dt_f = datetime(1997,5,28,hour = int(dict_day[day][i+j+1][12:14]), 
+                                        minute = int(dict_day[day][i+j+1][14:16]), 
+                                        second = int(dict_day[day][i+j+1][16:18]) )
+                        
+                        time_diff = dt_f - dt_i
+                        if  dt_min < time_diff < dt_max: #las imagenes estan bien espaciadas en el tiempo
+                            if j == 0:
+                                image_sequence.append(dict_day[day][i+j])
+                                image_sequence.append(dict_day[day][i+j+1])
+                            if j>0:
+                                image_sequence.append(dict_day[day][i+j+1])          
+                        else:
+                            complete_seq = False
+                        
+                if complete_seq: 
+                    writer.writerow(image_sequence)
+                    
