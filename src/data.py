@@ -499,10 +499,13 @@ def save_imgs_2npy(meta_path='data/meta',
             mk_folder_path=mk_folder_path,
             img_folder_path=img_folder_path,
         )
+        
         img = np.asarray(img)
-        if (True):  # sets pixel over 100 to 100
+        
+        
+        if (False):  # sets pixel over 100 to 100
             img = np.clip(img, 0, 100)
-        if (False):  # sets pixel over 100 to image mean
+        if (True):  # sets pixel over 100 to image mean
             img[img > 100] = np.mean(img)
         if (False):  # sets pixel over 100+std to image mean and pixel between 100 and 100+std to 100
             img[img > 100 + np.std(img)] = np.mean(img)
@@ -555,12 +558,15 @@ def save_imgs_list_2npy(imgs_list=[],
             mk_folder_path=mk_folder_path,
             img_folder_path=img_folder_path,
         )
-        img = np.asarray(img)
+        
+        #cut montevideo
+        img = img[1550:1550+256, 1600:1600+256]
+        
         # image clipping
 
-        if (True):  # sets pixel over 100 to 100
+        if (False):  # sets pixel over 100 to 100
             img = np.clip(img, 0, 100)
-        if (False):  # sets pixel over 100 to image mean
+        if (True):  # sets pixel over 100 to image mean
             img[img > 100] = np.mean(img)
         if (False):  # sets pixel over 100+std to image mean and pixel between 100 and 100+std to 100
             img[img > 100 + np.std(img)] = np.mean(img)
