@@ -5,21 +5,22 @@
 
 import datetime
 import os
+import random
 import re
 
 import cv2 as cv
 import numpy as np
 import pandas as pd
 import torch
-import random
 from torch.utils.data import Dataset
 from torch.utils.data._utils.collate import default_collate
 
 import src.lib.preprocessing_functions as pf
 import src.lib.utils as utils
 
+
 class MontevideoDataset(Dataset):
-    def __init__(self, path,path_sequence_csv,in_channel=3 ,out_channel=1 ,shuffle=False):
+    def __init__(self, path, path_sequence_csv, in_channel=3, out_channel=1, shuffle=False):
         super(MontevideoDataset, self).__init__()
 
         self.path = path
@@ -27,35 +28,40 @@ class MontevideoDataset(Dataset):
         self.shuffle = shuffle
         self.in_channel = in_channel
         self.out_channel = out_channel
-        
-        self.sequence_df = pd.read_csv(path_sequence_csv,header=None)
+
+        self.sequence_df = pd.read_csv(path_sequence_csv, header=None)
         if shuffle:
             np.random.shuffle(self.sequence_df.values)
-        
+
     def __getitem__(self, index):
-                  
+
         # images loading
-        
+
         for i in range(self.in_channel + self.out_channel):
-            if i == 0: #first image in in_frames
-                in_frames = np.load(os.path.join(self.path, self.sequence_df.values[index][i]) )
+            if i == 0:  # first image in in_frames
+                in_frames = np.load(os.path.join(
+                    self.path, self.sequence_df.values[index][i]))
                 in_frames = in_frames[np.newaxis]
-            if i>0 and i<self.in_channel: #next images in in_frames
-                aux = np.load(os.path.join(self.path, self.sequence_df.values[index][i]) )
+            if i > 0 and i < self.in_channel:  # next images in in_frames
+                aux = np.load(os.path.join(
+                    self.path, self.sequence_df.values[index][i]))
                 aux = aux[np.newaxis]
-                in_frames = np.concatenate((in_frames,aux),axis=0)  
-            if i == self.in_channel: #first image in out_frames
-                out_frames = np.load(os.path.join(self.path, self.sequence_df.values[index][i]) )
+                in_frames = np.concatenate((in_frames, aux), axis=0)
+            if i == self.in_channel:  # first image in out_frames
+                out_frames = np.load(os.path.join(
+                    self.path, self.sequence_df.values[index][i]))
                 out_frames = out_frames[np.newaxis]
             if i > self.in_channel:
-                aux = np.load(os.path.join(self.path, self.sequence_df.values[index][i]) )
+                aux = np.load(os.path.join(
+                    self.path, self.sequence_df.values[index][i]))
                 aux = aux[np.newaxis]
-                out_frames = np.concatenate((out_frames,aux),axis=0)
-            
-        return in_frames , out_frames
+                out_frames = np.concatenate((out_frames, aux), axis=0)
+
+        return in_frames, out_frames
 
     def __len__(self):
         return (len(self.sequence_df))
+
 
 class MovingMnistDataset(Dataset):
     def __init__(self, path, n_frames=4, shuffle=False):
@@ -96,8 +102,9 @@ class MovingMnistDataset(Dataset):
                 [np.load(self.path + self.filenames[self.seq_num])]
             ).squeeze()
 
-        frames_in = self.images[self.rel_idx: self.rel_idx+self.n_frames-1]
-        frames_out = self.images[self.n_frames-1].unsqueeze(dim=0)
+        frames_in = self.images[self.rel_idx: self.rel_idx+self.n_frames - 1]
+        frames_out = self.images[self.rel_idx +
+                                 self.n_frames - 1].unsqueeze(dim=0)
 
         # return indexes
         curr_idxs = np.arange(self.rel_idx, self.rel_idx + self.n_frames)
@@ -499,10 +506,9 @@ def save_imgs_2npy(meta_path='data/meta',
             mk_folder_path=mk_folder_path,
             img_folder_path=img_folder_path,
         )
-        
+
         img = np.asarray(img)
-        
-        
+
         if (False):  # sets pixel over 100 to 100
             img = np.clip(img, 0, 100)
         if (True):  # sets pixel over 100 to image mean
@@ -558,10 +564,10 @@ def save_imgs_list_2npy(imgs_list=[],
             mk_folder_path=mk_folder_path,
             img_folder_path=img_folder_path,
         )
-        
-        #cut montevideo
+
+        # cut montevideo
         img = img[1550:1550+256, 1600:1600+256]
-        
+
         # image clipping
 
         if (False):  # sets pixel over 100 to 100
