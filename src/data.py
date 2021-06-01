@@ -47,7 +47,7 @@ class MontevideoDataset(Dataset):
             if i == self.in_channel: #first image in out_frames
                 out_frames = np.load(os.path.join(self.path, self.sequence_df.values[index][i]) )
                 out_frames = out_frames[np.newaxis]
-            if i > in_channel:
+            if i > self.in_channel:
                 aux = np.load(os.path.join(self.path, self.sequence_df.values[index][i]) )
                 aux = aux[np.newaxis]
                 out_frames = np.concatenate((out_frames,aux),axis=0)
