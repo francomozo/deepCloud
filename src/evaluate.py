@@ -69,48 +69,55 @@ def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100,
     else:
         pi,pf,qi,qf = 0,M,0,N
         
+    nan_in_pred = False
     #Check for NANs in last image    
     if (math.isnan(np.sum(predictions[-1][pi:pf,qi:qf]  ))) :
-        raise ValueError('Last prediction has np.nan values')
+        nan_in_pred = True
+        # raise ValueError('Last prediction has np.nan values')
         
-    cosangs_map = np.ones((pf-pi, qf-qi))
-    
     for i in range (C):
         
-        if (predictions[i,pi:pf,qi:qf].shape != gt[i,pi:pf,qi:qf].shape):
+        cosangs_map = np.ones((pf-pi, qf-qi))
+        pred = predictions[i,pi:pf,qi:qf]
+        gt_aux = gt[i,pi:pf,qi:qf]
+        
+        if (pred.shape != gt_aux.shape):
             raise ValueError('Input images must have the same dimensions.')
         
         if evaluate_day_pixels:
             _ , cosangs_thresh = utils.get_cosangs_mask(meta_path='data/meta',
                                                             img_name=gt_ts[i])
-
             cosangs_map = cosangs_thresh[pi:pf,qi:qf] 
         
+        if nan_in_pred:
+            gt_aux = gt_aux[np.logical_not(np.isnan(pred))]
+            cosangs_map = cosangs_map[np.logical_not(np.isnan(pred))]
+            pred = pred[np.logical_not(np.isnan(pred))]
             
         if(metric == 'RMSE'):
-            rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1) - gt[i,pi:pf,qi:qf])**2))
+            rmse = np.sqrt(np.mean(((pred - gt_aux)*(cosangs_map==1))**2))
             error.append(rmse )   
         elif (metric == 'MSE' ):
-            error.append(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf])**2) ) 
+            error.append(np.mean(((pred-gt_aux)*(cosangs_map==1))**2) ) 
         elif (metric == 'PSNR' ):            
-            mse = np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf])**2)
+            mse = np.mean(((pred-gt_aux)*(cosangs_map==1))**2)
             if (mse != 0 ):
                 error.append(10* np.log10(pixel_max_value**2/mse)) 
             else:
                 error.append(20*np.log10(pixel_max_value))
      
         elif (metric == 'SSIM'):
-            error.append(ssim(predictions[i,pi:pf,qi:qf]*(cosangs_map==1),gt[i,pi:pf,qi:qf] , win_size=101  ))
+            error.append(ssim(pred*(cosangs_map==1),gt_aux*(cosangs_map==1) , win_size=101  ))
         elif (metric == 'NRMSE'):
-            nrmse = skimage.metrics.normalized_root_mse(gt[i,pi:pf,qi:qf],predictions[i,pi:pf,qi:qf]*(cosangs_map==1))
+            nrmse = skimage.metrics.normalized_root_mse(gt_aux*(cosangs_map==1),pred*(cosangs_map==1))
             error.append(nrmse)
         elif (metric == 'ReRMSE'):
             eps = 0.0001
-            re_rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf])**2))/(np.sqrt(np.mean((np.mean(gt[i,pi:pf,qi:qf])-gt[i,pi:pf,qi:qf])**2))+eps)
+            re_rmse = np.sqrt(np.mean(((pred-gt_aux)*(cosangs_map==1))**2))/(np.sqrt(np.mean((np.mean(gt_aux)-gt_aux)**2))+eps)
             error.append(re_rmse)
         elif (metric == 'FS'):
-            rmse = np.sqrt(np.mean((predictions[i,pi:pf,qi:qf]*(cosangs_map==1)-gt[i,pi:pf,qi:qf])**2))
-            rmse_persistence = np.sqrt(np.mean((predictions[0,pi:pf,qi:qf]*(cosangs_map==1) -gt[i,pi:pf,qi:qf] )**2))
+            rmse = np.sqrt(np.mean(((pred-gt_aux)*(cosangs_map==1))**2))
+            rmse_persistence = np.sqrt(np.mean(((predictions[0,pi:pf,qi:qf] -gt_aux )*(cosangs_map==1))**2))
             if rmse_persistence == 0 :
                 fs = 1
                 error.append(fs)
