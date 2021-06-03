@@ -2,13 +2,15 @@
 #   Barcharts, plots, graphs, histograms, functions to view dataset, etc
 #
 
+import csv
+import time
+
+import IPython
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import csv
-import time
-import IPython
+
 
 #rolo graph
 def matrix_graph (error_array):
@@ -30,7 +32,11 @@ def matrix_graph (error_array):
     plt.show()
 
     
-def barchart_compare2(model1_values,model1_name,model2_values,model2_name ):
+def barchart_compare2(model1_values,
+                      model1_name,
+                      model2_values,
+                      model2_name,
+                      error_metric='RMSE'):
     """Takes the errors list of different models and plots them in a bar chart
 
     Args:
@@ -57,8 +63,8 @@ def barchart_compare2(model1_values,model1_name,model2_values,model2_name ):
     ax.bar(x + width/2, model2_values, width, label=model2_name)
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
-    ax.set_ylabel('Error metric')
-    ax.set_xlabel('Time (min)')
+    ax.set_ylabel('Error Metric: ' + error_metric)
+    ax.set_xlabel('Predict horizon (min)')
     ax.set_title('Error metric comparisson')
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
@@ -96,7 +102,7 @@ def barchart_compare3(model1_values,model1_name,model2_values,model2_name,model3
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax.set_ylabel('Error metric')
-    ax.set_xlabel('Time (min)')
+    ax.set_xlabel('Predict horizon (min)')
     ax.set_title('Error metric comparisson')
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
@@ -104,7 +110,7 @@ def barchart_compare3(model1_values,model1_name,model2_values,model2_name,model3
     fig.tight_layout()
     plt.show() 
     
-def plot_graph(model_values):
+def plot_graph(model_values, model, error_metric='RMSE'):
     """Plots the errors of the predictions for a generated sequence
 
     Args:
@@ -115,9 +121,9 @@ def plot_graph(model_values):
         labels.append(str(10* (i+1)))
     
     plt.plot(labels, model_values, "r.")
-    plt.title('Model Error')
-    plt.xlabel('Time (min)') 
-    plt.ylabel('Error Metric') 
+    plt.title(model + 'Model Error')
+    plt.xlabel('Predict horizon (min)') 
+    plt.ylabel('Error Metric: ' + error_metric) 
     plt.show()
     
 def show_image_list(images_list, rows):
