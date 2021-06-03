@@ -6,6 +6,7 @@
 import csv
 import datetime
 import os
+import shutil
 from os import listdir
 from os.path import isfile, join
 from datetime import datetime
@@ -211,3 +212,38 @@ def image_sequence_generator(path, in_channel,out_channel, min_time_diff, max_ti
                         
                 if complete_seq: 
                     writer.writerow(image_sequence)
+
+def data_separator_by_folder(data_path):
+    """Takes a folder with images ART_2020XXX_hhmmss.npy and it separates it in folders named 2020XXX
+
+    Args:
+        data_path (string): path to folder that contains images /../
+    """    
+
+    onlyfiles = [f for f in listdir(data_path) if isfile(join(data_path, f))]
+
+    dict_day = {}
+
+    for i in range(len(onlyfiles)):
+        day = int(onlyfiles[i][8:11]) #dia el anio
+
+        if day in dict_day.keys():
+            dict_day[day].append(onlyfiles[i])
+        else:
+            dict_day[day] = []
+            dict_day[day].append(onlyfiles[i])
+            
+    print('El dataset de mvd tiene',len(dict_day.keys()), 'dias')
+
+    for day in dict_day.keys():
+        first = True
+        for filename in dict_day[day]:
+            if first:
+                try:
+                    os.mkdir(data_path+ filename[4:11])
+                except OSError:
+                    print ("Creation of the directory failed" )
+                else:
+                    print ("Successfully created the directory ")
+                first = False
+            shutil.move(data_path + filename, data_path+ filename[4:11]+ '/')
