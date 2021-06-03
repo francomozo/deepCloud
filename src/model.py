@@ -12,7 +12,7 @@ import torch
 class Persistence:
     """ Class that predicts the next images using naive prediction.
     """    
-    def predict(self, image, img_timestamp, predict_horizon):
+    def predict(self, image, predict_horizon, img_timestamp=None):
         """Takes an image and predicts the next images on the predict_horizon depending on class instance
             normal: identical image
             noisy: adds gaussanian noise 
@@ -42,9 +42,12 @@ class Persistence:
             else:
                 predictions.append(np.array(image))
 
-        predict_timestamp = pd.date_range(start = img_timestamp,
-                                    periods= predict_horizon+1, freq = '10min')
-        return np.array(predictions), predict_timestamp
+        if img_timestamp is not None:
+            predict_timestamp = pd.date_range(start = img_timestamp,
+                                        periods= predict_horizon+1, freq = '10min')
+            return np.array(predictions), predict_timestamp
+        else:
+            return np.array(predictions)
 
 class NoisyPersistence(Persistence):
     """Sub class of Persistence, adds white noise to predictions.
@@ -73,7 +76,7 @@ class Cmv:
         self.dcfg = yaml.load(stream, yaml.FullLoader)  # dict
         self.kernel_size = kernel_size
 
-    def predict(self, imgi, imgf, imgf_ts,period, delta_t, predict_horizon, trial=None):
+    def predict(self, imgi, imgf,period, delta_t, predict_horizon, imgf_ts=None, trial=None):
         """Predicts next image using openCV optical Flow
 
         Args:
@@ -169,9 +172,12 @@ class Cmv:
             if (isinstance(self, Cmv2)):
                 base_img = next_img
 
-        predict_timestamp = pd.date_range(start = imgf_ts,
-                                    periods= predict_horizon+1, freq = str(delta_t//60) +'min')
-        return np.array(predictions), predict_timestamp
+        if imgf_ts is not None:
+            predict_timestamp = pd.date_range(start = imgf_ts,
+                                        periods= predict_horizon+1, freq = str(delta_t//60) +'min') 
+            return np.array(predictions), predict_timestamp
+        else:
+            return np.array(predictions)
 
 class Cmv1(Cmv):
     pass
