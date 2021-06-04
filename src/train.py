@@ -33,10 +33,14 @@ def train_model(model,
         verbose (bool, optional): Print epoch counter and time of each epoch. Defaults to True.
         checkpoint_every (int, optional): Save checkpoint every "checkpoint_every" epochs. Defaults to 0.
         print_cuda_mem (bool, optional): Defaults to False.
+        loader_val (optional): Pytorch Dataloader for validation
+        trial (optional): optuna class for hyperparameters
     """
 
     loss_history_val = []
     val_step = 0
+    num_val_samples = 10
+    print_every = 100
     if not train_for:
         return loss_history
     last_epoch = train_for + curr_epoch
@@ -53,19 +57,20 @@ def train_model(model,
 
     while True:
         if verbose:
-            print("EPOCH:", curr_epoch,  end=' ')
+            print("EPOCH:", curr_epoch)
         start = time.time()
-        image_number = 0
-        loss_average = 0
+        start_batch = time.time()
+        secuence_number = 0
+        loss_total = 0
         loss_count = 0
-        for (curr_seq, idxs, data, targets) in loader:
-
+        for id, (data, targets) in enumerate(loader):
+            model.train()
             data = data.to(device=device)
             targets = targets.to(device=device)
 
             scores = model(data)
             loss = criterion(scores, targets)
-            loss_average += loss.item()
+            loss_total += loss.item()
             loss_count += 1
 
             optimizer.zero_grad()
@@ -74,29 +79,35 @@ def train_model(model,
             optimizer.step()
 
             # Validation
-            image_number += data.shape[0]
-            if loader_val is not None and image_number >= 200:
-                image_number = 0
+            secuence_number += data.shape[0]
+            if loader_val is not None and secuence_number >= 200:
                 model.eval()
-                loss_val_total = 0
-                loss_val_count = 0
-                for (curr_seq, idxs, data_val, targets_val) in loader_val:
-                    data_val = data_val.to(device=device)
-                    targets_val = targets_val.to(device=device)
+                with torch.no_grad():
+                    secuence_number = 0
+                    loss_val_total = 0
+                    loss_val_count = 0
+                    for id_val, (data, targets) in enumerate(loader_val):
+                        data = data.to(device=device)
+                        targets = targets.to(device=device)
 
-                    scores_val = model(data_val)
-                    loss_val = criterion(scores_val, targets_val)
-                    loss_val_total += loss_val.item()
-                    loss_val_count += 1
+                        scores_val = model(data)
+                        loss_val = criterion(scores_val, targets)
+                        loss_val_total += loss_val.item()
+                        loss_val_count += 1
+                        if id_val == num_val_samples:
+                            break
 
-                loss_val_average = loss_val_total/loss_val_count
-                loss_history_val.append(np.array(loss_val_average))
-                model.train()
-                if trial is not None:
-                    trial.report(loss_val_average, val_step)
-                    val_step += 1
-                    if trial.should_prune():
-                        raise optuna.exceptions.TrialPruned()
+                    loss_val_average = loss_val_total/loss_val_count
+                    loss_history_val.append(np.array(loss_val_average))
+                    if trial is not None:
+                        trial.report(loss_val_average, val_step)
+                        val_step += 1
+                        if trial.should_prune():
+                            raise optuna.exceptions.TrialPruned()
+
+            if verbose and (id+1) % print_every == 0:
+                print('Iteration',id+1 ,'/', len(loader), ',epoch_loss = %.4f' %(loss_total/loss_count) , ',Iteration time = %.2f' %(time.time()-start_batch), 's'  )
+                start_batch = time.time()
 
         if print_cuda_mem:
             print()
@@ -106,9 +117,9 @@ def train_model(model,
         # Time
         end = time.time()
         if verbose:
-            print(f'Time elapsed: {(end - start):.2f} secs.')
+            print(f'Time elapsed in epoch: {(end - start):.2f} secs.')
 
-        loss_history.append(np.array(loss_average/loss_count))
+        loss_history.append(np.array(loss_total/loss_count))
 
         PATH = "checkpoints/model_epoch" + str(curr_epoch) + ".pt"
 
@@ -119,6 +130,7 @@ def train_model(model,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'loss_history': loss_history,
+                    'loss_history_val': loss_history_val
                 }, PATH)
 
         if curr_epoch == last_epoch:
