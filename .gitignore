@@ -1,5 +1,4 @@
 data/
-bin/
 __pycache__/
 *.pyc
 .vscode/settings.json
