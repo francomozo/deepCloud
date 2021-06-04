@@ -33,6 +33,8 @@ def train_model(model,
         verbose (bool, optional): Print epoch counter and time of each epoch. Defaults to True.
         checkpoint_every (int, optional): Save checkpoint every "checkpoint_every" epochs. Defaults to 0.
         print_cuda_mem (bool, optional): Defaults to False.
+        loader_val (optional): Pytorch Dataloader for validation
+        trial (optional): optuna class for hyperparameters
     """
 
     loss_history_val = []
