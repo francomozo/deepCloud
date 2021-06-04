@@ -20,18 +20,15 @@ import src.lib.utils as utils
 
 
 class MontevideoDataset(Dataset):
-    def __init__(self, path, path_sequence_csv, in_channel=3, out_channel=1, shuffle=False):
+    def __init__(self, path, path_sequence_csv, in_channel=3, out_channel=1):
         super(MontevideoDataset, self).__init__()
 
         self.path = path
         self.path_sequence_csv = path_sequence_csv
-        self.shuffle = shuffle
         self.in_channel = in_channel
         self.out_channel = out_channel
 
         self.sequence_df = pd.read_csv(path_sequence_csv, header=None)
-        if shuffle:
-            np.random.shuffle(self.sequence_df.values)
 
     def __getitem__(self, index):
 
@@ -61,22 +58,19 @@ class MontevideoDataset(Dataset):
 
     def __len__(self):
         return (len(self.sequence_df))
-        
+
 class MontevideoFoldersDataset(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
-    def __init__(self, path, path_sequence_csv, in_channel=3, out_channel=1, shuffle=False):
+    def __init__(self, path, path_sequence_csv, in_channel=3, out_channel=1):
         super(MontevideoFoldersDataset, self).__init__()
 
         self.path = path
         self.path_sequence_csv = path_sequence_csv
-        self.shuffle = shuffle
         self.in_channel = in_channel
         self.out_channel = out_channel
 
         self.sequence_df = pd.read_csv(path_sequence_csv, header=None)
-        if shuffle:
-            np.random.shuffle(self.sequence_df.values)
 
     def __getitem__(self, index):
 
@@ -106,7 +100,8 @@ class MontevideoFoldersDataset(Dataset):
 
     def __len__(self):
         return (len(self.sequence_df))
-
+    
+    
 class MovingMnistDataset(Dataset):
     def __init__(self, path, n_frames=4, shuffle=False):
         super(MovingMnistDataset, self).__init__()
