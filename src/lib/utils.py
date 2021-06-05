@@ -11,6 +11,7 @@ from os import listdir
 from os.path import isfile, join
 from datetime import datetime
 from datetime import timedelta
+import pandas as pd
 
 import numpy as np
 import src.lib.preprocessing_functions as pf
@@ -262,6 +263,103 @@ def image_sequence_generator_folders(path, in_channel,out_channel, min_time_diff
                 if complete_seq: 
                     writer.writerow(image_sequence)
     
+def sequence_df_generator_folders(path, in_channel,out_channel, min_time_diff, max_time_diff):
+    """Generates DataFrame that contains all possible sequences for images separated by day
+
+    Args:
+        path (str): path to folder containing images '/train'
+        in_channel (int): Quantity of input images in sequence
+        out_channel (int): Quantity of output images in sequence
+        min_time_diff (int): Images separated by less than this time cannot be a sequence
+        max_time_diff (int): Images separated by more than this time cannot be a sequence
+
+    Returns:
+        [pd.DataFrame]: Rows contain all sequences
+    """    
+    #folder names
+    folders = os.listdir(path)
+    
+    dt_min =timedelta(minutes = min_time_diff)
+    dt_max =timedelta(minutes = max_time_diff)
+    
+    sequences_df = []
+
+    for folder in folders:
+        folderfiles = sorted([f for f in listdir(join(path,folder)) if isfile(join(path,folder, f))])
+        len_day = len(folderfiles)
+        for i in range(len_day - (in_channel+out_channel)): #me fijo si puedo completar un conjunto de datos
+            complete_seq = True
+            image_sequence = []
+            for j in range(in_channel+out_channel-1): #veo si puede rellenar un dato
+                if complete_seq:
+                    dt_i = datetime(1997,5,28,hour = int(folderfiles[i+j][12:14]), 
+                                    minute = int(folderfiles[i+j][14:16]), 
+                                    second = int(folderfiles[i+j][16:18]) )
+                    dt_f = datetime(1997,5,28,hour = int(folderfiles[i+j+1][12:14]), 
+                                    minute = int(folderfiles[i+j+1][14:16]), 
+                                    second = int(folderfiles[i+j+1][16:18]) )
+                    
+                    time_diff = dt_f - dt_i
+                    
+                    if  dt_min < time_diff < dt_max: #las imagenes estan bien espaciadas en el tiempo
+                        if j == 0:
+                            image_sequence.append(folderfiles[i+j])
+                            image_sequence.append(folderfiles[i+j+1])
+                        if j>0:
+                            image_sequence.append(folderfiles[i+j+1])          
+                    else:
+                        complete_seq = False
+                    
+            if complete_seq: 
+                sequences_df.append(image_sequence)
+                
+    sequences_df = pd.DataFrame(sequences_df)
+    return sequences_df
+
+def sequence_df_generator(path, in_channel,out_channel, min_time_diff, max_time_diff, csv_path):
+    onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
+    days_list = []
+    dict_day = {}
+    for i in range(len(onlyfiles)):
+        day = int(onlyfiles[i][8:11]) #dia el anio
+        if day not in(days_list):
+            days_list.append(day)
+        if day in dict_day.keys():
+            dict_day[day].append(onlyfiles[i])
+        else:
+            dict_day[day] = []
+            dict_day[day].append(onlyfiles[i])
+    dt_min =timedelta(minutes = min_time_diff)
+    dt_max =timedelta(minutes = max_time_diff)
+    sequences_df = []    
+    days_in_folder = sorted(dict_day.keys())
+    for day in days_in_folder: #recorro cada dia por separado
+        len_day = len(dict_day[day]) 
+        day_images_sorted = sorted(dict_day[day])
+        for i in range(len_day - (in_channel+out_channel)): #me fijo si puedo completar un conjunto de datos
+            complete_seq = True
+            image_sequence = []
+            for j in range(in_channel+out_channel-1): #veo si puede rellenar un dato
+                if complete_seq:
+                    dt_i = datetime(1997,5,28,hour = int(day_images_sorted[i+j][12:14]), 
+                                    minute = int(day_images_sorted[i+j][14:16]), 
+                                    second = int(day_images_sorted[i+j][16:18]) )
+                    dt_f = datetime(1997,5,28,hour = int(day_images_sorted[i+j+1][12:14]), 
+                                    minute = int(day_images_sorted[i+j+1][14:16]), 
+                                    second = int(day_images_sorted[i+j+1][16:18]) )
+                    time_diff = dt_f - dt_i
+                    if  dt_min < time_diff < dt_max: #las imagenes estan bien espaciadas en el tiempo
+                        if j == 0:
+                            image_sequence.append(day_images_sorted[i+j])
+                            image_sequence.append(day_images_sorted[i+j+1])
+                        if j>0:
+                            image_sequence.append(day_images_sorted[i+j+1])          
+                    else:
+                        complete_seq = False
+            if complete_seq: 
+                sequences_df.append(image_sequence)       
+    sequences_df = pd.DataFrame(sequences_df)
+    return sequences_df
 
 def data_separator_by_folder(data_path):
     """Takes a folder with images ART_2020XXX_hhmmss.npy and it separates it in folders named 2020XXX

@@ -19,18 +19,26 @@ import src.lib.preprocessing_functions as pf
 import src.lib.utils as utils
 
 
+
 class MontevideoDataset(Dataset):
-    def __init__(self, path, path_sequence_csv, in_channel=3, out_channel=1):
+    def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15,csv_path = None):
         super(MontevideoDataset, self).__init__()
 
         self.path = path
-        self.path_sequence_csv = path_sequence_csv
         self.in_channel = in_channel
         self.out_channel = out_channel
-
-        self.sequence_df = pd.read_csv(path_sequence_csv, header=None)
-
-    def __getitem__(self, index):
+        self.min_time_diff = min_time_diff
+        self.max_time_diff = max_time_diff
+        
+        if csv_path is None:
+            self.sequence_df = utils.sequence_df_generator(path=path,
+                                                            in_channel=in_channel,
+                                                            out_channel= out_channel, 
+                                                            min_time_diff= min_time_diff, 
+                                                            max_time_diff= max_time_diff)
+        else:
+            self.sequence_df = pd.read_csv(csv_path, header= None)
+    def __getitem__(self, index): 
 
         # images loading
 
@@ -62,15 +70,22 @@ class MontevideoDataset(Dataset):
 class MontevideoFoldersDataset(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
-    def __init__(self, path, path_sequence_csv, in_channel=3, out_channel=1):
+    def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15,csv_path=None):
         super(MontevideoFoldersDataset, self).__init__()
 
         self.path = path
-        self.path_sequence_csv = path_sequence_csv
         self.in_channel = in_channel
         self.out_channel = out_channel
-
-        self.sequence_df = pd.read_csv(path_sequence_csv, header=None)
+        self.min_time_diff = min_time_diff
+        self.max_time_diff = max_time_diff
+        if csv_path is None:
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                    in_channel=in_channel,
+                                                                    out_channel= out_channel, 
+                                                                    min_time_diff= min_time_diff, 
+                                                                    max_time_diff= max_time_diff)
+        else:
+            self.sequence_df = pd.read_csv(csv_path, header= None)
 
     def __getitem__(self, index):
 
