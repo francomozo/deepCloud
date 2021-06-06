@@ -12,6 +12,7 @@ from os.path import isfile, join
 from datetime import datetime
 from datetime import timedelta
 import pandas as pd
+import torch
 
 import numpy as np
 import src.lib.preprocessing_functions as pf
@@ -137,10 +138,19 @@ def get_cosangs_mask(meta_path='data/meta',
 
 
 def print_cuda_memory():
+    t = torch.cuda.get_device_properties(0).total_memory
+    r = torch.cuda.memory_reserved(0) 
+    a = torch.cuda.memory_allocated(0)
+    # f = r - a
+    
     print('Memory Usage:')
-    print(f'\t Allocated: {(torch.cuda.memory_allocated(0)/1024**2):.5f} MB.')
-    print(f'\t Cached: {(torch.cuda.memory_reserved(0)/1024**2):.5f} MB.')
+    print(f'\t Total:                  {(t/1024**2):.3f} MB.')
+    print(f'\t Reserved (cached):      {(r/1024**2):.3f} MB.')
+    print(f'\t Allocated:              {(a/1024**2):.3f} MB.')
+    # print(f'\t Free (inside reserved): {(f/1024**2):.3f} MB.')
     return
+
+  # free inside reserved
 
 
 def get_last_checkpoint(path):
