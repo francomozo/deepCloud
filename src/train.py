@@ -3,26 +3,132 @@
 #
 import time
 
-import torch
-import optuna
 import numpy as np
+import optuna
+import torch
 
 from src.lib.utils import print_cuda_memory
 
 
 def train_model(model,
-                loader,
                 criterion,
                 optimizer,
                 device,
-                curr_epoch,
-                loss_history,
-                train_for=0,
+                train_loader,
+                epochs,
+                val_loader,
+                num_val_samples=10,
+                checkpoint_every=None,
                 verbose=True,
-                checkpoint_every=0,
-                print_cuda_mem=False,
-                loader_val=None,
-                trial=None):
+                print_every=100,
+                ):
+
+    # TODO: - save best acc model
+    #       - log training_loss and the mean in each epoch
+    #       - implement save checkpoint with nomenclature
+    #       - decide if or if not to time each batch, and what to print
+    #       - decide what the function returns
+
+    VAL_LOSS = []
+
+    for epoch in range(epochs):
+
+        start_epoch = time.time()
+
+        for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
+            model.train()
+
+            start_batch = time.time()
+
+            # data to cuda if possible
+            in_frames = in_frames.to(device=device)
+            out_frames = out_frames.to(device=device)
+
+            # forward
+            frames_pred = model(in_frames)
+            loss = criterion(frames_pred, out_frames)
+
+            # backward
+            optimizer.zero_grad()
+            loss.backward()
+
+            # gradient descent or adam step
+            optimizer.step()
+
+            end_batch = time.time()
+
+            TIME.append(end_batch - start_batch)
+
+            if verbose and batch_idx > 0 and batch_idx % print_every == 0:
+                model.eval()
+
+                start_val = time.time()
+
+                with torch.no_grad():
+                    for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
+
+                        in_frames = in_frames.to(device=device)
+                        out_frames = out_frames.to(device=device)
+
+                        frames_pred = model(in_frames)
+                        val_loss = criterion(frames_pred, out_frames)
+
+                        VAL_LOSS.append(val_loss.item())
+
+                        if val_batch_idx == num_val_samples:
+                            break
+
+                end_val = time.time()
+                val_time = end_val - start_val
+
+                # get statistics
+                print(
+                    f'Epoch({epoch + 1}/{epochs}) | Batch({batch_idx:04d}/{len(train_loader)}) | ', end='')
+                print(
+                    f'Train_loss({(loss.item()):06.2f}) | Val_loss({sum(VAL_LOSS)/len(VAL_LOSS):.2f}) | ', end='')
+                print(
+                    f'Time_per_batch({sum(TIME)/len(TIME):.2f}s) | Val_time({val_time:.2f}s)')
+
+                TIME = []
+                VAL_LOSS = []
+
+        end_epoch = time.time()
+        if verbose:
+            print(
+                f'Time elapsed in current epoch: {(end_epoch - start_epoch):.2f} secs.')
+
+        # PREGUNTAS A RESPONDER ANTES DE ESTO:
+        #  Donde guardar los checkpoints de los modelos
+        #  Vamos a usar alguna nomenclatura para guardar estos
+        #  Queremos guardar la training_loss para cada batch, o tomar promedio en la epocha y guardar
+        #      solo eso
+        #
+        # if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
+        #     PATH = 'reports/checkpoints/'
+        #     NAME = 'model_epoch' + str(epoch + 1) + '.pt'
+        #
+        #     torch.save({
+        #         'epoch': epoch + 1,
+        #         'model_state_dict': model.state_dict(),
+        #         'optimizer_state_dict': optimizer.state_dict(),
+        #         'loss_history': loss_history,
+        #         'loss_history_val': loss_history_val
+        #     }, PATH)
+
+
+def train_model_old(model,
+                    loader,
+                    criterion,
+                    optimizer,
+                    device,
+                    curr_epoch,
+                    loss_history,
+                    train_for=0,
+                    verbose=True,
+                    checkpoint_every=0,
+                    print_cuda_mem=False,
+                    loader_val=None,
+                    trial=None):
     """Trains model, prints cuda mem, saves checkpoints, resumes training.
 
     Args:
@@ -49,8 +155,8 @@ def train_model(model,
     # No entiendo xq es necesario este if:  ---borrar---
     # if curr_epoch > 1:
     #     curr_epoch += 1  # If curr_epoch not zero, the argument passed to
-        # curr_epoch is the last epoch the
-        # model was trained in the loop before
+    # curr_epoch is the last epoch the
+    # model was trained in the loop before
 
     if print_cuda_mem:
         print_cuda_memory()
@@ -106,7 +212,8 @@ def train_model(model,
                             raise optuna.exceptions.TrialPruned()
 
             if verbose and (id+1) % print_every == 0:
-                print('Iteration',id+1 ,'/', len(loader), ',epoch_loss = %.4f' %(loss_total/loss_count) , ',Iteration time = %.2f' %(time.time()-start_batch), 's'  )
+                print('Iteration', id+1, '/', len(loader), ',epoch_loss = %.4f' %
+                      (loss_total/loss_count), ',Iteration time = %.2f' % (time.time()-start_batch), 's')
                 start_batch = time.time()
 
         if print_cuda_mem:
