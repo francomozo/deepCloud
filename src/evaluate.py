@@ -7,8 +7,11 @@ from skimage.metrics import structural_similarity as ssim
 import skimage.metrics
 import math
 import torch
+import time
+from tqdm import tqdm
 
 import src.lib.utils as utils
+from src import model
 
 def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100, 
                    small_eval_window = False,window_pad_height=0,window_pad_width =0 ,
@@ -175,17 +178,79 @@ def evaluate_pixel(predictions,gt,metric,pixel_max_value =255,pixel= (0,0)):
     return error
 
 
-def test_model(model, loader, criterion, device):
-    model.eval()
-    loss_average = 0
-    loss_count = 0
-    for (curr_seq, idxs, data, targets) in loader:
-        data = data.to(device=device)
-        targets = targets.to(device=device)
+def evaluate_model(model_instance, loader, predict_horizon, device=None, metric='RMSE'):
+    """
+    Evaluates performance of model_instance on loader data. 
 
-        scores = model(data)
-        loss = criterion(scores, targets)
-        loss_average += loss.item()
-        loss_count += 1
+    Args:
+        model_instance (object): Model to evaluate. Persistence, CMV or nn.Module
+        loader (Dataloader): Dataloader with data for evaluation
+        predict_horizon (int): Number of images to predict 
+        device (string, optional): Device for pytorch. "cpu" or "cuda". Defaults to None.
+        metric (str, optional): Metric for evaluation. Defaults to 'RMSE'.
 
-    return loss_average/loss_count
+    Returns:
+        [np.array]: Array of errors in evaluation with shape (len(loader), predict_horizon)
+    """
+    error_list =[]
+
+    per_predict_time= []
+    eval_time = []
+    cmv_predict_time = []
+    
+    with tqdm(loader, desc=f'Status', unit='sequences') as loader_pbar:
+        for idx, (inputs, targets) in enumerate(loader_pbar):
+            inputs = inputs.squeeze()
+            targets = targets.squeeze()
+            
+            # predict depending on model
+            if (isinstance(model_instance, model.Persistence)):
+                start = time.time()
+                predictions = model_instance.predict(
+                                        image=inputs[1], 
+                                        predict_horizon=predict_horizon)
+                end = time.time()
+                per_predict_time.append(end-start)
+                dynamic_window = False
+
+            elif (isinstance(model_instance, model.Cmv)):
+                start = time.time()
+                predictions = model_instance.predict(
+                                        imgi=inputs[0], 
+                                        imgf=inputs[1],
+                                        period=10*60, delta_t=10*60, 
+                                        predict_horizon=predict_horizon) 
+                end = time.time()
+                cmv_predict_time.append(end-start)
+                dynamic_window = False # true for dynamic_window
+
+            elif (isinstance(model_instance, torch.nn.Module) and model_instance.n_classes == 1):
+                predictions = []
+                for i in range(predict_horizon):
+                    inputs = inputs.to(device=device)
+                    prediction = model_instance(inputs.unsqueeze(0))
+                    predictions.append(prediction.cpu().detach().numpy().squeeze())
+                    inputs = torch.cat((inputs[1:], prediction.squeeze(0)))
+                predictions = np.array(predictions) 
+                dynamic_window = False
+
+            # evaluate
+            if not isinstance(model_instance, torch.nn.Module):
+                predictions = predictions[1:]
+            start = time.time()
+            predict_errors = evaluate_image(
+                                        predictions = predictions, 
+                                        gt = targets.cpu().detach().numpy(), 
+                                        gt_ts = None,
+                                        metric=metric, dynamic_window=dynamic_window,
+                                        evaluate_day_pixels = False)
+            error_list.append(predict_errors)
+            end = time.time()
+            eval_time.append(end-start)
+
+    if (isinstance(model_instance, model.Persistence)):
+        print(f'Persistence predict time: {np.sum(per_predict_time):.2f} seconds.')
+    elif (isinstance(model_instance, model.Cmv)):
+        print(f'Cmv predict time: {np.sum(cmv_predict_time):.2f} seconds.')
+    print(f'Evaluation time: {np.sum(eval_time):.2f} seconds.')
+    return np.array(error_list)
