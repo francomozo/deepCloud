@@ -1,10 +1,11 @@
 # USAGE:
 #   Training loops and checkpoint saving
 #
+import datetime
 import time
 
 import numpy as np
-import optuna
+# import optuna
 import torch
 
 from src.lib.utils import print_cuda_memory
@@ -23,22 +24,23 @@ def train_model(model,
                 print_every=100,
                 ):
 
-    # TODO: - save best acc model
-    #       - log training_loss and the mean in each epoch
-    #       - implement save checkpoint with nomenclature
-    #       - decide if or if not to time each batch, and what to print
+    # TODO: - save best acc model DONE(revision pending)
     #       - decide what the function returns
+    #       - docstring
 
+    TRAIN_LOSS = []
     VAL_LOSS = []
+    # TIME = []
+
+    BEST_VAL_ACC = 1e5
 
     for epoch in range(epochs):
-
         start_epoch = time.time()
 
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
             model.train()
 
-            start_batch = time.time()
+            # start_batch = time.time()
 
             # data to cuda if possible
             in_frames = in_frames.to(device=device)
@@ -55,14 +57,14 @@ def train_model(model,
             # gradient descent or adam step
             optimizer.step()
 
-            end_batch = time.time()
+            # end_batch = time.time()
+            # TIME.append(end_batch - start_batch)
 
-            TIME.append(end_batch - start_batch)
+            TRAIN_LOSS.append(loss.item())
 
             if verbose and batch_idx > 0 and batch_idx % print_every == 0:
                 model.eval()
-
-                start_val = time.time()
+                # start_val = time.time()
 
                 with torch.no_grad():
                     for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
@@ -78,18 +80,18 @@ def train_model(model,
                         if val_batch_idx == num_val_samples:
                             break
 
-                end_val = time.time()
-                val_time = end_val - start_val
+                # end_val = time.time()
+                # val_time = end_val - start_val
+                CURRENT_VAL_ACC = sum(VAL_LOSS)/len(VAL_LOSS)
 
-                # get statistics
+                # print statistics
                 print(
                     f'Epoch({epoch + 1}/{epochs}) | Batch({batch_idx:04d}/{len(train_loader)}) | ', end='')
+                # , end='')
                 print(
-                    f'Train_loss({(loss.item()):06.2f}) | Val_loss({sum(VAL_LOSS)/len(VAL_LOSS):.2f}) | ', end='')
-                print(
-                    f'Time_per_batch({sum(TIME)/len(TIME):.2f}s) | Val_time({val_time:.2f}s)')
-
-                TIME = []
+                    f'Train_loss({(loss.item()):06.2f}) | Val_loss({CURRENT_VAL_ACC:.2f})')
+                # print(f'Time_per_batch({sum(TIME)/len(TIME):.2f}s) | Val_time({val_time:.2f}s)') # this part maybe dont print
+                # TIME = []
                 VAL_LOSS = []
 
         end_epoch = time.time()
@@ -97,23 +99,23 @@ def train_model(model,
             print(
                 f'Time elapsed in current epoch: {(end_epoch - start_epoch):.2f} secs.')
 
-        # PREGUNTAS A RESPONDER ANTES DE ESTO:
-        #  Donde guardar los checkpoints de los modelos
-        #  Vamos a usar alguna nomenclatura para guardar estos
-        #  Queremos guardar la training_loss para cada batch, o tomar promedio en la epocha y guardar
-        #      solo eso
-        #
-        # if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
-        #     PATH = 'reports/checkpoints/'
-        #     NAME = 'model_epoch' + str(epoch + 1) + '.pt'
-        #
-        #     torch.save({
-        #         'epoch': epoch + 1,
-        #         'model_state_dict': model.state_dict(),
-        #         'optimizer_state_dict': optimizer.state_dict(),
-        #         'loss_history': loss_history,
-        #         'loss_history_val': loss_history_val
-        #     }, PATH)
+        if CURRENT_VAL_ACC < BEST_VAL_ACC:
+            model_dict = {
+                'epoch': epoch + 1,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss_per_batch': TRAIN_LOSS,
+                'train_loss_epoch_mean': sum(TRAIN_LOSS)/len(TRAIN_LOSS)
+            }
+        else:
+            model_dict = None
+
+        if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
+            PATH = 'checkpoints/'
+            ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
+            NAME = 'model_epoch' + str(epoch + 1) + '_' + str(ts) + '.pt'
+
+            torch.save(model_dict, PATH + NAME)
 
 
 def train_model_old(model,
