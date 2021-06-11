@@ -147,18 +147,13 @@ def train_model_old(model,
 
     loss_history_val = []
     val_step = 0
-    num_val_samples = 10
+    num_val_samples = 400
     print_every = 100
     if not train_for:
         return loss_history
     last_epoch = train_for + curr_epoch
 
     curr_epoch += 1
-    # No entiendo xq es necesario este if:  ---borrar---
-    # if curr_epoch > 1:
-    #     curr_epoch += 1  # If curr_epoch not zero, the argument passed to
-    # curr_epoch is the last epoch the
-    # model was trained in the loop before
 
     if print_cuda_mem:
         print_cuda_memory()
@@ -173,6 +168,7 @@ def train_model_old(model,
         loss_count = 0
         for id, (data, targets) in enumerate(loader):
             model.train()
+            start_batch = time.time()
             data = data.to(device=device)
             targets = targets.to(device=device)
 
@@ -188,7 +184,7 @@ def train_model_old(model,
 
             # Validation
             secuence_number += data.shape[0]
-            if loader_val is not None and secuence_number >= 200:
+            if loader_val is not None and secuence_number >= 400:
                 model.eval()
                 with torch.no_grad():
                     secuence_number = 0
@@ -202,7 +198,7 @@ def train_model_old(model,
                         loss_val = criterion(scores_val, targets)
                         loss_val_total += loss_val.item()
                         loss_val_count += 1
-                        if id_val == num_val_samples:
+                        if (id_val * data.shape[0] >= num_val_samples):
                             break
 
                     loss_val_average = loss_val_total/loss_val_count
@@ -212,12 +208,9 @@ def train_model_old(model,
                         val_step += 1
                         if trial.should_prune():
                             raise optuna.exceptions.TrialPruned()
-
+            end_batch = time.time()
             if verbose and (id+1) % print_every == 0:
-                print('Iteration', id+1, '/', len(loader), ',epoch_loss = %.4f' %
-                      (loss_total/loss_count), ',Iteration time = %.2f' % (time.time()-start_batch), 's')
-                start_batch = time.time()
-
+                print('Iteration',id+1 ,'/', len(loader), ',loss = %.4f' %loss.item(), ',epoch_loss = %.4f' %(loss_total/loss_count) , ',Iteration time = %.2f' %((end_batch-start_batch)/print_every), 's'  )            
         if print_cuda_mem:
             print()
             print_cuda_memory()
