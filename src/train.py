@@ -5,7 +5,7 @@ import datetime
 import time
 
 import numpy as np
-# import optuna
+import optuna
 import torch
 
 from src.lib.utils import print_cuda_memory
@@ -210,7 +210,8 @@ def train_model_old(model,
                             raise optuna.exceptions.TrialPruned()
             end_batch = time.time()
             if verbose and (id+1) % print_every == 0:
-                print('Iteration',id+1 ,'/', len(loader), ',loss = %.4f' %loss.item(), ',epoch_loss = %.4f' %(loss_total/loss_count) , ',Iteration time = %.2f' %((end_batch-start_batch)/print_every), 's'  )            
+                print('Iteration', id+1, '/', len(loader), ',loss = %.4f' % loss.item(), ',epoch_loss = %.4f' %
+                      (loss_total/loss_count), ',Iteration time = %.2f' % ((end_batch-start_batch)/print_every), 's')
         if print_cuda_mem:
             print()
             print_cuda_memory()
