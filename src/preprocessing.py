@@ -5,6 +5,8 @@
 from torchvision.transforms import Resize
 from PIL import Image
 import torchvision.transforms.functional as F
+import torch
+
 
 class CropImage(object):
     """ Whether to crop the images or not
@@ -29,6 +31,17 @@ class CropImage(object):
     def __call__(self, image):
         return image[self.x1:self.x2,self.y1:self.y2]
     
+class normalize_pixels(object):
+    #def __init__(self):
+
+    def __call__(self, in_frames,out_frames):
+        #in_frames = torch.div(in_frames,100)
+        #out_frames = torch.div(out_frames,100)
+        in_frames,out_frames = in_frames/100 , out_frames/100
+        return in_frames , out_frames
+        
+        
+        
 # class ResizeImage(object):
 #     def __init__(self, size, interpolation=Image.BILINEAR, max_size=None):
 #         self.size = size

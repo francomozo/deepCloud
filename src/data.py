@@ -61,7 +61,10 @@ class MontevideoDataset(Dataset):
                     self.path, self.sequence_df.values[index][i]))
                 aux = aux[np.newaxis]
                 out_frames = np.concatenate((out_frames, aux), axis=0)
-
+                
+        if self.transform:
+            in_frames, out_frames = self.transform(in_frames,out_frames)            
+            
         return in_frames, out_frames
 
     def __len__(self):
@@ -70,7 +73,7 @@ class MontevideoDataset(Dataset):
 class MontevideoFoldersDataset(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
-    def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15,csv_path=None):
+    def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15,csv_path=None, transform =None):
         super(MontevideoFoldersDataset, self).__init__()
 
         self.path = path
@@ -78,6 +81,7 @@ class MontevideoFoldersDataset(Dataset):
         self.out_channel = out_channel
         self.min_time_diff = min_time_diff
         self.max_time_diff = max_time_diff
+        self.transform = transform
         if csv_path is None:
             self.sequence_df = utils.sequence_df_generator_folders(path=path,
                                                                     in_channel=in_channel,
@@ -111,6 +115,9 @@ class MontevideoFoldersDataset(Dataset):
                 aux = aux[np.newaxis]
                 out_frames = np.concatenate((out_frames, aux), axis=0)
 
+        if self.transform:
+            in_frames, out_frames = self.transform(in_frames,out_frames)  
+        
         return in_frames, out_frames
 
     def __len__(self):
