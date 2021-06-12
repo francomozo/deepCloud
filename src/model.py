@@ -70,13 +70,16 @@ class BlurredPersistence(Persistence):
         self.kernel_size = kernel_size
 
 class Cmv:
-    def __init__(self, kernel_size = (0,0)):
+    def __init__(self, kernel_size = (0,0), dcfg=None):
         # Load configuration
-        stream = open("les-prono/admin_scripts/config.yaml", 'r')
-        self.dcfg = yaml.load(stream, yaml.FullLoader)  # dict
+        if dcfg is None:
+            stream = open("les-prono/admin_scripts/config.yaml", 'r')
+            self.dcfg = yaml.load(stream, yaml.FullLoader)  # dict
+        else:
+            self.dcfg = dcfg
         self.kernel_size = kernel_size
 
-    def predict(self, imgi, imgf,period, delta_t, predict_horizon, imgf_ts=None, trial=None):
+    def predict(self, imgi, imgf,period, delta_t, predict_horizon, imgf_ts=None):
         """Predicts next image using openCV optical Flow
 
         Args:
@@ -85,7 +88,6 @@ class Cmv:
             period (int): time difference between imgi and imgf in seconds
             delta_t (int): time passed between imgf and predicted image in seconds
             predict_horizon (int): Length of the prediction horizon (Cuantity of images returned)
-            trial (optuna.trial): optuna trial object
 
         Returns:
             [Numpy array]: Numpy array with predicted images
@@ -97,21 +99,13 @@ class Cmv:
             
         #get_cmv (dcfg, imgi,imgf, period)
         cmvcfg = self.dcfg["algorithm"]["cmv"]
-        if trial == None:
-            pyr_scale=cmvcfg["pyr_scale"]
-            levels=cmvcfg["levels"]
-            winsize=cmvcfg["winsize"]
-            iterations=cmvcfg["iterations"]
-            poly_n=cmvcfg["poly_n"]
-            poly_sigma=cmvcfg["poly_sigma"]
-        else:
-            pyr_scale = trial.suggest_float("pyr_scale", 0.3, 0.7)
-            levels = trial.suggest_int("levels", 2, 5)
-            winsize=cmvcfg["winsize"] #winsize = trial.suggest_int("winsize", 15, 24)
-            iterations = trial.suggest_int("iterations", 2, 4)
-            poly_n = trial.suggest_int("poly_n", 5, 7)
-            poly_sigma= trial.suggest_float("poly_sigma", 0.8, 1.5)
-
+        pyr_scale=cmvcfg["pyr_scale"]
+        levels=cmvcfg["levels"]
+        winsize=cmvcfg["winsize"]
+        iterations=cmvcfg["iterations"]
+        poly_n=cmvcfg["poly_n"]
+        poly_sigma=cmvcfg["poly_sigma"]
+ 
         flow = cv.calcOpticalFlowFarneback(
             imgi,
             imgf,
