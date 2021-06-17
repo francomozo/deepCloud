@@ -93,11 +93,8 @@ def train_model(model,
 
                 if verbose:
                     # print statistics
-                    print(
-                        f'Epoch({epoch + 1}/{epochs}) | Batch({batch_idx:04d}/{len(train_loader)}) | ', end='')
-                    # , end='')
-                    print(
-                        f'Train_loss({(CURRENT_TRAIN_ACC):06.2f}) | Val_loss({CURRENT_VAL_ACC:.2f})')
+                    print(f'Epoch({epoch + 1}/{epochs}) | Batch({batch_idx:04d}/{len(train_loader)}) | ', end='')
+                    print(f'Train_loss({(CURRENT_TRAIN_ACC):06.2f}) | Val_loss({CURRENT_VAL_ACC:.2f})', end='')
                     print(f'Time_per_batch({sum(TIME)/len(TIME):.2f}s) | Val_time({val_time:.2f}s)') # this part maybe dont print
                     TIME = []
                     
