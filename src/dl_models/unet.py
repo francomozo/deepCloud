@@ -82,6 +82,7 @@ class OutConv(nn.Module):
 class UNet(nn.Module):
     def __init__(self, n_channels, n_classes, bilinear=True):
         super().__init__()
+        self.description = 'Unet_inFrames_' + str(n_channels)+'_outFrames_'+str(n_classes)
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
