@@ -32,12 +32,14 @@ class CropImage(object):
         return image[self.x1:self.x2,self.y1:self.y2]
     
 class normalize_pixels(object):
-    #def __init__(self):
+    def __init__(self, mean0 = True):
+        self.mean0 = mean0
 
     def __call__(self, in_frames,out_frames):
-        #in_frames = torch.div(in_frames,100)
-        #out_frames = torch.div(out_frames,100)
-        in_frames,out_frames = in_frames/100 , out_frames/100
+        if self.mean0:
+            in_frames,out_frames = (in_frames/100)-0.5 , (out_frames/100)-0.5
+        else: 
+            in_frames,out_frames = (in_frames/100) , (out_frames/100)
         return in_frames , out_frames
         
         
