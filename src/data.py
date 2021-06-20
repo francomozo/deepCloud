@@ -570,9 +570,9 @@ def save_imgs_2npy(meta_path='data/meta',
 
         img = np.asarray(img)
 
-        if (False):  # sets pixel over 100 to 100
+        if (True):  # sets pixel over 100 to 100
             img = np.clip(img, 0, 100)
-        if (True):  # sets pixel over 100 to image mean
+        if (False):  # sets pixel over 100 to image mean
             img[img > 100] = np.mean(img)
         if (False):  # sets pixel over 100+std to image mean and pixel between 100 and 100+std to 100
             img[img > 100 + np.std(img)] = np.mean(img)
@@ -631,22 +631,22 @@ def save_imgs_list_2npy(imgs_list=[],
 
         # image clipping
 
-        if (False):  # sets pixel over 100 to 100
+        if (True):  # sets pixel over 100 to 100
             img = np.clip(img, 0, 100)
-        if (True):  # sets pixel over 100 to image mean
+        if (False):  # sets pixel over 100 to image mean
             img[img > 100] = np.mean(img)
         if (False):  # sets pixel over 100+std to image mean and pixel between 100 and 100+std to 100
             img[img > 100 + np.std(img)] = np.mean(img)
             img[img > 100] = 100
 
         if split_days_into_folders:
-            day = re.sub("[^0-9]", "", filename)[4:7].lstrip("0")
+            day = re.sub("[^0-9]", "", filename)[:7]
             try:
                 os.makedirs(os.path.join(
-                    os.getcwd(), destintation_path, "dia_" + day))
+                    os.getcwd(), destintation_path, day))
             except:
                 pass
-            path = os.path.join(destintation_path, "dia_" +
+            path = os.path.join(destintation_path,
                                 day, os.path.splitext(filename)[0] + ".npy")
 
         else:
