@@ -32,6 +32,8 @@ class CropImage(object):
         return image[self.x1:self.x2,self.y1:self.y2]
     
 class normalize_pixels(object):
+    """ Normalizes images between [0,1] if mean0 is False, normalizes between [-0.5,0.5] if True
+    """    
     def __init__(self, mean0 = True):
         self.mean0 = mean0
 
