@@ -40,7 +40,7 @@ train_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud
                                      min_time_diff=5,max_time_diff=15,
                                      transform = normalize)
                                      
-val_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/val/',    
+val_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',    
                                   in_channel=3,
                                   out_channel=1,
                                    min_time_diff=5,max_time_diff=15,
@@ -50,7 +50,7 @@ train_loader = DataLoader(train_mvd, batch_size=batch_size, shuffle=True, num_wo
 val_loader = DataLoader(val_mvd, batch_size=batch_size, shuffle=True, num_workers=2,pin_memory=True)
 
 learning_rates = [1e-3]
-weight_decay = [1e-3]
+weight_decay = [0]
 grid_search = [ (lr, wd) for lr in learning_rates for wd in weight_decay ]
 
 for lr, wd in grid_search:

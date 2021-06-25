@@ -102,6 +102,10 @@ def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100,
             error.append(rmse )   
         elif (metric == 'MSE' ):
             error.append(np.mean(((pred-gt_aux)*(cosangs_map==1))**2) ) 
+        elif (metric == 'MAE'):
+            error.append(np.mean( np.absolute((pred-gt_aux)*(cosangs_map==1)) ))
+        elif (metric == 'MBD'):
+            error.append(np.mean( (pred-gt_aux)*(cosangs_map==1) ))
         elif (metric == 'PSNR' ):            
             mse = np.mean(((pred-gt_aux)*(cosangs_map==1))**2)
             if (mse != 0 ):

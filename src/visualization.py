@@ -125,6 +125,25 @@ def plot_graph(model_values, model, error_metric='RMSE'):
     plt.xlabel('Predict horizon (min)') 
     plt.ylabel('Error Metric: ' + error_metric) 
     plt.show()
+
+def plot_graph_multiple(models_values, models_names, error_metric='RMSE'):
+    """Plots the errors of the predictions for multiple generated sequences
+
+    Args:
+        model_values (list): List containing lists with the values of the errors for each model
+        models_names (list): list containing the model names
+    """    
+    labels = []
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+    for i in range(len(models_values[0])):
+        labels.append(str(10* (i+1)))
+    
+    for i in range(len(models_values)):
+        plt.plot(labels, models_values[i], colors[i%10], label=models_names[i])
+    plt.title('Error Metric: ' + error_metric)
+    plt.xlabel('Predict horizon (min)') 
+    plt.legend()
+    plt.show()
     
 def show_image_list(images_list, rows):
     """ Shows the images passed in a grid
@@ -232,7 +251,7 @@ def show_image_w_colorbar (image):
         image (array): Array containing the values of the image
     """    
     fig, (ax1) = plt.subplots(figsize=(13, 3), ncols=1)
-    image_ = ax1.imshow(image, interpolation='none')
+    image_ = ax1.imshow(image, interpolation='none', cmap='gray')
     #grafica = ax1.imshow(error_array[70:100], interpolation='none')
     fig.colorbar(image_, ax=ax1)
     ax1.title.set_text('Image')
