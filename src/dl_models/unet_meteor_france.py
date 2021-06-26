@@ -80,7 +80,8 @@ def double_conv(in_channels, out_channels):
 def weights_init(model):
     if isinstance(model, nn.Conv2d):
         torch.nn.init.xavier_normal_(m.weight)
-        torch.nn.init.zero_(m.bias)
+        if model.bias is not None:
+          nn.init.constant_(model.bias.data, 0)
 
 #net.apply(weights_init)
 
@@ -101,34 +102,24 @@ class UNet_France(nn.Module):
         self.conv_last = nn.Conv2d(64, out_channels, 1)
         self.sigmoid = nn.Sigmoid()
         
-        
-        
     def forward(self, x):
         conv1 = self.dconv_down1(x)
         x = self.maxpool(conv1)
-
         conv2 = self.dconv_down2(x)
         x = self.maxpool(conv2)
-        
         conv3 = self.dconv_down3(x)
         x = self.maxpool(conv3)   
-        
         x = self.dconv_down4(x)
         x = self.dropout2D(x)
-      
         x = nn.functional.interpolate(x, scale_factor=2, mode='nearest') 
         x = torch.cat([x, conv3], dim=1)
-        
         x = self.dconv_up3(x)     
         x = nn.functional.interpolate(x, scale_factor=2, mode='nearest')  
         x = torch.cat([x, conv2], dim=1)       
-
         x = self.dconv_up2(x)
         x = nn.functional.interpolate(x, scale_factor=2, mode='nearest')     
         x = torch.cat([x, conv1], dim=1)   
-        
         x = self.dconv_up1(x)
-        
         x = self.conv_last(x)
         out = self.sigmoid(x)       
         return out
