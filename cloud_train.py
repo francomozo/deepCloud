@@ -81,4 +81,5 @@ for lr, wd in grid_search:
                         "loss validation": VAL_LOSS_GLOBAL[-1] ,
                     },)
                             
+
 writer.close()
