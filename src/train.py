@@ -260,3 +260,134 @@ def train_model_old(model,
             return loss_history, loss_history_val
 
         curr_epoch += 1
+
+
+def train_modelSSIM(model,
+                train_criterion,
+                val_critarion,
+                optimizer,
+                device,
+                train_loader,
+                epochs,
+                val_loader,
+                num_val_samples=10,
+                checkpoint_every=None,
+                verbose=True,
+                eval_every=100,
+                writer = None):
+
+    # TODO: - save best acc model DONE(revision pending)
+    #       - decide what the function returns
+    #       - docstring
+
+    TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
+    VAL_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
+
+    TIME = []
+
+    BEST_VAL_ACC = 1e5
+        
+    for epoch in range(epochs):
+        start_epoch = time.time()
+        TRAIN_LOSS_EPOCH = [] #stores values inside the current epoch
+        VAL_LOSS_EPOCH = [] #stores values inside the current epoch
+        
+
+        for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
+            model.train()
+
+            start_batch = time.time()
+
+            # data to cuda if possible
+            in_frames = in_frames.to(device=device)
+            out_frames = out_frames.to(device=device)
+
+            # forward
+            frames_pred = model(in_frames)
+            loss = 1 - criterion(frames_pred, out_frames)
+
+            # backward
+            optimizer.zero_grad()
+            loss.backward()
+
+            # gradient descent or adam step
+            optimizer.step()
+
+            end_batch = time.time()
+            TIME.append(end_batch - start_batch)
+
+            TRAIN_LOSS_EPOCH.append(loss.detach().item())
+
+            if (batch_idx > 0 and batch_idx % eval_every == 0) or (batch_idx == len(train_loader)-1 ) :
+                model.eval()
+                VAL_LOSS_LOCAL = [] #stores values for this validation run
+                start_val = time.time()
+                with torch.no_grad():
+                    for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
+
+                        in_frames = in_frames.to(device=device)
+                        out_frames = out_frames.to(device=device)
+
+                        frames_pred = model(in_frames)
+                        val_loss = val_criterion(frames_pred, out_frames)
+
+                        VAL_LOSS_LOCAL.append(val_loss.detach().item())
+
+                        if val_batch_idx == num_val_samples:
+                            break
+
+                end_val = time.time()
+                val_time = end_val - start_val
+                CURRENT_VAL_ACC = sum(VAL_LOSS_LOCAL)/len(VAL_LOSS_LOCAL)
+                VAL_LOSS_EPOCH.append(CURRENT_VAL_ACC)
+                
+                CURRENT_TRAIN_ACC = sum(TRAIN_LOSS_EPOCH[batch_idx-eval_every:])/len(TRAIN_LOSS_EPOCH[batch_idx-eval_every:])
+
+                if verbose:
+                    # print statistics
+                    print(
+                        f'Epoch({epoch + 1}/{epochs}) | Batch({batch_idx:04d}/{len(train_loader)}) | ', end='')
+                    # , end='')
+                    print(
+                        f'Train_loss({(CURRENT_TRAIN_ACC):06.2f}) | Val_loss({CURRENT_VAL_ACC:.2f})')
+                    print(f'Time_per_batch({sum(TIME)/len(TIME):.2f}s) | Val_time({val_time:.2f}s)') # this part maybe dont print
+                    TIME = []
+                    
+                if writer: 
+                    #add values to tensorboard 
+                    writer.add_scalar("Loss in train GLOBAL",CURRENT_TRAIN_ACC , batch_idx + epoch*(len(train_loader)))
+                    writer.add_scalar("Loss in val GLOBAL" , CURRENT_VAL_ACC,  batch_idx + epoch*(len(train_loader)))
+        
+        #epoch end      
+        end_epoch = time.time()
+        TRAIN_LOSS_GLOBAL.append(sum(TRAIN_LOSS_EPOCH)/len(TRAIN_LOSS_EPOCH))
+        VAL_LOSS_GLOBAL.append(sum(VAL_LOSS_EPOCH)/len(VAL_LOSS_EPOCH))
+        
+        if writer: 
+            #add values to tensorboard 
+            writer.add_scalar("TRAIN LOSS, EPOCH MEAN",TRAIN_LOSS_GLOBAL[-1], epoch)
+            writer.add_scalar("VALIDATION LOSS, EPOCH MEAN" , VAL_LOSS_GLOBAL[-1] , epoch)
+          
+        if verbose:
+            print(
+                f'Time elapsed in current epoch: {(end_epoch - start_epoch):.2f} secs.')
+
+        if CURRENT_VAL_ACC < BEST_VAL_ACC:
+            model_dict = {
+                'epoch': epoch + 1,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss_per_batch': TRAIN_LOSS_EPOCH,
+                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1]
+            }
+        else:
+            model_dict = None
+
+        if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
+            PATH = 'checkpoints/'
+            ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
+            NAME = 'model_epoch' + str(epoch + 1) + '_' + str(ts) + '.pt'
+
+            torch.save(model_dict, PATH + NAME)
+            
+    return TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL
