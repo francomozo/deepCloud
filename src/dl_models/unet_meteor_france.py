@@ -60,6 +60,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 def double_conv(in_channels, out_channels):
     """Performs a 2D convolution, Relu, 2D convolution, Relu
 
@@ -77,25 +78,19 @@ def double_conv(in_channels, out_channels):
         nn.ReLU(inplace=True)
     )   
 
-def weights_init(model):
-    if isinstance(model, nn.Conv2d):
-        torch.nn.init.xavier_normal_(m.weight)
-        if model.bias is not None:
-          nn.init.constant_(model.bias.data, 0)
-
-#net.apply(weights_init)
-
 class UNet_France(nn.Module):
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, p=0.5, interpolation='nearest'):
         super().__init__()
+        
+        self.interpolation = interpolation
         
         self.dconv_down1 = double_conv(in_channels, 64)
         self.dconv_down2 = double_conv(64, 128)
         self.dconv_down3 = double_conv(128, 256)
         self.dconv_down4 = double_conv(256, 512)        
         self.maxpool = nn.MaxPool2d(2)
-        self.dropout2D = nn.Dropout2d(p=0.5)
+        self.dropout2D = nn.Dropout2d(p=p)
         self.dconv_up3 = double_conv(256 + 512, 256)
         self.dconv_up2 = double_conv(128 + 256, 128)
         self.dconv_up1 = double_conv(128 + 64, 64)   
@@ -111,13 +106,13 @@ class UNet_France(nn.Module):
         x = self.maxpool(conv3)   
         x = self.dconv_down4(x)
         x = self.dropout2D(x)
-        x = nn.functional.interpolate(x, scale_factor=2, mode='nearest') 
+        x = nn.functional.interpolate(x, scale_factor=2, mode=self.interpolation) 
         x = torch.cat([x, conv3], dim=1)
         x = self.dconv_up3(x)     
-        x = nn.functional.interpolate(x, scale_factor=2, mode='nearest')  
+        x = nn.functional.interpolate(x, scale_factor=2, mode=self.interpolation)  
         x = torch.cat([x, conv2], dim=1)       
         x = self.dconv_up2(x)
-        x = nn.functional.interpolate(x, scale_factor=2, mode='nearest')     
+        x = nn.functional.interpolate(x, scale_factor=2, mode=self.interpolation)     
         x = torch.cat([x, conv1], dim=1)   
         x = self.dconv_up1(x)
         x = self.conv_last(x)
