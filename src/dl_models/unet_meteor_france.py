@@ -1,5 +1,82 @@
-##Meteeor France Unet , the code is in Tensorflow, below its the adaptation to PyTorch.
-#Source code: https://github.com/zhixuhao/unet
+# meteor france unet in pytorch
+#Source code: https://github.com/zhixuhao/unet (Code in tensorflow)
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+def double_conv(in_channels, out_channels):
+    """Performs a 2D convolution, Relu, 2D convolution, Relu
+
+    Args:
+        in_channels (int): Number of channels input
+        out_channels (int): Number of filters in each convolution (this is equal to the number of output channels)
+
+    Returns:
+        [torch.tensor]: output tensor
+    """    
+    return nn.Sequential(
+        nn.Conv2d(in_channels, out_channels, 3, padding=1),
+        nn.ReLU(inplace=True),
+        nn.Conv2d(out_channels, out_channels, 3, padding=1),
+        nn.ReLU(inplace=True)
+    )   
+
+
+class UNet_France(nn.Module):
+
+    def __init__(self, in_channels, out_channels, p=0.5, interpolation='nearest'):
+        """init UNet from Meteor France.
+
+        Args:
+            in_channels (int): number of Input Frames
+            out_channels (int): number ofOutput frames
+            p (float, optional): probability for dropout2D, Low p, low prob to turn off inputs. Defaults to 0.5.
+            interpolation (str, optional): 'nearest','linear',
+                                            'bilinear','bicubic',
+                                            'trilinear', 'area'. 
+                                            Defaults to 'nearest'.
+        """        
+        super().__init__()
+        
+        self.interpolation = interpolation
+        
+        self.dconv_down1 = double_conv(in_channels, 64)
+        self.dconv_down2 = double_conv(64, 128)
+        self.dconv_down3 = double_conv(128, 256)
+        self.dconv_down4 = double_conv(256, 512)        
+        self.maxpool = nn.MaxPool2d(2)
+        self.dropout2D = nn.Dropout2d(p=p)
+        self.dconv_up3 = double_conv(256 + 512, 256)
+        self.dconv_up2 = double_conv(128 + 256, 128)
+        self.dconv_up1 = double_conv(128 + 64, 64)   
+        self.conv_last = nn.Conv2d(64, out_channels, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+        
+    def forward(self, x):
+        conv1 = self.dconv_down1(x)
+        x = self.maxpool(conv1)
+        conv2 = self.dconv_down2(x)
+        x = self.maxpool(conv2)
+        conv3 = self.dconv_down3(x)
+        x = self.maxpool(conv3)   
+        x = self.dconv_down4(x)
+        x = self.dropout2D(x)
+        x = nn.functional.interpolate(x, scale_factor=2, mode=self.interpolation, align_corners=True) 
+        x = torch.cat([x, conv3], dim=1)
+        x = self.dconv_up3(x)     
+        x = nn.functional.interpolate(x, scale_factor=2, mode=self.interpolation, align_corners=True)  
+        x = torch.cat([x, conv2], dim=1)       
+        x = self.dconv_up2(x)
+        x = nn.functional.interpolate(x, scale_factor=2, mode=self.interpolation, align_corners=True)     
+        x = torch.cat([x, conv1], dim=1)   
+        x = self.dconv_up1(x)
+        x = self.conv_last(x)
+        out = self.sigmoid(x)       
+        return out
+
+##Meteor France Unet , the code is in Tensorflow, above its the adaptation to PyTorch.
 
 # def unet(pretrained_weights = None,input_size = (256,256,1)):
 #     inputs = Input(input_size)
@@ -53,73 +130,3 @@
 #     	model.load_weights(pretrained_weights)
 
 #     return model
-        
-#meteor france unet in pytorch
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-def double_conv(in_channels, out_channels):
-    """Performs a 2D convolution, Relu, 2D convolution, Relu
-
-    Args:
-        in_channels (int): Number of channels input
-        out_channels (int): Number of filters in each convolution (this is equal to the number of output channels)
-
-    Returns:
-        [torch.tensor]: output tensor
-    """    
-    return nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, 3, padding=1),
-        nn.ReLU(inplace=True),
-        nn.Conv2d(out_channels, out_channels, 3, padding=1),
-        nn.ReLU(inplace=True)
-    )   
-
-def weights_init(model):
-    if isinstance(model, nn.Conv2d):
-        torch.nn.init.xavier_normal_(model.weight)
-        if model.bias is not None:
-          nn.init.constant_(model.bias.data, 0)
-
-#net.apply(weights_init)
-
-class UNet_France(nn.Module):
-
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        
-        self.dconv_down1 = double_conv(in_channels, 64)
-        self.dconv_down2 = double_conv(64, 128)
-        self.dconv_down3 = double_conv(128, 256)
-        self.dconv_down4 = double_conv(256, 512)        
-        self.maxpool = nn.MaxPool2d(2)
-        self.dropout2D = nn.Dropout2d(p=0.5)
-        self.dconv_up3 = double_conv(256 + 512, 256)
-        self.dconv_up2 = double_conv(128 + 256, 128)
-        self.dconv_up1 = double_conv(128 + 64, 64)   
-        self.conv_last = nn.Conv2d(64, out_channels, 1)
-        self.sigmoid = nn.Sigmoid()
-        
-    def forward(self, x):
-        conv1 = self.dconv_down1(x)
-        x = self.maxpool(conv1)
-        conv2 = self.dconv_down2(x)
-        x = self.maxpool(conv2)
-        conv3 = self.dconv_down3(x)
-        x = self.maxpool(conv3)   
-        x = self.dconv_down4(x)
-        x = self.dropout2D(x)
-        x = nn.functional.interpolate(x, scale_factor=2, mode='nearest') 
-        x = torch.cat([x, conv3], dim=1)
-        x = self.dconv_up3(x)     
-        x = nn.functional.interpolate(x, scale_factor=2, mode='nearest')  
-        x = torch.cat([x, conv2], dim=1)       
-        x = self.dconv_up2(x)
-        x = nn.functional.interpolate(x, scale_factor=2, mode='nearest')     
-        x = torch.cat([x, conv1], dim=1)   
-        x = self.dconv_up1(x)
-        x = self.conv_last(x)
-        out = self.sigmoid(x)       
-        return out

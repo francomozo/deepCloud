@@ -74,10 +74,6 @@ class OutConv(nn.Module):
     def forward(self, x):
         return self.conv(x)
 
-# class unet(nn.Module):
-#     def __init__(self,...):
-#         super().__init__()
-#     def forward(self,x):
 
 class UNet(nn.Module):
     def __init__(self, n_channels, n_classes, bilinear=True):
