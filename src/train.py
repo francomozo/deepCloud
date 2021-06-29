@@ -453,6 +453,7 @@ def train_model_2(model,
     
     if writer:
         in_frames, _ = next(iter(train_loader))
+        in_frames = in_frames.to(device=device)
         writer.add_graph(model, input_to_model=in_frames, verbose=False)
         
     for epoch in range(epochs):
