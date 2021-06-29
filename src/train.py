@@ -129,8 +129,7 @@ def train_model(model,
                 'train_loss_per_batch': TRAIN_LOSS_EPOCH,
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1]
             }
-        else:
-            model_dict = None
+
 
         if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
             PATH = 'checkpoints/'
