@@ -452,7 +452,8 @@ def train_model_2(model,
     BEST_VAL_ACC = 1e5
     
     if writer:
-        writer.add_graph(model, input_to_model=None, verbose=False)
+        in_frames, _ = next(iter(train_loader))
+        writer.add_graph(model, input_to_model=in_frames, verbose=False)
         
     for epoch in range(epochs):
         start_epoch = time.time()
