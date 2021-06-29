@@ -111,6 +111,9 @@ def train_model(model,
         TRAIN_LOSS_GLOBAL.append(sum(TRAIN_LOSS_EPOCH)/len(TRAIN_LOSS_EPOCH))
         VAL_LOSS_GLOBAL.append(sum(VAL_LOSS_EPOCH)/len(VAL_LOSS_EPOCH))
         
+        if scheduler:
+            scheduler.step(VAL_LOSS_GLOBAL[-1])
+        
         if writer: 
             #add values to tensorboard 
             writer.add_scalar("TRAIN LOSS, EPOCH MEAN",TRAIN_LOSS_GLOBAL[-1], epoch)
@@ -366,6 +369,9 @@ def train_modelSSIM(model,
         TRAIN_LOSS_GLOBAL.append(sum(TRAIN_LOSS_EPOCH)/len(TRAIN_LOSS_EPOCH))
         VAL_LOSS_GLOBAL.append(sum(VAL_LOSS_EPOCH)/len(VAL_LOSS_EPOCH))
         
+        if scheduler:
+            scheduler.step(VAL_LOSS_GLOBAL[-1])
+        
         if writer: 
             #add values to tensorboard 
             writer.add_scalar("TRAIN LOSS, EPOCH MEAN",TRAIN_LOSS_GLOBAL[-1], epoch)
@@ -419,13 +425,33 @@ def train_model_2(model,
                 verbose=True,
                 writer=None,
                 scheduler=None):
-    
+    """ This train function evaluates on all the validation dataset one time per epoch
+
+    Args:
+        model (torch.model): [description]
+        criterion (torch.criterion): [description]
+        optimizer (torch.optim): [description]
+        device ([type]): [description]
+        train_loader ([type]): [description]
+        epochs (int): [description]
+        val_loader ([type]): [description]
+        checkpoint_every (int, optional): [description]. Defaults to None.
+        verbose (bool, optional): Print trainning status. Defaults to True.
+        writer (tensorboard.writer, optional): Logs loss values to tensorboard. Defaults to None.
+        scheduler ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL: Lists containing the mean error of each epoch
+    """    
     TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
     VAL_LOSS_GLOBAL = []
 
     TIME = []
 
     BEST_VAL_ACC = 1e5
+    
+    if witer:
+        writer.add_graph(model, input_to_model=None, verbose=False)
         
     for epoch in range(epochs):
         start_epoch = time.time()
@@ -466,6 +492,10 @@ def train_model_2(model,
 
                 VAL_LOSS_EPOCH.append(val_loss.detach().item())
                 
+                if wirter and (val_batch_idx == 0):
+                    writer.add_images('predictions_batch', frames_pred, epoch)
+                    
+                
         VAL_LOSS_GLOBAL.append(sum(VAL_LOSS_EPOCH)/len(VAL_LOSS_EPOCH))
         
         if scheduler:
@@ -494,8 +524,6 @@ def train_model_2(model,
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1],
                 'val_loss_epoch_mean': VAL_LOSS_GLOBAL[-1]
             }
-        else:
-            model_dict = None
 
         if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
             PATH = 'checkpoints/'
