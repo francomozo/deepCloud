@@ -512,8 +512,10 @@ def train_model_2(model,
                     
         if writer: 
             #add values to tensorboard 
-            writer.add_scalar("TRAIN LOSS, EPOCH MEAN",TRAIN_LOSS_GLOBAL[-1], epoch)
-            writer.add_scalar("VALIDATION LOSS, EPOCH MEAN" , VAL_LOSS_GLOBAL[-1] , epoch)
+            writer.add_scalar("TRAIN LOSS, EPOCH MEAN", TRAIN_LOSS_GLOBAL[-1], epoch)
+            writer.add_scalar("VALIDATION LOSS, EPOCH MEAN", VAL_LOSS_GLOBAL[-1] , epoch)
+            writer.add_scalar("Learning rate", optimizer.state_dict()["param_groups"][0]["lr"], epoch)
+            
 
         if VAL_LOSS_GLOBAL[-1] < BEST_VAL_ACC:
             BEST_VAL_ACC = VAL_LOSS_GLOBAL[-1]
