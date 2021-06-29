@@ -478,8 +478,8 @@ def train_model_2(model,
         if verbose:
             # print statistics
             print(f'Epoch({epoch + 1}/{epochs}) | ', end='')
-            print(f'Train_loss({(TRAIN_LOSS_GLOBAL[-1]):06.4f}) | Val_loss({VAL_LOSS_GLOBAL[-1]:.2f})', end='')
-            print(f'Time_per_batch({TIME:.2f}s)') # this part maybe dont print
+            print(f'Train_loss({(TRAIN_LOSS_GLOBAL[-1]):06.4f}) | Val_loss({VAL_LOSS_GLOBAL[-1]:.4f}) | ', end='')
+            print(f'Time_Epoch({TIME:.2f}s)') # this part maybe dont print
                     
         if writer: 
             #add values to tensorboard 
