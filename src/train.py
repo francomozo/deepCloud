@@ -451,7 +451,7 @@ def train_model_2(model,
 
     BEST_VAL_ACC = 1e5
     
-    if witer:
+    if writer:
         writer.add_graph(model, input_to_model=None, verbose=False)
         
     for epoch in range(epochs):
@@ -493,7 +493,8 @@ def train_model_2(model,
 
                 VAL_LOSS_EPOCH.append(val_loss.detach().item())
                 
-                if wirter and (val_batch_idx == 0):
+                if writer and (val_batch_idx == 0):
+                    writer.add_images('groundtruth_batch', out_frames, epoch)
                     writer.add_images('predictions_batch', frames_pred, epoch)
                     
                 
