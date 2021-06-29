@@ -7,6 +7,7 @@ import time
 import numpy as np
 import optuna
 import torch
+import torch.nn as nn
 
 from src.lib.utils import print_cuda_memory
 
