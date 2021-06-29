@@ -451,7 +451,7 @@ def train_model_2(model,
 
             TRAIN_LOSS_EPOCH.append(loss.detach().item())
             
-        TRAIN_LOSS_GLOBAL.appens(sum(TRAIN_LOSS_EPOCH)/len(TRAIN_LOSS_EPOCH))
+        TRAIN_LOSS_GLOBAL.append(sum(TRAIN_LOSS_EPOCH)/len(TRAIN_LOSS_EPOCH))
         
         #evaluation
         model.eval()
