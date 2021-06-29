@@ -395,7 +395,7 @@ def train_modelSSIM(model,
 
 def weights_init(model):
     if isinstance(model, nn.Conv2d):
-        torch.nn.init.xavier_normal_(m.weight)
+        torch.nn.init.xavier_normal_(model.weight)
         if model.bias is not None:
           nn.init.constant_(model.bias.data, 0)
 
