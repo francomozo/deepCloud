@@ -26,7 +26,7 @@ def train_model(model,
                 verbose=True,
                 eval_every=100,
                 writer=None,
-                sheduler=None):
+                scheduler=None):
 
     # TODO: - save best acc model DONE(revision pending)
     #       - decide what the function returns
