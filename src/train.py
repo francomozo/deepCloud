@@ -319,7 +319,8 @@ def train_model_2(model,
                 writer=None,
                 scheduler=None,
                 val_cropped = False,
-                model_name='model'):
+                model_name='model',
+                save_images=True):
     """ This train function evaluates on all the validation dataset one time per epoch
 
     Args:
@@ -397,7 +398,7 @@ def train_model_2(model,
                     val_crop_loss = criterion(frames_pred[:,:,28:-28,28:-28], out_frames[:,:,28:-28,28:-28])
                     VAL_CROP_LOSS_EPOCH.append(val_crop_loss.detach().item())
                 
-                if writer and (val_batch_idx == 0):
+                if writer and (val_batch_idx == 0) and save_images:
                     writer.add_images('groundtruth_batch', out_frames, epoch)
                     writer.add_images('predictions_batch', frames_pred, epoch)
                     

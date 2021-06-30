@@ -15,7 +15,7 @@ from src import model
 
 def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100, 
                    small_eval_window = False,window_pad_height=0,window_pad_width =0 ,
-                   dynamic_window = False, evaluate_day_pixels = True):
+                   dynamic_window = False, evaluate_day_pixels = True, error_percentage = False):
     """
     Evaluates the precision of the prediction compared to the gorund truth using different metrics
 
@@ -39,6 +39,7 @@ def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100,
         - dynamic_window(bool) : generate biggest window without nans in prediction and evaluate only in 
                                 those pixels
         -evaluate_day_pixels(bool): generate cosz map and evaluate only in pixels with cosz over 
+        -error_percentage(bool): if true, return error in percentage value
 
     Returns:
         [list]: list containing the erorrs of each predicted image 
@@ -132,6 +133,9 @@ def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100,
                 fs = 1 - rmse/rmse_persistence
                 error.append(fs)
 
+        if (error_percentage):
+            error[i] = error[i]/np.mean(gt_aux)
+
     return error
 
 def evaluate_pixel(predictions,gt,metric,pixel_max_value =255,pixel= (0,0)):
@@ -182,7 +186,7 @@ def evaluate_pixel(predictions,gt,metric,pixel_max_value =255,pixel= (0,0)):
     return error
 
 
-def evaluate_model(model_instance, loader, predict_horizon, device=None, metric='RMSE'):
+def evaluate_model(model_instance, loader, predict_horizon, device=None, metric='RMSE', error_percentage=False):
     """
     Evaluates performance of model_instance on loader data. 
 
@@ -192,6 +196,7 @@ def evaluate_model(model_instance, loader, predict_horizon, device=None, metric=
         predict_horizon (int): Number of images to predict 
         device (string, optional): Device for pytorch. "cpu" or "cuda". Defaults to None.
         metric (str, optional): Metric for evaluation. Defaults to 'RMSE'.
+        error_percentage(bool): if true, return error in percentage value
 
     Returns:
         [np.array]: Array of errors in evaluation with shape (len(loader), predict_horizon)
@@ -247,7 +252,8 @@ def evaluate_model(model_instance, loader, predict_horizon, device=None, metric=
                                         gt = targets.cpu().detach().numpy(), 
                                         gt_ts = None,
                                         metric=metric, dynamic_window=dynamic_window,
-                                        evaluate_day_pixels = False)
+                                        evaluate_day_pixels = False, 
+                                        error_percentage = error_percentage)
             error_list.append(predict_errors)
             end = time.time()
             eval_time.append(end-start)
