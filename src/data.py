@@ -116,7 +116,11 @@ class MontevideoFoldersDataset(Dataset):
                 out_frames = np.concatenate((out_frames, aux), axis=0)
 
         if self.transform:
-            in_frames, out_frames = self.transform(in_frames,out_frames)  
+            if type(self.transform) == list:
+                for function in self.transform:
+                    in_frames, out_frames = function(in_frames,out_frames) 
+            else:
+                in_frames, out_frames = self.transform(in_frames,out_frames) 
         
         return in_frames, out_frames
 

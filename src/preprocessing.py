@@ -6,6 +6,7 @@ from torchvision.transforms import Resize
 from PIL import Image
 import torchvision.transforms.functional as F
 import torch
+import numpy as np
 
 
 class CropImage(object):
@@ -44,8 +45,19 @@ class normalize_pixels(object):
             in_frames, out_frames = (in_frames/100), (out_frames/100)
         return in_frames, out_frames
         
-        
-        
+class select_output_frame(object):
+    """ 
+    Function to select a specific frames when the output frames have multiple channels.
+    """    
+    def __init__(self, frame):
+        self.frame = frame
+
+    def __call__(self, in_frames, out_frames):
+        out_frames = out_frames[self.frame, :, :]
+        out_frames = np.expand_dims(out_frames, 0)
+        return in_frames, out_frames   
+    
+
 # class ResizeImage(object):
 #     def __init__(self, size, interpolation=Image.BILINEAR, max_size=None):
 #         self.size = size
