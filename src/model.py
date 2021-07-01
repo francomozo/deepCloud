@@ -152,10 +152,11 @@ class Cmv:
             if self.kernel_size[0] == 0 and self.kernel_size[1] == 0 :
                 predictions.append(next_img)
             else: #add blur to prediction
-                aux = np.ones_like(next_img)
-                aux[np.isnan(next_img)]=np.nan
-                next_img[np.isnan(next_img)]=0
-                blurred_pred = cv.GaussianBlur(next_img,self.kernel_size,0)
+                next_img_aux = np.copy(next_img)
+                aux = np.ones_like(next_img_aux)
+                aux[np.isnan(next_img_aux)]=np.nan
+                next_img_aux[np.isnan(next_img_aux)]=0
+                blurred_pred = cv.GaussianBlur(next_img_aux,self.kernel_size,0)
                 blurred_pred = blurred_pred * aux
                 predictions.append(blurred_pred)
                 
