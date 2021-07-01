@@ -33,12 +33,13 @@ ap.add_argument("--num-val-samples", default=10, type=int,
                 help="Defaults to 10.")
 ap.add_argument("--eval-every", default=50, type=int,
                 help="Defaults to 50.")
-ap.add_argument("--train-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/',
-                help="String. Defaults to mvd dataset train on cluster location.")
+ap.add_argument("--csv-path", default=None,
+                help="String. Defaults str 'None'.")
 ap.add_argument("--checkpoint-every", default=10, type=int,
                 help="Checkpoint every x epochs. Defaults to 10.")
 
 params = vars(ap.parse_args())
+csv_path = params['csv_path'] if params['csv_path'] != 'None' else None
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
@@ -54,11 +55,13 @@ eval_every = params['eval_every']
 
 normalize = preprocessing.normalize_pixels()
 
-train_mvd = MontevideoFoldersDataset(path=params['train_path'],    
+train_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/',    
                                      in_channel=3,
                                      out_channel=1,
                                      min_time_diff=5,max_time_diff=15,
+                                     csv_path=csv_path,
                                      transform=normalize)
+
                                      
 val_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',    
                                    in_channel=3,
