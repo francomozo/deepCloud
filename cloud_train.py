@@ -1,53 +1,73 @@
-from src.data import save_imgs_list_2npy
-import os
-import pandas as pd
-import numpy as np
-import cv2 as cv
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import time
+# from src.data import save_imgs_list_2npy
+# import os
+# import matplotlib.pyplot as plt
+# import matplotlib.patches as patches
+# import time
+import argparse
 
+import cv2 as cv
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-
-from src import data, evaluate, model, preprocessing, visualization, train
-from src.lib import utils
-
-from src.data import MontevideoFoldersDataset
-from src.dl_models.unet import UNet
 import torch.optim as optim
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+from src import data, evaluate, model, preprocessing, train, visualization
+from src.data import MontevideoFoldersDataset
+from src.dl_models.unet import UNet
+
+# from src.lib import utils
+
+
+ap = argparse.ArgumentParser()
+
+ap.add_argument("--seed", default=50, type=int,
+                help="Seed for PyTorch. Defaults to 50.")
+ap.add_argument("--epochs", default=50, type=int,
+                help="Defaults to 50.")
+ap.add_argument("--batch-size", default=20, type=int,
+                help="Defaults to 20.")
+ap.add_argument("--num-val-samples", default=10, type=int,
+                help="Defaults to 10.")
+ap.add_argument("--eval-every", default=50, type=int,
+                help="Defaults to 50.")
+ap.add_argument("--train-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/',
+                help="String. Defaults to mvd dataset train on cluster location.")
+ap.add_argument("--checkpoint-every", default=10, type=int,
+                help="Checkpoint every x epochs. Defaults to 10.")
+
+params = vars(ap.parse_args())
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
-#TRAINNING WITH TRAIN.PY
 
-torch.manual_seed(50)
+# TRAINNING WITH TRAIN.PY
+torch.manual_seed(params['seed'])
 criterion = nn.L1Loss()
 
-epochs = 50
-batch_size = 20
-num_val_samples = 10
-eval_every = 50
+epochs = params['epochs']
+batch_size = params['batch_size']
+num_val_samples = params['num_val_samples']
+eval_every = params['eval_every']
 
 normalize = preprocessing.normalize_pixels()
 
-train_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/',    
-                                    in_channel=3,
-                                    out_channel=1,
+train_mvd = MontevideoFoldersDataset(path=params['train_path'],    
+                                     in_channel=3,
+                                     out_channel=1,
                                      min_time_diff=5,max_time_diff=15,
-                                     transform = normalize)
+                                     transform=normalize)
                                      
 val_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',    
-                                  in_channel=3,
-                                  out_channel=1,
+                                   in_channel=3,
+                                   out_channel=1,
                                    min_time_diff=5,max_time_diff=15,
-                                     transform = normalize)
+                                   transform=normalize)
 
-train_loader = DataLoader(train_mvd, batch_size=batch_size, shuffle=True, num_workers=2,pin_memory = True)
-val_loader = DataLoader(val_mvd, batch_size=batch_size, shuffle=True, num_workers=2,pin_memory=True)
+train_loader = DataLoader(train_mvd, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
+val_loader = DataLoader(val_mvd, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 
 learning_rates = [1e-3]
 weight_decay = [0]
@@ -69,7 +89,7 @@ for lr, wd in grid_search:
                                                   epochs=epochs,
                                                   val_loader = val_loader,
                                                   num_val_samples=num_val_samples,
-                                                  checkpoint_every=10,
+                                                  checkpoint_every=params['checkpoint_every'],
                                                   verbose = True,
                                                   eval_every = eval_every,
                                                   writer=writer)
