@@ -28,12 +28,10 @@ def train_model(model,
                 writer=None,
                 scheduler=None):
 
-    # TODO: - save best acc model DONE(revision pending)
-    #       - decide what the function returns
-    #       - docstring
+    # TODO: - docstring
 
-    TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
-    VAL_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
+    TRAIN_LOSS_GLOBAL = [] # perists through epochs, stores the mean of each epoch
+    VAL_LOSS_GLOBAL = [] # perists through epochs, stores the mean of each epoch
 
     TIME = []
 
@@ -46,8 +44,8 @@ def train_model(model,
         
     for epoch in range(epochs):
         start_epoch = time.time()
-        TRAIN_LOSS_EPOCH = [] #stores values inside the current epoch
-        VAL_LOSS_EPOCH = [] #stores values inside the current epoch
+        TRAIN_LOSS_EPOCH = [] # stores values inside the current epoch
+        VAL_LOSS_EPOCH = [] # stores values inside the current epoch
         
 
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
@@ -107,8 +105,8 @@ def train_model(model,
                 if verbose:
                     # print statistics
                     print(f'Epoch({epoch + 1}/{epochs}) | Batch({batch_idx:04d}/{len(train_loader)}) | ', end='')
-                    print(f'Train_loss({(CURRENT_TRAIN_ACC):06.2f}) | Val_loss({CURRENT_VAL_ACC:.2f})', end='')
-                    print(f'Time_per_batch({sum(TIME)/len(TIME):.2f}s) | Val_time({val_time:.2f}s)') # this part maybe dont print
+                    print(f'Train_loss({(CURRENT_TRAIN_ACC):06.2f}) | Val_loss({CURRENT_VAL_ACC:.2f}) | ', end='')
+                    print(f'Time_per_batch({sum(TIME)/len(TIME):.2f}s) | Val_time({val_time:.2f}s)') 
                     TIME = []
                     
                 if writer: 

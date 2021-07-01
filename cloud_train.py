@@ -17,6 +17,7 @@ from torch.utils.tensorboard import SummaryWriter
 from src import data, evaluate, model, preprocessing, train, visualization
 from src.data import MontevideoFoldersDataset
 from src.dl_models.unet import UNet
+from src.train import train_model
 
 # from src.lib import utils
 
@@ -78,24 +79,24 @@ grid_search = [ (lr, wd) for lr in learning_rates for wd in weight_decay ]
 
 for lr, wd in grid_search:
   model = UNet(n_channels=3,n_classes=1,bilinear=True).to(device)
-  optimizer = optim.Adam(model.parameters(), lr=lr ,betas = (0.9,0.999),eps =1e-08, weight_decay=wd ,amsgrad=False)
+  optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd ,amsgrad=False)
   print('lr =', lr, 'weight_decay =', wd)
 
   comment = f' batch_size = {batch_size} lr = {lr} weight_decay = {wd}'
   writer = SummaryWriter(comment=comment)
 
-  TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train.train_model(model = model,
-                                                  criterion= criterion,
-                                                  optimizer=optimizer,
-                                                  device=device,
-                                                  train_loader= train_loader,
-                                                  epochs=epochs,
-                                                  val_loader = val_loader,
-                                                  num_val_samples=num_val_samples,
-                                                  checkpoint_every=params['checkpoint_every'],
-                                                  verbose = True,
-                                                  eval_every = eval_every,
-                                                  writer=writer)
+  TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model(model=model,
+                                                   criterion=criterion,
+                                                   optimizer=optimizer,
+                                                   device=device,
+                                                   train_loader=train_loader,
+                                                   epochs=epochs,
+                                                   val_loader=val_loader,
+                                                   num_val_samples=num_val_samples,
+                                                   checkpoint_every=params['checkpoint_every'],
+                                                   verbose=True,
+                                                   eval_every=eval_every,
+                                                   writer=writer)
   
   writer.add_hparams(
                     {"lr": lr, "bsize": batch_size, "weight_decay":wd},

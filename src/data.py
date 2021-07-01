@@ -19,7 +19,6 @@ import src.lib.preprocessing_functions as pf
 import src.lib.utils as utils
 
 
-
 class MontevideoDataset(Dataset):
     def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15,csv_path = None):
         super(MontevideoDataset, self).__init__()
@@ -73,7 +72,7 @@ class MontevideoDataset(Dataset):
 class MontevideoFoldersDataset(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
-    def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15,csv_path=None, transform =None):
+    def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15, csv_path=None, transform =None):
         super(MontevideoFoldersDataset, self).__init__()
 
         self.path = path
