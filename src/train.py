@@ -404,7 +404,7 @@ def train_model_2(model,
         #     VAL_CROP_LOSS_GLOBAL.append(sum(VAL_CROP_LOSS_EPOCH)/len(VAL_CROP_LOSS_EPOCH))
         
         if scheduler:
-            scheduler.step(VAL_LOSS_GLOBAL[-1])
+            scheduler.step(TRAIN_LOSS_GLOBAL[-1])
         
         end_epoch = time.time()
         TIME = end_epoch - start_epoch

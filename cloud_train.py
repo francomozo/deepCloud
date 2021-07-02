@@ -104,11 +104,9 @@ for lr, wd in grid_search:
                                                     train_loader=train_loader,
                                                     epochs=epochs,
                                                     val_loader=val_loader,
-                                                    num_val_samples=num_val_samples,
                                                     checkpoint_every=params['checkpoint_every'],
                                                     verbose=True,
                                                     scheduler=scheduler,
-                                                    eval_every=eval_every,
                                                     writer=writer)
   else:
     TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model(model=model,
