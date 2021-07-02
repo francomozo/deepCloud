@@ -17,7 +17,7 @@ from torch.utils.tensorboard import SummaryWriter
 from src import data, evaluate, model, preprocessing, train, visualization
 from src.data import MontevideoFoldersDataset
 from src.dl_models.unet import UNet
-from src.train import train_model
+from src.train import train_model, train_model_2
 
 # from src.lib import utils
 
@@ -41,6 +41,8 @@ ap.add_argument("-wd", "--weight-decay", default=[0], nargs="+", type=float,
                 help="List. Floats for the weight decay. Defaults to [0].")
 ap.add_argument("--checkpoint-every", default=10, type=int,
                 help="Checkpoint every x epochs. Defaults to 10.")
+ap.add_argument("--sgd", action='store_true',
+                help="--sgd for SGD or nothing for Adam.")
 
 params = vars(ap.parse_args())
 csv_path = params['csv_path'] if params['csv_path'] != 'None' else None
@@ -82,24 +84,45 @@ grid_search = [ (lr, wd) for lr in learning_rates for wd in weight_decay ]
 
 for lr, wd in grid_search:
   model = UNet(n_channels=3, n_classes=1, bilinear=True).to(device)
-  optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd, amsgrad=False)
+  if params['sgd']:
+    print('SGD with Scheduler')
+    model.apply(train.weights_init)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd, amsgrad=False)                   
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', patience=5)
+  else:
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd, amsgrad=False)
+  
   print('lr =', lr, 'weight_decay =', wd)
 
   comment = f' batch_size = {batch_size} lr = {lr} weight_decay = {wd}'
   writer = SummaryWriter(comment=comment)
-
-  TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model(model=model,
-                                                   criterion=criterion,
-                                                   optimizer=optimizer,
-                                                   device=device,
-                                                   train_loader=train_loader,
-                                                   epochs=epochs,
-                                                   val_loader=val_loader,
-                                                   num_val_samples=num_val_samples,
-                                                   checkpoint_every=params['checkpoint_every'],
-                                                   verbose=True,
-                                                   eval_every=eval_every,
-                                                   writer=writer)
+  if params['sgd']:
+    TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model_2(model=model,
+                                                    criterion=criterion,
+                                                    optimizer=optimizer,
+                                                    device=device,
+                                                    train_loader=train_loader,
+                                                    epochs=epochs,
+                                                    val_loader=val_loader,
+                                                    num_val_samples=num_val_samples,
+                                                    checkpoint_every=params['checkpoint_every'],
+                                                    verbose=True,
+                                                    scheduler=scheduler,
+                                                    eval_every=eval_every,
+                                                    writer=writer)
+  else:
+    TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model(model=model,
+                                                    criterion=criterion,
+                                                    optimizer=optimizer,
+                                                    device=device,
+                                                    train_loader=train_loader,
+                                                    epochs=epochs,
+                                                    val_loader=val_loader,
+                                                    num_val_samples=num_val_samples,
+                                                    checkpoint_every=params['checkpoint_every'],
+                                                    verbose=True,
+                                                    eval_every=eval_every,
+                                                    writer=writer)
   
   writer.add_hparams(
                     {"lr": lr, "bsize": batch_size, "weight_decay":wd},
