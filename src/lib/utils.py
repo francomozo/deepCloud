@@ -273,6 +273,66 @@ def image_sequence_generator_folders(path, in_channel,out_channel, min_time_diff
                 if complete_seq: 
                     writer.writerow(image_sequence)
     
+def image_sequence_generator_folders_cosangs(path, in_channel,out_channel, min_time_diff, max_time_diff, csv_path):
+    """Recieves a folder with images named as ART_2020XXX_hhmmss.npy and it generates a csv file with the 
+    available sequences of a specified length. Images from Dawn/Dusk are not included.
+
+    Args:
+        path (str): path to folder containing images '/train'
+        in_channel (int): Quantity of input images in sequence
+        out_channel (int): Quantity of output images in sequence
+        min_time_diff (int): Images separated by less than this time cannot be a sequence
+        max_time_diff (int): Images separated by more than this time cannot be a sequence
+        csv_path (int): Path and name og generated csv. 
+    """    
+    #folder names
+    folders = os.listdir(path)
+    
+    dt_min =timedelta(minutes = min_time_diff)
+    dt_max =timedelta(minutes = max_time_diff)
+    
+    with open(csv_path, 'w', encoding='UTF8',newline='') as f:
+        writer = csv.writer(f)
+        for folder in folders:
+            print(folder)
+            folderfiles = sorted([f for f in listdir(join(path,folder)) if isfile(join(path,folder, f))])
+            len_day = len(folderfiles)
+            for i in range(len_day - (in_channel+out_channel)): #me fijo si puedo completar un conjunto de datos
+                complete_seq = True
+                image_sequence = []
+                for j in range(in_channel+out_channel-1): #veo si puede rellenar un dato
+                    if complete_seq:
+                        dt_i = datetime(1997,5,28,hour = int(folderfiles[i+j][12:14]), 
+                                        minute = int(folderfiles[i+j][14:16]), 
+                                        second = int(folderfiles[i+j][16:18]) )
+                        dt_f = datetime(1997,5,28,hour = int(folderfiles[i+j+1][12:14]), 
+                                        minute = int(folderfiles[i+j+1][14:16]), 
+                                        second = int(folderfiles[i+j+1][16:18]) )
+                        
+                        time_diff = dt_f - dt_i
+
+                        #si la primera o ultima imagen de la secuencia no cumple con los cosangs se descarta la sec
+                        if j == 0 or j == in_channel+out_channel-2:
+                            aux = 0
+                            if j == in_channel+out_channel-2:
+                                aux = 1
+                            _, cosangs_thresh = get_cosangs_mask(meta_path='data/meta',
+                                            img_name=folderfiles[i+j+aux])
+                            if (np.mean(cosangs_thresh[1550:1550+256, 1600:1600+256]) != 1.0):
+                                complete_seq = False
+                        
+                        if  dt_min < time_diff < dt_max: #las imagenes estan bien espaciadas en el tiempo
+                            if j == 0:
+                                image_sequence.append(folderfiles[i+j])
+                                image_sequence.append(folderfiles[i+j+1])
+                            if j>0:
+                                image_sequence.append(folderfiles[i+j+1])          
+                        else:
+                            complete_seq = False
+                
+                if complete_seq: 
+                    writer.writerow(image_sequence)
+
 def sequence_df_generator_folders(path, in_channel,out_channel, min_time_diff, max_time_diff):
     """Generates DataFrame that contains all possible sequences for images separated by day
 
