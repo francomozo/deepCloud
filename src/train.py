@@ -339,9 +339,7 @@ def train_model_2(model,
     """    
     TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
     VAL_LOSS_GLOBAL = []
-    # if val_cropped:
-    #     VAL_CROP_LOSS_GLOBAL = []
-
+    
     TIME = []
 
     BEST_VAL_ACC = 1e5
@@ -381,8 +379,6 @@ def train_model_2(model,
 
         with torch.no_grad():
             VAL_LOSS_EPOCH = []
-            # if val_cropped:
-            #     VAL_CROP_LOSS_EPOCH = []
             for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
                 in_frames = in_frames.to(device=device)
                 out_frames = out_frames.to(device=device)
@@ -392,18 +388,12 @@ def train_model_2(model,
 
                 VAL_LOSS_EPOCH.append(val_loss.detach().item())
                 
-                # if val_cropped:
-                #     val_crop_loss = criterion(frames_pred[:,:,28:-28,28:-28], out_frames[:,:,28:-28,28:-28])
-                #     VAL_CROP_LOSS_EPOCH.append(val_crop_loss.detach().item())
-                
-                if writer and (val_batch_idx == 0) and save_images:
-                    writer.add_images('groundtruth_batch', out_frames, epoch)
-                    writer.add_images('predictions_batch', frames_pred, epoch)
+                if writer and (val_batch_idx == 0) and save_images and epoch>35:
+                    writer.add_images('groundtruth_batch', out_frames[:10], epoch)
+                    writer.add_images('predictions_batch', frames_pred[:10], epoch)
                     
         VAL_LOSS_GLOBAL.append(sum(VAL_LOSS_EPOCH)/len(VAL_LOSS_EPOCH))
-        # if val_cropped:
-        #     VAL_CROP_LOSS_GLOBAL.append(sum(VAL_CROP_LOSS_EPOCH)/len(VAL_CROP_LOSS_EPOCH))
-        
+
         if scheduler:
             scheduler.step(VAL_LOSS_GLOBAL[-1])
         
@@ -420,10 +410,7 @@ def train_model_2(model,
             #add values to tensorboard 
             writer.add_scalar("TRAIN LOSS, EPOCH MEAN", TRAIN_LOSS_GLOBAL[-1], epoch)
             writer.add_scalar("VALIDATION LOSS, EPOCH MEAN", VAL_LOSS_GLOBAL[-1] , epoch)
-            writer.add_scalar("Learning rate", optimizer.state_dict()["param_groups"][0]["lr"], epoch)
-            # if val_cropped:
-            #     writer.add_scalar("VALIDATION CROP LOSS, EPOCH MEAN", VAL_CROP_LOSS_GLOBAL[-1] , epoch)
-            
+            writer.add_scalar("Learning rate", optimizer.state_dict()["param_groups"][0]["lr"], epoch)            
 
         if VAL_LOSS_GLOBAL[-1] < BEST_VAL_ACC:
             if verbose:
@@ -448,14 +435,16 @@ def train_model_2(model,
 
                 torch.save(model_dict, PATH + NAME)
                 model_not_saved = False
-    
-    # if verbose:
-    #     print('Saving Best Model')
-        
-    # PATH = 'checkpoints/'
-    # ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
-    # NAME = model_name + '_' + str(ts) + '.pt'
-    # torch.save(model_dict, PATH + NAME)  
+                
+    # if training finished and best model not saved
+    if model_not_saved:
+        if verbose:
+            print('Saving Checkpoint')
+        PATH = 'checkpoints/'
+        ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
+        NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
+
+        torch.save(model_dict, PATH + NAME)
     
     return TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL
 

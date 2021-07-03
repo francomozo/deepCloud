@@ -17,10 +17,9 @@ from torch.utils.tensorboard import SummaryWriter
 from src import data, evaluate, model, preprocessing, train, visualization
 from src.data import MontevideoFoldersDataset
 from src.dl_models.unet import UNet
-from src.train import train_model
+from src.train import train_model, train_model_2
 
 # from src.lib import utils
-
 
 ap = argparse.ArgumentParser()
 
@@ -36,8 +35,14 @@ ap.add_argument("--eval-every", default=50, type=int,
                 help="Defaults to 50.")
 ap.add_argument("--csv-path", default=None,
                 help="String. Defaults str 'None'.")
+ap.add_argument("-lr", "--learning-rates", default=[1e-3], nargs="+", type=float,
+                help="List. Floats for learning rates (ie: 1e-3). Defaults to [1e-3].")
+ap.add_argument("-wd", "--weight-decay", default=[0], nargs="+", type=float,
+                help="List. Floats for the weight decay. Defaults to [0].")
 ap.add_argument("--checkpoint-every", default=10, type=int,
                 help="Checkpoint every x epochs. Defaults to 10.")
+ap.add_argument("--sgd", action='store_true',
+                help="--sgd for SGD or nothing for Adam.")
 
 params = vars(ap.parse_args())
 csv_path = params['csv_path'] if params['csv_path'] != 'None' else None
@@ -59,7 +64,7 @@ normalize = preprocessing.normalize_pixels()
 train_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/',    
                                      in_channel=3,
                                      out_channel=1,
-                                     min_time_diff=5,max_time_diff=15,
+                                     min_time_diff=5, max_time_diff=15,
                                      csv_path=csv_path,
                                      transform=normalize)
 
@@ -67,36 +72,55 @@ train_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud
 val_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',    
                                    in_channel=3,
                                    out_channel=1,
-                                   min_time_diff=5,max_time_diff=15,
+                                   min_time_diff=5, max_time_diff=15,
                                    transform=normalize)
 
 train_loader = DataLoader(train_mvd, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 val_loader = DataLoader(val_mvd, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 
-learning_rates = [1e-3]
-weight_decay = [0]
+learning_rates = params['learning_rates']
+weight_decay = params['weight_decay']
 grid_search = [ (lr, wd) for lr in learning_rates for wd in weight_decay ]
 
 for lr, wd in grid_search:
-  model = UNet(n_channels=3,n_classes=1,bilinear=True).to(device)
-  optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd ,amsgrad=False)
+  model = UNet(n_channels=3, n_classes=1, bilinear=True).to(device)
+  if params['sgd']:
+    print('SGD with Scheduler')
+    model.apply(train.weights_init)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd, amsgrad=False)                   
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', patience=5)
+  else:
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd, amsgrad=False)
+  
   print('lr =', lr, 'weight_decay =', wd)
 
   comment = f' batch_size = {batch_size} lr = {lr} weight_decay = {wd}'
   writer = SummaryWriter(comment=comment)
-
-  TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model(model=model,
-                                                   criterion=criterion,
-                                                   optimizer=optimizer,
-                                                   device=device,
-                                                   train_loader=train_loader,
-                                                   epochs=epochs,
-                                                   val_loader=val_loader,
-                                                   num_val_samples=num_val_samples,
-                                                   checkpoint_every=params['checkpoint_every'],
-                                                   verbose=True,
-                                                   eval_every=eval_every,
-                                                   writer=writer)
+  if params['sgd']:
+    TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model_2(model=model,
+                                                    criterion=criterion,
+                                                    optimizer=optimizer,
+                                                    device=device,
+                                                    train_loader=train_loader,
+                                                    epochs=epochs,
+                                                    val_loader=val_loader,
+                                                    checkpoint_every=params['checkpoint_every'],
+                                                    verbose=True,
+                                                    scheduler=scheduler,
+                                                    writer=writer)
+  else:
+    TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model(model=model,
+                                                    criterion=criterion,
+                                                    optimizer=optimizer,
+                                                    device=device,
+                                                    train_loader=train_loader,
+                                                    epochs=epochs,
+                                                    val_loader=val_loader,
+                                                    num_val_samples=num_val_samples,
+                                                    checkpoint_every=params['checkpoint_every'],
+                                                    verbose=True,
+                                                    eval_every=eval_every,
+                                                    writer=writer)
   
   writer.add_hparams(
                     {"lr": lr, "bsize": batch_size, "weight_decay":wd},
