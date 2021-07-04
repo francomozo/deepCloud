@@ -126,7 +126,7 @@ def plot_graph(model_values, model, error_metric='RMSE'):
     plt.ylabel('Error Metric: ' + error_metric) 
     plt.show()
 
-def plot_graph_multiple(models_values, models_names, error_metric='RMSE'):
+def plot_graph_multiple(models_values, models_names, error_metric='RMSE', save_file=None):
     """Plots the errors of the predictions for multiple generated sequences
 
     Args:
@@ -143,6 +143,8 @@ def plot_graph_multiple(models_values, models_names, error_metric='RMSE'):
     plt.title('Error Metric: ' + error_metric)
     plt.xlabel('Predict horizon (min)') 
     plt.legend()
+    if save_file is not None:
+        plt.savefig(save_file)
     plt.show()
     
 def show_image_list(images_list, rows):
