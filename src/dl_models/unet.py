@@ -76,7 +76,7 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True):
+    def __init__(self, n_channels, n_classes, bilinear=True, p=0, output_sigmoid=False):
         super().__init__()
         self.description = 'Unet_inFrames_' + str(n_channels)+'_outFrames_'+str(n_classes)
         self.n_channels = n_channels
@@ -94,6 +94,12 @@ class UNet(nn.Module):
         self.up3 = Up(256, 128 // factor, bilinear)
         self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(64, n_classes)
+        
+        self.dropout2D = nn.Dropout2d(p=p)
+        if output_sigmoid:
+            self.out_acitvation = nn.Sigmoid()
+        else:
+            self.out_acitvation = nn.Identity()
 
     def forward(self, x):
         x1 = self.inc(x)  # convolution (64 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (64 filters 3x3, pad=1 )=> [BN] => ReLU) 
@@ -101,10 +107,13 @@ class UNet(nn.Module):
         x3 = self.down2(x2) # maxpool (2x2) => convolution (256 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (256 filters 3x3, pad=1 )=> [BN] => ReLU) 
         x4 = self.down3(x3) # maxpool (2x2) => convolution (512 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (512 filters 3x3, pad=1 )=> [BN] => ReLU) 
         x5 = self.down4(x4) # maxpool (2x2) => convolution (512 o 1024 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (512 o 1024 filters 3x3, pad=1 )=> [BN] => ReLU) 
+        x4 = self.dropout2D(x4)
         x = self.up1(x5, x4) #upsample 
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
         out = self.outc(x)
+        out = self.out_acitvation(out)
+            
         return out
         
