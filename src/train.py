@@ -310,7 +310,7 @@ def train_model_2(model,
 def train_model_SSIM(
                         model,
                         train_criterion,
-                        val_critarion,
+                        val_criterion,
                         optimizer,
                         device,
                         train_loader,
