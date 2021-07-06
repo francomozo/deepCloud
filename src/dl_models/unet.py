@@ -107,7 +107,7 @@ class UNet(nn.Module):
         x3 = self.down2(x2) # maxpool (2x2) => convolution (256 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (256 filters 3x3, pad=1 )=> [BN] => ReLU) 
         x4 = self.down3(x3) # maxpool (2x2) => convolution (512 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (512 filters 3x3, pad=1 )=> [BN] => ReLU) 
         x5 = self.down4(x4) # maxpool (2x2) => convolution (512 o 1024 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (512 o 1024 filters 3x3, pad=1 )=> [BN] => ReLU) 
-        x4 = self.dropout2D(x4)
+        x5 = self.dropout2D(x5)
         x = self.up1(x5, x4) #upsample 
         x = self.up2(x, x3)
         x = self.up3(x, x2)
