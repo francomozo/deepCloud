@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
 
@@ -76,24 +77,24 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True, p=0, output_sigmoid=False):
+    def __init__(self, n_channels, n_classes, bilinear=True, p=0, output_sigmoid=False, filters=64):
         super().__init__()
         self.description = 'Unet_inFrames_' + str(n_channels)+'_outFrames_'+str(n_classes)
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
 
-        self.inc = DoubleConv(n_channels, 64)
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
+        self.inc = DoubleConv(n_channels, filters)
+        self.down1 = Down(filters, 2 * filters)
+        self.down2 = Down(2 * filters, 4 * filters)
+        self.down3 = Down(4 * filters, 8 * filters)
         factor = 2 if bilinear else 1
-        self.down4 = Down(512, 1024 // factor)
-        self.up1 = Up(1024, 512 // factor, bilinear)
-        self.up2 = Up(512, 256 // factor, bilinear)
-        self.up3 = Up(256, 128 // factor, bilinear)
-        self.up4 = Up(128, 64, bilinear)
-        self.outc = OutConv(64, n_classes)
+        self.down4 = Down(8 * filters, 16 * filters // factor)
+        self.up1 = Up(16 * filters, 8 * filters // factor, bilinear)
+        self.up2 = Up(8 * filters, 4 * filters // factor, bilinear)
+        self.up3 = Up(4 * filters, 2 * filters // factor, bilinear)
+        self.up4 = Up(2 * filters, filters, bilinear)
+        self.outc = OutConv(filters, n_classes)
         
         self.dropout2D = nn.Dropout2d(p=p)
         if output_sigmoid:
