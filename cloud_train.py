@@ -41,8 +41,8 @@ ap.add_argument("-wd", "--weight-decay", default=[0], nargs="+", type=float,
                 help="List. Floats for the weight decay. Defaults to [0].")
 ap.add_argument("--checkpoint-every", default=10, type=int,
                 help="Checkpoint every x epochs. Defaults to 10.")
-ap.add_argument("--sgd", action='store_true',
-                help="--sgd for SGD or nothing for Adam.")
+ap.add_argument("--scheduler", action='store_true',
+                help="--scheduler for scheduler with Adam.")
 
 params = vars(ap.parse_args())
 csv_path = params['csv_path'] if params['csv_path'] != 'None' else None
@@ -84,8 +84,8 @@ grid_search = [ (lr, wd) for lr in learning_rates for wd in weight_decay ]
 
 for lr, wd in grid_search:
   model = UNet(n_channels=3, n_classes=1, bilinear=True).to(device)
-  if params['sgd']:
-    print('SGD with Scheduler')
+  if params['scheduler']:
+    print('scheduler with Adam.')
     model.apply(train.weights_init)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd, amsgrad=False)                   
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', patience=5)
@@ -96,7 +96,7 @@ for lr, wd in grid_search:
 
   comment = f' batch_size = {batch_size} lr = {lr} weight_decay = {wd}'
   writer = SummaryWriter(comment=comment)
-  if params['sgd']:
+  if params['scheduler']:
     TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model_2(model=model,
                                                     criterion=criterion,
                                                     optimizer=optimizer,
