@@ -90,7 +90,7 @@ for lr, wd in grid_search:
     print('Scheduler with Adam.')
     model.apply(train.weights_init)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd, amsgrad=False)                   
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', patience=5)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=10)
   else:
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd, amsgrad=False)
   

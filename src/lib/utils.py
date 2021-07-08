@@ -273,7 +273,7 @@ def image_sequence_generator_folders(path, in_channel,out_channel, min_time_diff
                 if complete_seq: 
                     writer.writerow(image_sequence)
     
-def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_time_diff, max_time_diff, csv_path, folders=None):
+def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_time_diff, max_time_diff, csv_path, folders=None, meta_path='/clusteruy/home03/DeepCloud/deepCloud/data/raw/meta'):
     """Recieves a folder with images named as ART_2020XXX_hhmmss.npy and it generates a csv file with the 
     available sequences of a specified length. Images from Dawn/Dusk are not included.
 
@@ -318,7 +318,7 @@ def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_
                             aux = 0
                             if j == in_channel+out_channel-2:
                                 aux = 1
-                            _, cosangs_thresh = get_cosangs_mask(meta_path='data/meta',
+                            _, cosangs_thresh = get_cosangs_mask(meta_path=meta_path,
                                             img_name=folderfiles[i+j+aux])
                             if (np.mean(cosangs_thresh[1550:1550+256, 1600:1600+256]) != 1.0):
                                 complete_seq = False
