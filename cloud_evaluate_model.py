@@ -89,6 +89,7 @@ for a_model_name in models_names:
 
 errors_metrics = {}
 for metric in metrics:
+    print("\n", metric)
     fix = 1
     #variables for percentage evaluation:
     percentage_pos = metric.find("%") 
