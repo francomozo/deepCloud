@@ -44,8 +44,8 @@ metrics = params['metrics']
 for i in range(len(models_names)):
   models_names[i] = models_names[i].lower()
   if models_names[i].find("bcmv") != -1:
-      models_names[i] = "bcmv"
       kernel_size = [int(word) for word in models_names[i].split() if word.isdigit()][0]
+      models_names[i] = "bcmv"
 metrics = [each_string.upper() for each_string in metrics]
 
 #DataLoaders
