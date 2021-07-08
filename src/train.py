@@ -559,7 +559,7 @@ def train_model_cyclicLR(   model,
             #add values to tensorboard 
             writer.add_scalar("TRAIN LOSS, EPOCH MEAN", TRAIN_LOSS_GLOBAL[-1], epoch)
             writer.add_scalar("VALIDATION LOSS, EPOCH MEAN", VAL_LOSS_GLOBAL[-1] , epoch)
-            writer.add_scalar("Learning rate", scheduler.get_last_lr(), epoch)            
+            writer.add_scalar("Learning rate", scheduler.get_last_lr()[-1], epoch)            
 
         if VAL_LOSS_GLOBAL[-1] < BEST_VAL_ACC:
             if verbose:
