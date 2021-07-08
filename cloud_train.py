@@ -43,14 +43,16 @@ ap.add_argument("--checkpoint-every", default=10, type=int,
                 help="Checkpoint every x epochs. Defaults to 10.")
 ap.add_argument("--scheduler", action='store_true',
                 help="--scheduler for scheduler with Adam.")
+ap.add_argument("--filters", default=64, type=int,
+                help="Num of filters for the architecture.Defaults to 64.")
+
 
 params = vars(ap.parse_args())
 csv_path = params['csv_path'] if params['csv_path'] != 'None' else None
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-print('using device:', device)
+print('Using device:', device)
 
-# TRAINNING WITH TRAIN.PY
 torch.manual_seed(params['seed'])
 criterion = nn.L1Loss()
 
@@ -80,12 +82,12 @@ val_loader = DataLoader(val_mvd, batch_size=batch_size, shuffle=True, num_worker
 
 learning_rates = params['learning_rates']
 weight_decay = params['weight_decay']
-grid_search = [ (lr, wd) for lr in learning_rates for wd in weight_decay ]
+grid_search = [(lr, wd) for lr in learning_rates for wd in weight_decay]
 
 for lr, wd in grid_search:
-  model = UNet(n_channels=3, n_classes=1, bilinear=True).to(device)
+  model = UNet(n_channels=3, n_classes=1, bilinear=True, filters=params['filters']).to(device)
   if params['scheduler']:
-    print('scheduler with Adam.')
+    print('Scheduler with Adam.')
     model.apply(train.weights_init)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd, amsgrad=False)                   
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', patience=5)

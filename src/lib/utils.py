@@ -273,7 +273,7 @@ def image_sequence_generator_folders(path, in_channel,out_channel, min_time_diff
                 if complete_seq: 
                     writer.writerow(image_sequence)
     
-def image_sequence_generator_folders_cosangs(path, in_channel,out_channel, min_time_diff, max_time_diff, csv_path):
+def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_time_diff, max_time_diff, csv_path, folders=None):
     """Recieves a folder with images named as ART_2020XXX_hhmmss.npy and it generates a csv file with the 
     available sequences of a specified length. Images from Dawn/Dusk are not included.
 
@@ -284,9 +284,11 @@ def image_sequence_generator_folders_cosangs(path, in_channel,out_channel, min_t
         min_time_diff (int): Images separated by less than this time cannot be a sequence
         max_time_diff (int): Images separated by more than this time cannot be a sequence
         csv_path (int): Path and name og generated csv. 
+        folders (list): Containing the folders for generating the sequences. If None, whole train is used
     """    
     #folder names
-    folders = os.listdir(path)
+    if folders is None:
+        folders = os.listdir(path)
     
     dt_min =timedelta(minutes = min_time_diff)
     dt_max =timedelta(minutes = max_time_diff)
