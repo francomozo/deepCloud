@@ -662,3 +662,66 @@ def save_imgs_list_2npy(imgs_list=[],
                                 os.path.splitext(filename)[0] + ".npy")
 
         np.save(path, img)
+
+
+class MontevideoFoldersDataset_w_time(Dataset):
+    """Dataset for Montevideo Dataset separated by folders named 2020XXX
+    """    
+    def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15, csv_path=None, transform =None):
+        super(MontevideoFoldersDataset_w_time, self).__init__()
+
+        self.path = path
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.min_time_diff = min_time_diff
+        self.max_time_diff = max_time_diff
+        self.transform = transform
+        if csv_path is None:
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                    in_channel=in_channel,
+                                                                    out_channel= out_channel, 
+                                                                    min_time_diff= min_time_diff, 
+                                                                    max_time_diff= max_time_diff)
+        else:
+            self.sequence_df = pd.read_csv(csv_path, header= None)
+
+    def __getitem__(self, index):
+
+        # images loading
+
+        out_time=[]
+        for i in range(self.in_channel + self.out_channel):
+            if i == 0:  # first image in in_frames
+                in_frames = np.load(os.path.join(
+                    self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))
+                in_frames = in_frames[np.newaxis]
+            if i > 0 and i < self.in_channel:  # next images in in_frames
+                aux = np.load(os.path.join(
+                    self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                aux = aux[np.newaxis]
+                in_frames = np.concatenate((in_frames, aux), axis=0)
+            if i == self.in_channel:  # first image in out_frames
+                out_frames = np.load(os.path.join(
+                    self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                out_frames = out_frames[np.newaxis]
+                out_time.append(self.sequence_df.values[index][i][12:18])
+            if i > self.in_channel:
+                aux = np.load(os.path.join(
+                    self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                aux = aux[np.newaxis]
+                out_frames = np.concatenate((out_frames, aux), axis=0)
+                # ART_2020xxx_hhmmss.npy
+                
+                out_time.append(self.sequence_df.values[index][i][12:18])
+
+        if self.transform:
+            if type(self.transform) == list:
+                for function in self.transform:
+                    in_frames, out_frames = function(in_frames,out_frames) 
+            else:
+                in_frames, out_frames = self.transform(in_frames,out_frames) 
+        
+        return in_frames, out_frames, out_time
+
+    def __len__(self):
+        return (len(self.sequence_df))
