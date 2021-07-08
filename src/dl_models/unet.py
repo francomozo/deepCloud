@@ -143,7 +143,7 @@ class UNet2(nn.Module):
         else:
             self.out_acitvation = nn.Identity()
 
-    def forward(self, x):
+    def forward(self, x_in):
         x1 = self.inc(x_in)  # convolution (64 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (64 filters 3x3, pad=1 )=> [BN] => ReLU) 
         x2 = self.down1(x1) # maxpool (2x2) => convolution (128 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (128 filters 3x3, pad=1 )=> [BN] => ReLU) 
         x3 = self.down2(x2) # maxpool (2x2) => convolution (256 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (256 filters 3x3, pad=1 )=> [BN] => ReLU) 
@@ -186,7 +186,7 @@ class UNet3(nn.Module):
         else:
             self.out_acitvation = nn.Identity()
 
-    def forward(self, x):
+    def forward(self, x_in):
         x1 = self.inc(x_in)  # convolution (64 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (64 filters 3x3, pad=1 )=> [BN] => ReLU) 
         x2 = self.down1(x1) # maxpool (2x2) => convolution (128 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (128 filters 3x3, pad=1 )=> [BN] => ReLU) 
         x3 = self.down2(x2) # maxpool (2x2) => convolution (256 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (256 filters 3x3, pad=1 )=> [BN] => ReLU) 
