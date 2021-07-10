@@ -34,6 +34,13 @@ ap.add_argument("--save-errors", default=False, type=bool,
 ap.add_argument("--sigmoid", default=False, type=bool,
                 help="Sigmoid for unets. Defaults to False.")
 
+ap.add_argument("--window-pad", default=0, type=int,
+                help="Size of padding for evaluation, eval window is [w_p//2 : M-w_p//2, w_p//2 : N-w_p//2]. Defaults to 0.")
+ap.add_argument("--window-pad-height", default=0, type=int,
+                help="Size of height padding for evaluation, eval window is [w_p_h//2 : M-w_p_h//2]. Defaults to 0.")
+ap.add_argument("--window-pad-width", default=0, type=int,
+                help="Size of width padding for evaluation, eval window is [w_p_w//2 : N-w_p_w//2]. Defaults to 0.")
+
 params = vars(ap.parse_args())
 csv_path_base = params['csv_path_base']
 csv_path_unet = params['csv_path_unet']
@@ -117,7 +124,14 @@ for metric in metrics:
       
       print('\nPredicting', models_names[idx])
       time.sleep(1)
-      error_array = evaluate.evaluate_model(a_model, val_loader_aux, 6, device=device_aux, metric=metric[:end_metric], error_percentage=error_percentage)
+      error_array = evaluate.evaluate_model(a_model, val_loader_aux, 
+                                            predict_horizon=6, 
+                                            device=device_aux, 
+                                            metric=metric[:end_metric], 
+                                            error_percentage=error_percentage,
+                                            window_pad=params['window_pad'],
+                                            window_pad_height=params['window_pad_height'],
+                                            window_pad_width=params['window_pad_width'])
       error_mean = np.mean(error_array, axis=0)
       if use_fix:
         error_mean = error_mean/fix

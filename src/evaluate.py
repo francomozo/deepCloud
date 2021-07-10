@@ -13,9 +13,9 @@ from tqdm import tqdm
 import src.lib.utils as utils
 from src import model
 
-def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100, 
-                   small_eval_window = False,window_pad_height=0,window_pad_width =0 ,
-                   dynamic_window = False, evaluate_day_pixels = True, error_percentage = False):
+def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100, 
+                   window_pad=0, window_pad_height=0, window_pad_width=0,
+                   dynamic_window=False, evaluate_day_pixels=True, error_percentage=False):
     """
     Evaluates the precision of the prediction compared to the gorund truth using different metrics
 
@@ -32,8 +32,8 @@ def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100,
         'ReRMSE' : Relative RMSE rmse(pred-gt) / rmse( gt - mean(gt))
         'FS': Forecast skill ,realtive comparison with persistence
         - pixel_max_value (int): Maximum value a pixel can take (used for PSNR)
-        - small_eval_window(bool) : If true the evaluation window shrinks by window_pad_height rows and
-                                    window_pad_width columns
+        - window_pad(int) : evaluation window shrinks by window_pad rows and columns. 
+                            Eval window is [w_p//2 : M-w_p//2, w_p//2 : N-w_p//2]
         - window_pad_height(int) : If M,N size of image -> eval window is [w_p_h//2 : M - w_p_h//2]
         - window_pad_width(int) : If M,N size of image -> eval window is [w_p_w//2 : N - w_p_w//2]
         - dynamic_window(bool) : generate biggest window without nans in prediction and evaluate only in 
@@ -65,11 +65,17 @@ def evaluate_image(predictions, gt,gt_ts, metric, pixel_max_value =100,
         qi = ymin
         qf = N - ymax
     
-    elif (small_eval_window):
+    elif (window_pad_height or window_pad_width):
         pi = window_pad_height//2
-        pf = M -window_pad_height//2
+        pf = M - window_pad_height//2
         qi = window_pad_width//2
         qf = N - window_pad_width//2
+        
+    elif (window_pad):
+        pi = window_pad//2
+        pf = M - window_pad//2
+        qi = window_pad//2
+        qf = N - window_pad//2
     else:
         pi,pf,qi,qf = 0,M,0,N
         
@@ -186,7 +192,9 @@ def evaluate_pixel(predictions,gt,metric,pixel_max_value =255,pixel= (0,0)):
     return error
 
 
-def evaluate_model(model_instance, loader, predict_horizon, device=None, metric='RMSE', error_percentage=False):
+def evaluate_model(model_instance, loader, predict_horizon, 
+                   device=None, metric='RMSE', error_percentage=False,
+                   window_pad=0, window_pad_height=0, window_pad_width=0):
     """
     Evaluates performance of model_instance on loader data. 
 
@@ -197,6 +205,10 @@ def evaluate_model(model_instance, loader, predict_horizon, device=None, metric=
         device (string, optional): Device for pytorch. "cpu" or "cuda". Defaults to None.
         metric (str, optional): Metric for evaluation. Defaults to 'RMSE'.
         error_percentage(bool): if true, return error in percentage value
+        window_pad(int) : evaluation window shrinks by window_pad rows and columns. 
+                          Eval window is [w_p//2 : M-w_p//2, w_p//2 : N-w_p//2]
+        window_pad_height(int) : If M,N size of image -> eval window is [w_p_h//2 : M - w_p_h//2]
+        window_pad_width(int) : If M,N size of image -> eval window is [w_p_w//2 : N - w_p_w//2]
 
     Returns:
         [np.array]: Array of errors in evaluation with shape (len(loader), predict_horizon)
@@ -253,7 +265,10 @@ def evaluate_model(model_instance, loader, predict_horizon, device=None, metric=
                                         gt_ts = None,
                                         metric=metric, dynamic_window=dynamic_window,
                                         evaluate_day_pixels = False, 
-                                        error_percentage = error_percentage)
+                                        error_percentage = error_percentage,
+                                        window_pad=window_pad, 
+                                        window_pad_height=window_pad_height, 
+                                        window_pad_width=window_pad_width)
             error_list.append(predict_errors)
             end = time.time()
             eval_time.append(end-start)
