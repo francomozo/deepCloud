@@ -98,9 +98,9 @@ for lr, wd in grid_search:
   
   print('lr =', lr, 'weight_decay =', wd)
 
-  comment = f'-batch_size={batch_size}_lr={lr}_weight_decay={wd}'
+  comment = f'-(batch_size={batch_size})_(lr={lr)}_(wd={wd})'
   if params['description'] is not None:
-    comment = comment + '-' + params['description']
+    comment = comment + '-(' + params['description'] + ')'
   writer = SummaryWriter(comment = comment)
   
   if params['scheduler']:
