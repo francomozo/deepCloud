@@ -608,7 +608,8 @@ def save_imgs_list_2npy(imgs_list=[],
                         mk_folder_path='data/C02-MK/2020',
                         img_folder_path='data/C02-FR/2020',
                         destintation_path='data/images',
-                        split_days_into_folders=True
+                        split_days_into_folders=True,
+                        region=None
                         ):
     """Saves images as Numpy arrays to folders
 
@@ -629,11 +630,15 @@ def save_imgs_list_2npy(imgs_list=[],
             img_folder_path=img_folder_path,
         )
 
-        # cut montevideo
-        img = img[1550:1550+256, 1600:1600+256]
+        
+        if region is None:
+            # cut montevideo
+            img = img[1550:1550+256, 1600:1600+256]
+        elif region='uru':
+            img = img[1205:1205+512, 1450:1450+512]
+            
 
         # image clipping
-
         if (True):  # sets pixel over 100 to 100
             img = np.clip(img, 0, 100)
         if (False):  # sets pixel over 100 to image mean
