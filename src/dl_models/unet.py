@@ -6,15 +6,15 @@ import torch.nn.functional as F
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
 
-    def __init__(self, in_channels, out_channels, mid_channels=None):
+    def __init__(self, in_channels, out_channels, mid_channels=None, bias=False):
         super().__init__()
         if not mid_channels:
             mid_channels = out_channels
         self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=bias),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1),
+            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=bias),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
@@ -26,11 +26,11 @@ class DoubleConv(nn.Module):
 class Down(nn.Module):
     """Downscaling with maxpool then double conv"""
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, bias=False):
         super().__init__()
         self.maxpool_conv = nn.Sequential(
             nn.MaxPool2d(2),
-            DoubleConv(in_channels, out_channels)
+            DoubleConv(in_channels, out_channels, bias=bias)
         )
 
     def forward(self, x):
@@ -40,16 +40,16 @@ class Down(nn.Module):
 class Up(nn.Module):
     """Upscaling then double conv"""
 
-    def __init__(self, in_channels, out_channels, bilinear=True):
+    def __init__(self, in_channels, out_channels, bilinear=True, bias=False):
         super().__init__()
 
         # if bilinear, use the normal convolutions to reduce the number of channels
         if bilinear:
             self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
+            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2, bias=bias)
         else:
             self.up = nn.ConvTranspose2d(in_channels , in_channels // 2, kernel_size=2, stride=2)
-            self.conv = DoubleConv(in_channels, out_channels)
+            self.conv = DoubleConv(in_channels, out_channels, bias=bias)
 
 
     def forward(self, x1, x2):
@@ -77,28 +77,31 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True, p=0, output_sigmoid=False, filters=64):
+    def __init__(self, n_channels, n_classes, bilinear=True, p=0, output_activation='sigmoid', filters=64, bias=False):
         super().__init__()
-        self.description = 'Unet_inFrames_' + str(n_channels)+'_outFrames_'+str(n_classes)
+        self.description = 'Unet_inFrames_' + str(n_channels)+'_outFrames_'+str(n_classes)+'_out_activation'+str(output_activation)
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
 
         self.inc = DoubleConv(n_channels, filters)
-        self.down1 = Down(filters, 2 * filters)
-        self.down2 = Down(2 * filters, 4 * filters)
-        self.down3 = Down(4 * filters, 8 * filters)
+        self.down1 = Down(filters, 2 * filters, bias=bias)
+        self.down2 = Down(2 * filters, 4 * filters, bias=bias)
+        self.down3 = Down(4 * filters, 8 * filters, bias=bias)
         factor = 2 if bilinear else 1
-        self.down4 = Down(8 * filters, 16 * filters // factor)
-        self.up1 = Up(16 * filters, 8 * filters // factor, bilinear)
-        self.up2 = Up(8 * filters, 4 * filters // factor, bilinear)
-        self.up3 = Up(4 * filters, 2 * filters // factor, bilinear)
-        self.up4 = Up(2 * filters, filters, bilinear)
+        self.down4 = Down(8 * filters, 16 * filters // factor, bias=bias)
+        self.up1 = Up(16 * filters, 8 * filters // factor, bilinear, bias=bias)
+        self.up2 = Up(8 * filters, 4 * filters // factor, bilinear, bias=bias)
+        self.up3 = Up(4 * filters, 2 * filters // factor, bilinear, bias=bias)
+        self.up4 = Up(2 * filters, filters, bilinear, bias=bias)
         self.outc = OutConv(filters, n_classes)
         
         self.dropout2D = nn.Dropout2d(p=p)
-        if output_sigmoid:
-            self.out_acitvation = nn.Sigmoid()
+        if output_activation:
+            if output_activation in ['sigmoid', 'Sigmoid', 'sigmoide', 'Sigmoide', 'sig']:
+                self.out_acitvation = nn.Sigmoid()
+            if output_activation in ['relu', 'ReLu', 'Relu']:
+                self.out_acitvation = nn.Hardtanh(min_val=0, max_val=1.0)  #works as relu clip between [0,1]
         else:
             self.out_acitvation = nn.Identity()
 
@@ -118,88 +121,53 @@ class UNet(nn.Module):
         return out
         
 class UNet2(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True, p=0, output_sigmoid=False, filters=64):
+    def __init__(self, n_channels, n_classes, bilinear=True, p=0, output_activation='sigmoid', filters=64, bias=False):
         super().__init__()
-        self.description = 'Unet2_inFrames' + str(n_channels)+'_outFrames'+str(n_classes)+'_sigmoid'+str(output_sigmoid)
+        self.description = 'Unet2_inFrames' + str(n_channels)+'_outFrames'+str(n_classes)+'_out_activation'+str(output_activation)
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
 
-        self.inc = DoubleConv(n_channels, filters)
-        self.down1 = Down(filters, 2 * filters)
-        self.down2 = Down(2 * filters, 4 * filters)
-        self.down3 = Down(4 * filters, 8 * filters)
+        self.inc = DoubleConv(n_channels, filters, bias=bias)
+        self.down1 = Down(filters, 2 * filters, bias=bias)
+        self.down2 = Down(2 * filters, 4 * filters, bias=bias)
+        self.down3 = Down(4 * filters, 8 * filters, bias=bias)
         factor = 2 if bilinear else 1
-        self.down4 = Down(8 * filters, 16 * filters // factor)
-        self.up1 = Up(16 * filters, 8 * filters // factor, bilinear)
-        self.up2 = Up(8 * filters, 4 * filters // factor, bilinear)
-        self.up3 = Up(4 * filters, 2 * filters // factor, bilinear)
-        self.up4 = Up(2 * filters, filters, bilinear)
+        self.down4 = Down(8 * filters, 16 * filters // factor, bias=bias)
+        self.up1 = Up(16 * filters, 8 * filters // factor, bilinear, bias=bias)
+        self.up2 = Up(8 * filters, 4 * filters // factor, bilinear, bias=bias)
+        self.up3 = Up(4 * filters, 2 * filters // factor, bilinear, bias=bias)
+        self.up4 = Up(2 * filters, filters, bilinear, bias=bias)
         self.outc = OutConv(filters+n_channels, n_classes)
         
         self.dropout2D = nn.Dropout2d(p=p)
-        if output_sigmoid:
-            self.out_acitvation = nn.Sigmoid()
+        if output_activation:
+            if output_activation in ['sigmoid', 'Sigmoid', 'sigmoide', 'Sigmoide', 'sig']:
+                self.out_acitvation = nn.Sigmoid()
+            if output_activation in ['relu', 'ReLu', 'Relu']:
+                self.out_acitvation = nn.Hardtanh(min_val=0, max_val=1.0)  #works as relu clip between [0,1]
         else:
             self.out_acitvation = nn.Identity()
 
     def forward(self, x_in):
         x1 = self.inc(x_in)  # convolution (64 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (64 filters 3x3, pad=1 )=> [BN] => ReLU) 
         x2 = self.down1(x1) # maxpool (2x2) => convolution (128 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (128 filters 3x3, pad=1 )=> [BN] => ReLU) 
+        x2 = self.dropout2D(x2)
         x3 = self.down2(x2) # maxpool (2x2) => convolution (256 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (256 filters 3x3, pad=1 )=> [BN] => ReLU) 
+        x3 = self.dropout2D(x3)
         x4 = self.down3(x3) # maxpool (2x2) => convolution (512 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (512 filters 3x3, pad=1 )=> [BN] => ReLU) 
+        x4 = self.dropout2D(x4)
         x5 = self.down4(x4) # maxpool (2x2) => convolution (512 o 1024 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (512 o 1024 filters 3x3, pad=1 )=> [BN] => ReLU) 
         x5 = self.dropout2D(x5)
         x6 = self.up1(x5, x4) #upsample 
+        x6 = self.dropout2D(x6)
         x7 = self.up2(x6, x3)
+        x7 = self.dropout2D(x7)
         x8 = self.up3(x7, x2)
+        x8 = self.dropout2D(x8)
         x9 = self.up4(x8, x1)
         x_out = torch.cat([x9, x_in], dim=1)
         x_out = self.outc(x_out)
-        
-        x_out = self.out_acitvation(x_out)
-        return x_out
-    
-class UNet3(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True, p=0, output_sigmoid=False, filters=64):
-        super().__init__()
-        self.description = 'Unet2_inFrames' + str(n_channels)+'_outFrames'+str(n_classes)+'_sigmoid'+str(output_sigmoid)
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-        self.bilinear = bilinear
-
-        self.inc = DoubleConv(n_channels, filters)
-        self.down1 = Down(filters, 2 * filters)
-        self.down2 = Down(2 * filters, 4 * filters)
-        self.down3 = Down(4 * filters, 8 * filters)
-        factor = 2 if bilinear else 1
-        self.down4 = Down(8 * filters, 16 * filters // factor)
-        self.up1 = Up(16 * filters, 8 * filters // factor, bilinear)
-        self.up2 = Up(8 * filters, 4 * filters // factor, bilinear)
-        self.up3 = Up(4 * filters, 2 * filters // factor, bilinear)
-        self.up4 = Up(2 * filters, filters+n_channels, bilinear)
-        self.outc = OutConv(filters, n_classes)
-        
-        self.dropout2D = nn.Dropout2d(p=p)
-        if output_sigmoid:
-            self.out_acitvation = nn.Sigmoid()
-        else:
-            self.out_acitvation = nn.Identity()
-
-    def forward(self, x_in):
-        x1 = self.inc(x_in)  # convolution (64 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (64 filters 3x3, pad=1 )=> [BN] => ReLU) 
-        x2 = self.down1(x1) # maxpool (2x2) => convolution (128 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (128 filters 3x3, pad=1 )=> [BN] => ReLU) 
-        x3 = self.down2(x2) # maxpool (2x2) => convolution (256 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (256 filters 3x3, pad=1 )=> [BN] => ReLU) 
-        x4 = self.down3(x3) # maxpool (2x2) => convolution (512 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (512 filters 3x3, pad=1 )=> [BN] => ReLU) 
-        x5 = self.down4(x4) # maxpool (2x2) => convolution (512 o 1024 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (512 o 1024 filters 3x3, pad=1 )=> [BN] => ReLU) 
-        x5 = self.dropout2D(x5)
-        x6 = self.up1(x5, x4) #upsample 
-        x7 = self.up2(x6, x3)
-        x8 = self.up3(x7, x2)
-
-        x1 = torch.cat([x1, x_in], dim=1)
-        x9 = self.up4(x8, x1)
-        x_out = self.outc(x9)
         
         x_out = self.out_acitvation(x_out)
         return x_out

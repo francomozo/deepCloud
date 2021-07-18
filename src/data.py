@@ -608,7 +608,8 @@ def save_imgs_list_2npy(imgs_list=[],
                         mk_folder_path='data/C02-MK/2020',
                         img_folder_path='data/C02-FR/2020',
                         destintation_path='data/images',
-                        split_days_into_folders=True
+                        split_days_into_folders=True,
+                        region=None
                         ):
     """Saves images as Numpy arrays to folders
 
@@ -629,11 +630,15 @@ def save_imgs_list_2npy(imgs_list=[],
             img_folder_path=img_folder_path,
         )
 
-        # cut montevideo
-        img = img[1550:1550+256, 1600:1600+256]
+        
+        if region is None:
+            # cut montevideo
+            img = img[1550:1550+256, 1600:1600+256]
+        elif region='uru':
+            img = img[1205:1205+512, 1450:1450+512]
+            
 
         # image clipping
-
         if (True):  # sets pixel over 100 to 100
             img = np.clip(img, 0, 100)
         if (False):  # sets pixel over 100 to image mean
@@ -689,7 +694,7 @@ class MontevideoFoldersDataset_w_time(Dataset):
 
         # images loading
 
-        out_time=[]
+        
         for i in range(self.in_channel + self.out_channel):
             if i == 0:  # first image in in_frames
                 in_frames = np.load(os.path.join(
@@ -704,15 +709,19 @@ class MontevideoFoldersDataset_w_time(Dataset):
                 out_frames = np.load(os.path.join(
                     self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
                 out_frames = out_frames[np.newaxis]
-                out_time.append(self.sequence_df.values[index][i][12:18])
+                out_time = np.zeros((self.out_channel,2))
+                out_time[0,0] = self.sequence_df.values[index][i][8:11]
+                out_time[0,1] = self.sequence_df.values[index][i][12:18]
             if i > self.in_channel:
                 aux = np.load(os.path.join(
                     self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
                 aux = aux[np.newaxis]
                 out_frames = np.concatenate((out_frames, aux), axis=0)
+                out_time[i-self.in_channel, 0] = self.sequence_df.values[index][i][8:11]
+                out_time[i-self.in_channel, 1] = self.sequence_df.values[index][i][12:18]
                 # ART_2020xxx_hhmmss.npy
                 
-                out_time.append(self.sequence_df.values[index][i][12:18])
+                # out_time.append(self.sequence_df.values[index][i][12:18])
 
         if self.transform:
             if type(self.transform) == list:

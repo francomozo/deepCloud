@@ -45,6 +45,8 @@ ap.add_argument("--scheduler", action='store_true',
                 help="--scheduler for scheduler with Adam.")
 ap.add_argument("--filters", default=64, type=int,
                 help="Num of filters for the architecture.Defaults to 64.")
+ap.add_argument("--description", default=None,
+                help="String. To write in checkpoint name and runs folder. Defaults str 'None'.")
 
 
 params = vars(ap.parse_args())
@@ -96,8 +98,11 @@ for lr, wd in grid_search:
   
   print('lr =', lr, 'weight_decay =', wd)
 
-  comment = f' batch_size = {batch_size} lr = {lr} weight_decay = {wd}'
-  writer = SummaryWriter(comment=comment)
+  comment = f'-(batch_size={batch_size})_(lr={lr)}_(wd={wd})'
+  if params['description'] is not None:
+    comment = comment + '-(' + params['description'] + ')'
+  writer = SummaryWriter(comment = comment)
+  
   if params['scheduler']:
     TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model_2(model=model,
                                                     criterion=criterion,
@@ -109,7 +114,8 @@ for lr, wd in grid_search:
                                                     checkpoint_every=params['checkpoint_every'],
                                                     verbose=True,
                                                     scheduler=scheduler,
-                                                    writer=writer)
+                                                    writer=writer,
+                                                    model_name=params['description'])
   else:
     TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL = train_model(model=model,
                                                     criterion=criterion,
@@ -122,7 +128,8 @@ for lr, wd in grid_search:
                                                     checkpoint_every=params['checkpoint_every'],
                                                     verbose=True,
                                                     eval_every=eval_every,
-                                                    writer=writer)
+                                                    writer=writer,
+                                                    model_name=params['description'])
   
   writer.add_hparams(
                     {"lr": lr, "bsize": batch_size, "weight_decay":wd},

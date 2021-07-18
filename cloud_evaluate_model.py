@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from src import data, evaluate, model, preprocessing, visualization
 from src.lib import utils
 from src.data import MontevideoFoldersDataset
-from src.dl_models.unet import UNet
+from src.dl_models.unet import UNet, UNet2
 
 
 ap = argparse.ArgumentParser(description='Evaluate multiple models with multiple metrics')
@@ -33,6 +33,15 @@ ap.add_argument("--save-errors", default=False, type=bool,
                 help="Save results in file. Defaults to False.")
 ap.add_argument("--sigmoid", default=False, type=bool,
                 help="Sigmoid for unets. Defaults to False.")
+ap.add_argument("--unet-type", default=1, type=int,
+                help="Type of unet. Defaults to None.")
+
+ap.add_argument("--window-pad", default=0, type=int,
+                help="Size of padding for evaluation, eval window is [w_p//2 : M-w_p//2, w_p//2 : N-w_p//2]. Defaults to 0.")
+ap.add_argument("--window-pad-height", default=0, type=int,
+                help="Size of height padding for evaluation, eval window is [w_p_h//2 : M-w_p_h//2]. Defaults to 0.")
+ap.add_argument("--window-pad-width", default=0, type=int,
+                help="Size of width padding for evaluation, eval window is [w_p_w//2 : N-w_p_w//2]. Defaults to 0.")
 
 params = vars(ap.parse_args())
 csv_path_base = params['csv_path_base']
@@ -70,6 +79,7 @@ val_loader_Unet = DataLoader(val_mvd_Unet)
 models = []
 model_path_index = 0
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+has_unet = False
 for a_model_name in models_names:
   if "cmv" == a_model_name:
     models.append(model.Cmv2())
@@ -78,11 +88,15 @@ for a_model_name in models_names:
   if "p" == a_model_name or "persistence" == a_model_name:
     models.append(model.Persistence())
   if "unet" == a_model_name:
+    has_unet = True
     if params["model_path"] == None:
       raise ValueError("Use --model-path to add model location.")
     model_path = params["model_path"][model_path_index]
     model_path_index += 1
-    model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_sigmoid=params["sigmoid"]).to(device)
+    if params['unet_type'] == 1:
+      model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_sigmoid=params["sigmoid"]).to(device)
+    elif params['unet_type'] == 2:
+      model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_sigmoid=params["sigmoid"]).to(device)
     model_Unet.load_state_dict(torch.load(model_path)["model_state_dict"])
     model_Unet.eval()
     models.append(model_Unet)
@@ -117,7 +131,14 @@ for metric in metrics:
       
       print('\nPredicting', models_names[idx])
       time.sleep(1)
-      error_array = evaluate.evaluate_model(a_model, val_loader_aux, 6, device=device_aux, metric=metric[:end_metric], error_percentage=error_percentage)
+      error_array = evaluate.evaluate_model(a_model, val_loader_aux, 
+                                            predict_horizon=6, 
+                                            device=device_aux, 
+                                            metric=metric[:end_metric], 
+                                            error_percentage=error_percentage,
+                                            window_pad=params['window_pad'],
+                                            window_pad_height=params['window_pad_height'],
+                                            window_pad_width=params['window_pad_width'])
       error_mean = np.mean(error_array, axis=0)
       if use_fix:
         error_mean = error_mean/fix
@@ -129,9 +150,11 @@ for metric in metrics:
 
 if params['save_errors']:
   PATH = "reports/errors_evaluate_model/"
-  ts = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M")
-  NAME = 'errors_models_' + str(ts) + '.pkl'
-
+  if has_unet: 
+    NAME = 'errors_models_' +  os.path.basename(model_path) + '.pkl'
+  else:
+    ts = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M")
+    NAME = 'errors_models_' + str(ts) + '.pkl'
   a_file = open(os.path.join(PATH, NAME), "wb")
   pickle.dump(errors_metrics, a_file)
   a_file.close()

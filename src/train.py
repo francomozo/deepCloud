@@ -26,10 +26,13 @@ def train_model(model,
                 verbose=True,
                 eval_every=100,
                 writer=None,
-                scheduler=None):
+                scheduler=None,
+                model_name=None):
 
-    # TODO: - docstring
 
+    if model_name is None:
+        model_name = 'model'
+    
     TRAIN_LOSS_GLOBAL = [] # perists through epochs, stores the mean of each epoch
     VAL_LOSS_GLOBAL = [] # perists through epochs, stores the mean of each epoch
 
@@ -73,9 +76,9 @@ def train_model(model,
 
             TRAIN_LOSS_EPOCH.append(loss.detach().item())
 
-            if (batch_idx > 0 and batch_idx % eval_every == 0) or (batch_idx == len(train_loader)-1 ) :
+            if (batch_idx > 0 and batch_idx % eval_every == 0) or (batch_idx == len(train_loader) - 1):
                 model.eval()
-                VAL_LOSS_LOCAL = [] #stores values for this validation run
+                VAL_LOSS_LOCAL = [] # stores values for this validation run
                 start_val = time.time()
                 with torch.no_grad():
                     for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
@@ -110,11 +113,11 @@ def train_model(model,
                     TIME = []
                     
                 if writer: 
-                    #add values to tensorboard 
+                    # add values to tensorboard 
                     writer.add_scalar("Loss in train GLOBAL",CURRENT_TRAIN_ACC , batch_idx + epoch*(len(train_loader)))
                     writer.add_scalar("Loss in val GLOBAL" , CURRENT_VAL_ACC,  batch_idx + epoch*(len(train_loader)))
         
-        #epoch end      
+        # epoch end      
         end_epoch = time.time()
         TRAIN_LOSS_GLOBAL.append(sum(TRAIN_LOSS_EPOCH)/len(TRAIN_LOSS_EPOCH))
         VAL_LOSS_GLOBAL.append(sum(VAL_LOSS_EPOCH)/len(VAL_LOSS_EPOCH))
@@ -123,14 +126,13 @@ def train_model(model,
             scheduler.step(VAL_LOSS_GLOBAL[-1])
         
         if writer: 
-            #add values to tensorboard 
+            # add values to tensorboard 
             writer.add_scalar("TRAIN LOSS, EPOCH MEAN",TRAIN_LOSS_GLOBAL[-1], epoch)
             writer.add_scalar("VALIDATION LOSS, EPOCH MEAN" , VAL_LOSS_GLOBAL[-1] , epoch)
             writer.add_scalar("Learning rate", optimizer.state_dict()["param_groups"][0]["lr"], epoch)
           
         if verbose:
-            print(
-                f'Time elapsed in current epoch: {(end_epoch - start_epoch):.2f} secs.')
+            print(f'Time elapsed in current epoch: {(end_epoch - start_epoch):.2f} secs.')
 
         if CURRENT_VAL_ACC < BEST_VAL_ACC:
             BEST_VAL_ACC = CURRENT_VAL_ACC
@@ -146,7 +148,7 @@ def train_model(model,
         if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
             PATH = 'checkpoints/'
             ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
-            NAME = 'model_epoch' + str(epoch + 1) + '_' + str(ts) + '.pt'
+            NAME =  model_name + '_epoch' + str(epoch + 1) + '_' + str(ts) + '.pt'
 
             torch.save(model_dict, PATH + NAME)
             
@@ -175,7 +177,7 @@ def train_model_2(model,
                 verbose=True,
                 writer=None,
                 scheduler=None,
-                model_name='model',
+                model_name=None,
                 save_images=True):
     """ This train function evaluates on all the validation dataset one time per epoch
 
@@ -195,6 +197,10 @@ def train_model_2(model,
     Returns:
         TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL: Lists containing the mean error of each epoch
     """    
+    
+    if model_name is None:
+        model_name = 'model' 
+
     TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
     VAL_LOSS_GLOBAL = []
     

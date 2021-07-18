@@ -71,7 +71,8 @@ def barchart_compare2(model1_values,
     ax.legend()
     fig.tight_layout()
     plt.show()        
-    
+
+
 def barchart_compare3(model1_values,model1_name,model2_values,model2_name,model3_values,model3_name ):
     """Takes the errors list of different models and plots them in a bar chart
 
@@ -109,7 +110,8 @@ def barchart_compare3(model1_values,model1_name,model2_values,model2_name,model3
     ax.legend()
     fig.tight_layout()
     plt.show() 
-    
+
+
 def plot_graph(model_values, model, error_metric='RMSE'):
     """Plots the errors of the predictions for a generated sequence
 
@@ -125,6 +127,7 @@ def plot_graph(model_values, model, error_metric='RMSE'):
     plt.xlabel('Predict horizon (min)') 
     plt.ylabel('Error Metric: ' + error_metric) 
     plt.show()
+
 
 def plot_graph_multiple(models_values, models_names, error_metric='RMSE', save_file=None):
     """Plots the errors of the predictions for multiple generated sequences
@@ -147,7 +150,7 @@ def plot_graph_multiple(models_values, models_names, error_metric='RMSE', save_f
         plt.savefig(save_file)
     plt.show()
     
-def show_image_list(images_list, rows):
+def show_image_list(images_list, rows, fig_name=None, save_fig=False):
     """ Shows the images passed in a grid
 
     Args:
@@ -159,9 +162,8 @@ def show_image_list(images_list, rows):
     
     if len_list % rows == 0: cols = len_list//rows
     else: cols = len_list//rows + 1
-    
-     
-    plt.figure(figsize=(10, 5))
+
+    plt.figure(figsize=(rows*5, cols*5))
     for img in images_list:
 
         plt.subplot(rows,cols ,num+1)
@@ -172,8 +174,41 @@ def show_image_list(images_list, rows):
         
     plt.subplots_adjust(wspace=1, hspace=1)
     plt.tight_layout()
+    if save_file is not None:
+        plt.savefig(save_file)
     plt.show()
     
+    
+def show_seq_and_pred(sequence_array, fig_name=None, save_fig=False):
+    """ Shows the images passed in a grid
+    Args:
+        sequence_array (array)
+    """
+    nbof_frames = sequence_array.shape[0]
+
+    # plt.figure(figsize=(25, 5))
+    fig, ax = plt.subplots(1, 5, figsize=(30, 5))
+    for i in range(nbof_frames):
+
+        if i < nbof_frames-2:
+            ax[i].imshow(sequence_array[i])
+            ax[i].set_title('In Frame ' + str(i))
+            ax[i].grid()
+        if i == nbof_frames - 2:
+            im = ax[i].imshow(sequence_array[i])
+            plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
+            ax[i].set_title('GT')
+            ax[i].grid()
+        if i == nbof_frames - 1:
+            im = ax[i].imshow(sequence_array[i])
+            plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
+            ax[i].set_title('Prediction')
+            ax[i].grid()
+    if save_fig:
+        plt.savefig(fig_name)
+    plt.show()
+
+
 def show_sample_dict(sample_dict , rows):
     images_array = sample_dict['images']
     ts_list = sample_dict['time_stamps']
@@ -194,7 +229,8 @@ def show_sample_dict(sample_dict , rows):
     plt.subplots_adjust(wspace=1, hspace=1)
     plt.tight_layout()
     plt.show()
-    
+
+
 def plot_day_images(dataset, sleep_secs=0, start=0):
     """Shows images from dataset on a Jupyter Notebook
 
@@ -218,7 +254,8 @@ def plot_day_images(dataset, sleep_secs=0, start=0):
         
         time.sleep(sleep_secs)
         IPython.display.clear_output(wait=True)
-        
+
+
 def plot_histogram(values,bins, normalize = True):     
     """Takes a list of values or an image and it plots the histogram, showing the mean and standard 
     deviation.
@@ -244,8 +281,9 @@ def plot_histogram(values,bins, normalize = True):
     
     plt.xlabel('value')
     plt.show()
-    
-def show_image_w_colorbar (image):
+
+
+def show_image_w_colorbar(image, fig_name=None, save_fig=False):
     """
     Shows the image with a colorbar 
 
@@ -253,10 +291,12 @@ def show_image_w_colorbar (image):
         image (array): Array containing the values of the image
     """    
     fig, (ax1) = plt.subplots(figsize=(13, 3), ncols=1)
-    image_ = ax1.imshow(image, interpolation='none', cmap='gray')
+    image_ = ax1.imshow(image, interpolation='none')
     #grafica = ax1.imshow(error_array[70:100], interpolation='none')
     fig.colorbar(image_, ax=ax1)
     ax1.title.set_text('Image')
+    if save_fig:
+        plt.savefig(fig_name)
     plt.show()
     
     
@@ -277,3 +317,22 @@ def show_images_diff(img1,img2):
     fig.colorbar(image_, ax=ax1)
     ax1.title.set_text('Image')
     plt.show()
+
+
+def use_filter(in_frames, filter_):
+    _, C, M, N = in_frames.shape
+    Cf, Mf, Nf = filter_.shape
+    
+    r1 = (Mf-1)//2
+    r2 = (Nf-1)//2
+    
+    in_frames_padded = np.zeros((C,M+r1*2, N+r2*2))
+    in_frames_padded[:, 1:-1, 1:-1] = in_frames[0]
+    output = np.zeros((M,N))
+
+    for i in range(1, M+1):
+        for j in range(1, N+1): 
+            W = in_frames_padded[:, i-1:i+2, j-1:j+2]
+            output[i-1,j-1] = np.sum(W*filter_)
+
+    return output
