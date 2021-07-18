@@ -186,10 +186,10 @@ with torch.no_grad():
             best_SSIM_images[3] = out_frames[0,0].cpu().numpy()
             best_SSIM_images[4] = frames_pred[0,0].cpu().numpy()
 
-        gt_mean.append(torch.mean(out_frames[0,0]).numpy())
-        gt_std.append(torch.std(out_frames[0,0]).numpy())
-        pred_mean.append(torch.mean(frames_pred[0,0]).numpy())
-        pred_std.append(torch.std(frames_pred[0,0]).numpy())
+        gt_mean.append(torch.mean(out_frames[0,0]).cpu().numpy())
+        gt_std.append(torch.std(out_frames[0,0]).cpu().numpy())
+        pred_mean.append(torch.mean(frames_pred[0,0]).cpu().numpy())
+        pred_std.append(torch.std(frames_pred[0,0]).cpu().numpy())
 
 mean_MAE = []
 mean_MAE_crop = []
