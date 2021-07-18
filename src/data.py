@@ -634,7 +634,7 @@ def save_imgs_list_2npy(imgs_list=[],
         if region is None:
             # cut montevideo
             img = img[1550:1550+256, 1600:1600+256]
-        elif region='uru':
+        elif region == 'uru':
             img = img[1205:1205+512, 1450:1450+512]
             
 
