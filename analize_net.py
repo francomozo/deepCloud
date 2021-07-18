@@ -88,7 +88,7 @@ for i in range(0, 25):
     PSNR_per_hour[i] = []   
 
 try:
-    SSIM = SSIM(n_channels=1)
+    SSIM = SSIM(n_channels=1).cuda()
 except:
     pass
 
