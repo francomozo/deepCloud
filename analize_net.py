@@ -325,10 +325,9 @@ in_frames[0,1] = torch.from_numpy(img1/100).float().to(device)
 in_frames[0,2] = torch.from_numpy(img2/100).float().to(device)
 out_frames[0,0] = torch.from_numpy(output/100).float().to(device)
 
-
 model.eval()
 with torch.no_grad():
-    frames_pred = model(in_frames)
+    frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
     
 frames_array = np.ones((5, 256, 256))
 frames_array[0:3] = in_frames[0].cpu().numpy()
