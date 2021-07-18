@@ -174,7 +174,7 @@ def show_image_list(images_list, rows, fig_name=None, save_fig=False):
         
     plt.subplots_adjust(wspace=1, hspace=1)
     plt.tight_layout()
-    if save_file is not None:
+    if save_fig:
         plt.savefig(save_file)
     plt.show()
     
