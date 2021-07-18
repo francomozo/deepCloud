@@ -19,17 +19,17 @@ CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
 MODEL_PATH = 'checkpoints/10min_predict_ssim_60_05-07-2021_08 43.pt'
 
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+print('using device:', device)
+
 model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False).to(device)
 # model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False).to(device)
 SAVE_IMAGES_PATH = 'prueba' 
 
 ###########################
 
-
-
 #Evaluate Unet
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-print('using device:', device)
+
 select_frame = preprocessing.select_output_frame(FRAME_OUT)
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
 transforms = [select_frame,normalize]
