@@ -302,8 +302,8 @@ ones_frames = torch.tensor(np.ones((1, 3, 256, 256))).to(device)
 zeros_frames = torch.tensor(np.zeros((1, 3, 256, 256))).to(device)
 
 with torch.no_grad():
-    ones_pred = model_Unet(ones_frames.float())
-    zeros_pred = model_Unet(zeros_frames.float())
+    ones_pred = model(ones_frames.float())
+    zeros_pred = model(zeros_frames.float())
 
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'prediction_from_ones.png')
 visualization.show_image_w_colorbar(ones_pred[0,0], fig_name=fig_name, save_fig=True)
