@@ -31,8 +31,8 @@ SAVE_IMAGES_PATH = 'prueba'
 
 try:
     os.mkdir(SAVE_IMAGES_PATH)
-except OSError as error:
-    print(error) 
+except:
+    pass
 
 #Evaluate Unet
 
@@ -306,9 +306,9 @@ with torch.no_grad():
     zeros_pred = model(zeros_frames.float())
 
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'prediction_from_ones.png')
-visualization.show_image_w_colorbar(ones_pred[0,0], fig_name=fig_name, save_fig=True)
+visualization.show_image_w_colorbar(ones_pred[0,0].cpu().numpy(), fig_name=fig_name, save_fig=True)
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'prediction_from_zeros.png')
-visualization.show_image_w_colorbar(zeros_pred[0,0], fig_name=fig_name, save_fig=True)
+visualization.show_image_w_colorbar(zeros_pred[0,0].cpu().numpy(), fig_name=fig_name, save_fig=True)
 
                
 # OUTPUT WITH MOST MOVED SEQUENCE
@@ -330,9 +330,9 @@ with torch.no_grad():
     frames_pred = model(in_frames)
     
 frames_array = np.ones((5, 256, 256))
-frames_array[0:3] = in_frames[0]
-frames_array[3]= out_frames[0,0]
-frames_array[4] = frames_pred[0,0]
+frames_array[0:3] = in_frames[0].cpu().numpy()
+frames_array[3]= out_frames[0,0].cpu().numpy()
+frames_array[4] = frames_pred[0,0].cpu().numpy()
     
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'example_sequence.png')
 show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
