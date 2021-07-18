@@ -17,7 +17,7 @@ PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
 FRAME_OUT = 0  # 0->10min, 1->20min, 2->30min... 
 CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
-MODEL_PATH = 'checkpoints/10min_predict_ssim_60_05-07-2021_08 43.pt'
+MODEL_PATH = 'checkpoints/10min_predict_ssim_60_05-07-2021_08:43.pt'
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
