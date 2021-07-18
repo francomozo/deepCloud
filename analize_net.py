@@ -323,7 +323,7 @@ out_frames= torch.tensor(np.ones((1, 1, 256, 256))).to(device)
 in_frames[0,0] = torch.from_numpy(img0/100).FloatTensor()
 in_frames[0,1] = torch.from_numpy(img1/100).FloatTensor()
 in_frames[0,2] = torch.from_numpy(img2/100).FloatTensor()
-out_frames[0,0] = torch.from_numpy(output/100).FloatTenso(r
+out_frames[0,0] = torch.from_numpy(output/100).FloatTenso()
 
 model.eval()
 with torch.no_grad():
