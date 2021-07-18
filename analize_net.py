@@ -29,6 +29,11 @@ SAVE_IMAGES_PATH = 'prueba'
 
 ###########################
 
+try:
+    os.mkdir(SAVE_IMAGES_PATH)
+except OSError as error:
+    print(error) 
+
 #Evaluate Unet
 
 select_frame = preprocessing.select_output_frame(FRAME_OUT)
