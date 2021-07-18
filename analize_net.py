@@ -320,10 +320,10 @@ output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_122017.npy'))
 
 in_frames= torch.tensor(np.ones((1, 3, 256, 256))).to(device)
 out_frames= torch.tensor(np.ones((1, 1, 256, 256))).to(device)
-in_frames[0,0] = torch.FloatTensor(img0/100)
-in_frames[0,1] = torch.FloatTensor(img1/100)
-in_frames[0,2] = torch.FloatTensor(img2/100)
-out_frames[0,0] = torch.FloatTensor(output/100)
+in_frames[0,0] = (img0/100).type(torch.FloatTensor)
+in_frames[0,1] = (img1/100).type(torch.FloatTensor)
+in_frames[0,2] = (img2/100).type(torch.FloatTensor)
+out_frames[0,0] = (output/100).type(torch.FloatTensor)
 
 model.eval()
 with torch.no_grad():
