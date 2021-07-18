@@ -689,7 +689,7 @@ class MontevideoFoldersDataset_w_time(Dataset):
 
         # images loading
 
-        out_time=[]
+        
         for i in range(self.in_channel + self.out_channel):
             if i == 0:  # first image in in_frames
                 in_frames = np.load(os.path.join(
@@ -704,15 +704,19 @@ class MontevideoFoldersDataset_w_time(Dataset):
                 out_frames = np.load(os.path.join(
                     self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
                 out_frames = out_frames[np.newaxis]
-                out_time.append(self.sequence_df.values[index][i][12:18])
+                out_time = np.zeros((self.out_channel,2))
+                out_time[0,0] = self.sequence_df.values[index][i][8:11]
+                out_time[0,1] = self.sequence_df.values[index][i][12:18]
             if i > self.in_channel:
                 aux = np.load(os.path.join(
                     self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
                 aux = aux[np.newaxis]
                 out_frames = np.concatenate((out_frames, aux), axis=0)
+                out_time[i-self.in_channel, 0] = self.sequence_df.values[index][i][8:11]
+                out_time[i-self.in_channel, 1] = self.sequence_df.values[index][i][12:18]
                 # ART_2020xxx_hhmmss.npy
                 
-                out_time.append(self.sequence_df.values[index][i][12:18])
+                # out_time.append(self.sequence_df.values[index][i][12:18])
 
         if self.transform:
             if type(self.transform) == list:
