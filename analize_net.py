@@ -335,7 +335,7 @@ frames_array[3]= out_frames[0,0].cpu().numpy()
 frames_array[4] = frames_pred[0,0].cpu().numpy()
     
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'example_sequence.png')
-show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
+visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
 
 output_list = []
 
