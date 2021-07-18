@@ -343,7 +343,7 @@ with torch.no_grad():
     for m in model.modules():
         if isinstance(m, nn.Conv2d):
             for filter_ in m.weight:
-                output = visualization.use_filter(in_frames, filter_.numpy()) 
+                output = visualization.use_filter(in_frames.cpu().numpy(), filter_.cpu().numpy()) 
                 output_list.append(output)
             break
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'filter_layer_output.png')
