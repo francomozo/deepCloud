@@ -5,15 +5,15 @@ from datetime import timedelta
 from src import data, evaluate, model, preprocessing, visualization
 from src.lib import utils
 from src.data import MontevideoFoldersDataset, MontevideoFoldersDataset_w_time
-
-#Deep Learning
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from piqa import SSIM , MS_SSIM
 from src.dl_models.unet import UNet, UNet2
 
-PATH_DATA = 'data/mvd/validation/'
+## CONFIGURATION #########
+
+PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
 FRAME_OUT = 0  # 0->10min, 1->20min, 2->30min... 
 CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
@@ -22,6 +22,10 @@ MODEL_PATH = 'checkpoints/10min_predict_ssim_60_05-07-2021_08 43.pt'
 model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False).to(device)
 # model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False).to(device)
 SAVE_IMAGES_PATH = 'prueba' 
+
+###########################
+
+
 
 #Evaluate Unet
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -36,7 +40,7 @@ val_mvd = MontevideoFoldersDataset_w_time(
                                             out_channel=FRAME_OUT+1,
                                             min_time_diff=5,
                                             max_time_diff=15,
-                                            csv_path=CSV_PATH
+                                            csv_path=CSV_PATH,
                                             transform=transforms
                                             )
 
