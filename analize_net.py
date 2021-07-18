@@ -123,16 +123,16 @@ with torch.no_grad():
         if MAE_loss.detach().item() > worst_MAE_error:
             worst_MAE_error = MAE_loss.detach().item()
             worst_MAE_time = out_time[0, FRAME_OUT]
-            worst_MAE_images[0:3] = in_frames[0].detach().numpy()
-            worst_MAE_images[3] = out_frames[0, 0].detach().numpy()
-            worst_MAE_images[4] = frames_pred[0, 0].detach().numpy()
+            worst_MAE_images[0:3] = in_frames[0].cpu().numpy()
+            worst_MAE_images[3] = out_frames[0, 0].cpu().numpy()
+            worst_MAE_images[4] = frames_pred[0, 0].cpu().numpy()
             
         if MAE_loss.item() < best_MAE_error:
             best_MAE_error = MAE_loss.item()
             best_MAE_time = out_time[0, FRAME_OUT]
-            best_MAE_images[0:3] = in_frames[0].detach().numpy()
-            best_MAE_images[3] = out_frames[0,0].detach().numpy()
-            best_MAE_images[4] = frames_pred[0,0].detach().numpy()
+            best_MAE_images[0:3] = in_frames[0].cpu().numpy()
+            best_MAE_images[3] = out_frames[0,0].cpu().numpy()
+            best_MAE_images[4] = frames_pred[0,0].cpu().numpy()
         
         # MSE
         MSE_loss = MSE(frames_pred, out_frames)
@@ -140,15 +140,15 @@ with torch.no_grad():
         if MSE_loss.detach().item() > worst_MSE_error:
             worst_MSE_error = MSE_loss.detach().item()
             worst_MSE_time = out_time[0, FRAME_OUT]
-            worst_MSE_images[0:3] = in_frames[0].detach().numpy()
-            worst_MSE_images[3] = out_frames[0, 0].detach().numpy()
-            worst_MSE_images[4] = frames_pred[0, 0].detach().numpy()
+            worst_MSE_images[0:3] = in_frames[0].cpu().numpy()
+            worst_MSE_images[3] = out_frames[0, 0].cpu().numpy()
+            worst_MSE_images[4] = frames_pred[0, 0].cpu().numpy()
         if MSE_loss.item() < best_MSE_error:
             best_MSE_error = MSE_loss.detach().item()
             best_MSE_time = out_time[0, FRAME_OUT]
-            best_MSE_images[0:3] = in_frames[0].detach().numpy()
-            best_MSE_images[3] = out_frames[0,0].detach().numpy()
-            best_MSE_images[4] = frames_pred[0, 0].detach().numpy()
+            best_MSE_images[0:3] = in_frames[0].cpu().numpy()
+            best_MSE_images[3] = out_frames[0,0].cpu().numpy()
+            best_MSE_images[4] = frames_pred[0, 0].cpu().numpy()
             
         # PSNR        
         if (MSE_per_hour[hour][-1] != 0 ):
@@ -158,15 +158,15 @@ with torch.no_grad():
         if PSNR_per_hour[hour][-1] < worst_PSNR_error:
             worst_PSNR_error = PSNR_per_hour[hour][-1]
             worst_PSNR_time = out_time[0, FRAME_OUT]
-            worst_PSNR_images[0:3] = in_frames[0].detach().numpy()
-            worst_PSNR_images[3] = out_frames[0,0].detach().numpy()
-            worst_PSNR_images[4] = frames_pred[0,0].detach().numpy()
+            worst_PSNR_images[0:3] = in_frames[0].cpu().numpy()
+            worst_PSNR_images[3] = out_frames[0,0].cpu().numpy()
+            worst_PSNR_images[4] = frames_pred[0,0].cpu().numpy()
         if PSNR_per_hour[hour][-1] > best_PSNR_error:
             best_PSNR_error = PSNR_per_hour[hour][-1]
             best_PSNR_time = out_time[0, FRAME_OUT]
-            best_PSNR_images[0:3] = in_frames[0].detach().numpy()
-            best_PSNR_images[3] = out_frames[0,0].detach().numpy()
-            best_PSNR_images[4] = frames_pred[0,0].detach().numpy()
+            best_PSNR_images[0:3] = in_frames[0].cpu().numpy()
+            best_PSNR_images[3] = out_frames[0,0].cpu().numpy()
+            best_PSNR_images[4] = frames_pred[0,0].cpu().numpy()
         
         # SSIM
         SSIM_loss = SSIM(frames_pred, out_frames)
@@ -176,15 +176,15 @@ with torch.no_grad():
         if SSIM_loss.detach().item() < worst_SSIM_error:
             worst_SSIM_error = SSIM_loss.detach().item()
             worst_SSIM_time = out_time[0, FRAME_OUT]
-            worst_SSIM_images[0:3] = in_frames[0].detach().numpy()
-            worst_SSIM_images[3] = out_frames[0,0].detach().numpy()
-            worst_SSIM_images[4] = frames_pred[0,0].detach().numpy()
+            worst_SSIM_images[0:3] = in_frames[0].cpu().numpy()
+            worst_SSIM_images[3] = out_frames[0,0].cpu().numpy()
+            worst_SSIM_images[4] = frames_pred[0,0].cpu().numpy()
         if SSIM_loss.item() > best_SSIM_error:
             best_SSIM_error = SSIM_loss.detach().item()
             best_SSIM_time = out_time[0, FRAME_OUT]
-            best_SSIM_images[0:3] = in_frames[0].detach().numpy()
-            best_SSIM_images[3] = out_frames[0,0].detach().numpy()
-            best_SSIM_images[4] = frames_pred[0,0].detach().numpy()
+            best_SSIM_images[0:3] = in_frames[0].cpu().numpy()
+            best_SSIM_images[3] = out_frames[0,0].cpu().numpy()
+            best_SSIM_images[4] = frames_pred[0,0].cpu().numpy()
 
         gt_mean.append(np.mean(out_frames[0,0].numpy()))
         gt_std.append(np.std(out_frames[0,0].numpy()))
