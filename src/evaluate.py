@@ -267,7 +267,7 @@ def evaluate_model(model_instance, loader, predict_horizon,
                 dynamic_window = False
 
             # evaluate
-            if not isinstance(model_instance, torch.nn.Module) or not isinstance(model_instance, list):
+            if not (isinstance(model_instance, torch.nn.Module) or isinstance(model_instance, list)):
                 predictions = predictions[1:]
             start = time.time()
             predict_errors = evaluate_image(
