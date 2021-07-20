@@ -31,8 +31,8 @@ ap.add_argument("--model-path", nargs="*", default=None,
                 help="Add model paths for NNs.")
 ap.add_argument("--save-errors", default=False, type=bool,
                 help="Save results in file. Defaults to False.")
-ap.add_argument("--sigmoid", default=False, type=bool,
-                help="Sigmoid for unets. Defaults to False.")
+ap.add_argument("--output-activation", default='sigmoid',
+                help="Output activation for unets. Defaults to sigmoid.")
 ap.add_argument("--unet-type", default=1, type=int,
                 help="Type of unet. Defaults to None.")
 
@@ -94,9 +94,9 @@ for a_model_name in models_names:
     model_path = params["model_path"][model_path_index]
     model_path_index += 1
     if params['unet_type'] == 1:
-      model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_sigmoid=params["sigmoid"]).to(device)
+      model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"]).to(device)
     elif params['unet_type'] == 2:
-      model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_sigmoid=params["sigmoid"]).to(device)
+      model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"]).to(device)
     model_Unet.load_state_dict(torch.load(model_path)["model_state_dict"])
     model_Unet.eval()
     models.append(model_Unet)
