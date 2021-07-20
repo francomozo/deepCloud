@@ -23,8 +23,10 @@ ap.add_argument("--csv-path-unet", default=None,
                 help="Csv path for unets. Defaults to None.")
 ap.add_argument("--data-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',
                 help="Defaults to /clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/")
-ap.add_argument("--model-path", nargs="*", default=None,
-                help="Add model paths for NNs.")
+ap.add_argument("--model-path", default="checkpoints",
+                help="Model path without names for NNs.")
+ap.add_argument("--model-names", nargs="*", default=None,
+                help="Model names for NNs.")
 ap.add_argument("--save-errors", default=False, type=bool,
                 help="Save results in file. Defaults to False.")
 ap.add_argument("--output-activation", default='sigmoid',
@@ -60,7 +62,7 @@ val_loader_Unet = DataLoader(val_mvd_Unet)
 models = []
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 for i in range(6):
-  model_path = params["model_path"][i]
+  model_path = os.path.join(params["model_path"], params["model_names"][i])
   if params['unet_type'] == 1:
     model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"]).to(device)
   elif params['unet_type'] == 2:
