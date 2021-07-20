@@ -225,7 +225,17 @@ def evaluate_model(model_instance, loader, predict_horizon,
             targets = targets.squeeze()
             
             # predict depending on model
-            if (isinstance(model_instance, model.Persistence)):
+            if (isinstance(model_instance, list)):
+                # direct NNs models
+                predictions = []
+                inputs = inputs.to(device=device)
+                for i in range(predict_horizon):
+                    prediction = model_instance[i](inputs.unsqueeze(0))
+                    predictions.append(prediction.cpu().detach().numpy().squeeze())
+                predictions = np.array(predictions) 
+                dynamic_window = False
+                
+            elif (isinstance(model_instance, model.Persistence)):
                 start = time.time()
                 predictions = model_instance.predict(
                                         image=inputs[1], 
@@ -246,6 +256,7 @@ def evaluate_model(model_instance, loader, predict_horizon,
                 dynamic_window = False # true for dynamic_window
 
             elif (isinstance(model_instance, torch.nn.Module) and model_instance.n_classes == 1):
+                # recursive NN model
                 predictions = []
                 for i in range(predict_horizon):
                     inputs = inputs.to(device=device)
@@ -256,7 +267,7 @@ def evaluate_model(model_instance, loader, predict_horizon,
                 dynamic_window = False
 
             # evaluate
-            if not isinstance(model_instance, torch.nn.Module):
+            if not isinstance(model_instance, torch.nn.Module) or not isinstance(model_instance, list):
                 predictions = predictions[1:]
             start = time.time()
             predict_errors = evaluate_image(
