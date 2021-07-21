@@ -18,7 +18,7 @@ from src.dl_models.unet import UNet, UNet2
 ap = argparse.ArgumentParser(description='Evaluate multiple models with multiple metrics')
 
 ap.add_argument("--models", nargs="+", default=["Unet"], 
-                help="Options: CMV, Persistence, Unet, \"BCMV <kernel_size>\". Defaults to Unet")
+                help="Options: CMV, Persistence, Unet, BCMV. Defaults to Unet")
 ap.add_argument("--metrics", nargs="+", default=["RMSE"],
                 help="Defaults to RMSE. Add %% for percentage metric")
 ap.add_argument("--csv-path-base", default=None,
@@ -50,11 +50,7 @@ PATH_DATA = params['data_path']
 models_names = params['models']
 metrics = params['metrics']
 
-for i in range(len(models_names)):
-  models_names[i] = models_names[i].lower()
-  if models_names[i].find("bcmv") != -1:
-      kernel_size = [int(word) for word in models_names[i].split() if word.isdigit()][0]
-      models_names[i] = "bcmv"
+models_names = [each_string.lower() for each_string in models_names]
 metrics = [each_string.upper() for each_string in metrics]
 
 #DataLoaders
@@ -84,7 +80,7 @@ for a_model_name in models_names:
   if "cmv" == a_model_name:
     models.append(model.Cmv2())
   if "bcmv" == a_model_name:
-    models.append(model.Cmv2(kernel_size=(kernel_size,kernel_size)))
+    models.append(model.Cmv2(kernel_size_list=[(5,5),(13,13),(31,31),(51,51),(65,65),(79,79)]))
   if "p" == a_model_name or "persistence" == a_model_name:
     models.append(model.Persistence())
   if "unet" == a_model_name:
