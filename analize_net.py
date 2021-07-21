@@ -262,7 +262,10 @@ cset = ax.contour(xx, yy, f, colors='k')
 ax.clabel(cset, inline=1, fontsize=10)
 ax.set_xlabel('GT')
 ax.set_ylabel('Pred')
-
+if SAVE_IMAGES_PATH:
+    plt.savefig(os.path.join(
+                            SAVE_IMAGES_PATH, 'means_scatterplot.png')
+                )
 plt.show()
 
 # IMG MEANS HISTOGRAM
