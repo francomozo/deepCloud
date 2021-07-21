@@ -17,6 +17,8 @@ from src.dl_models.unet import UNet, UNet2
 
 ap = argparse.ArgumentParser(description='Evaluate direct models with multiple metrics')
 
+ap.add_argument("--predict-horizon", default=6, type=int,
+                help="Defaults to 6")
 ap.add_argument("--metrics", nargs="+", default=["RMSE"],
                 help="Defaults to RMSE. Add %% for percentage metric")
 ap.add_argument("--csv-path-unet", default=None,
@@ -51,7 +53,7 @@ metrics = [each_string.upper() for each_string in metrics]
 normalize = preprocessing.normalize_pixels(mean0=False) 
 val_mvd_Unet = MontevideoFoldersDataset(path = PATH_DATA, 
                                         in_channel=3, 
-                                        out_channel=6,
+                                        out_channel=params['predict_horizon'],
                                         min_time_diff=5, max_time_diff=15,
                                         transform=normalize, 
                                         csv_path=csv_path_unet)
@@ -61,7 +63,7 @@ val_loader_Unet = DataLoader(val_mvd_Unet)
 #Definition of models
 models = []
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-for i in range(6):
+for i in range(params['predict_horizon']):
   model_path = os.path.join(params["model_path"], params["model_names"][i])
   if params['unet_type'] == 1:
     model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"]).to(device)
@@ -86,7 +88,7 @@ for metric in metrics:
   errors_metric = {}
   time.sleep(1)
   error_array = evaluate.evaluate_model(models, val_loader_Unet, 
-                                        predict_horizon=6, 
+                                        predict_horizon=params['predict_horizon'], 
                                         device=device, 
                                         metric=metric[:end_metric], 
                                         error_percentage=error_percentage,
