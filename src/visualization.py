@@ -10,7 +10,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
+import pickle
+import os
 
 #rolo graph
 def matrix_graph (error_array):
@@ -336,3 +337,38 @@ def use_filter(in_frames, filter_):
             output[i-1,j-1] = np.sum(W*filter_)
 
     return output
+
+def make_plots_from_dict(load_paths, save_folder=None):
+    """
+    Load results from dictionary in a pickle file (or multiple dictionaries from multiple files) and display graphs
+
+    Args:
+        load_paths(str or list of strings): path of files containing dictionaries
+        save_folder(str): folder to save graphs
+    """   
+    if save_folder:
+        os.makedirs(save_folder, exist_ok=True)
+    if(not isinstance(load_paths, list)):
+        load_paths = [load_paths]
+    
+    errors_metrics_list = []
+    for load_path in load_paths:
+        errors_file = open(load_path, "rb") 
+        errors_metrics_list.append(pickle.load(errors_file))
+        errors_file.close()
+
+    for metric, errors_metric in errors_metrics_list[0].items():
+        error_list = []
+        models = []
+        for i in range(len(errors_metrics_list)-1):
+            errors_metric.update(errors_metrics_list[i+1][metric])
+
+        for model_name, error in errors_metric.items():
+            error_list.append(errors_metric[model_name])
+            models.append(model_name)
+        
+        if save_folder:
+            save_file = os.path.join(save_folder, metric)
+        else:
+            save_file = None
+        plot_graph_multiple(error_list, models, error_metric=metric, save_file=save_file)
