@@ -35,6 +35,8 @@ ap.add_argument("--output-activation", default='sigmoid',
                 help="Output activation for unets. Defaults to sigmoid.")
 ap.add_argument("--unet-type", default=1, type=int,
                 help="Type of unet. Defaults to None.")
+ap.add_argument("--bias", default=False, type=bool,
+                help="bias of unet. Defaults to False.")
 
 ap.add_argument("--window-pad", default=0, type=int,
                 help="Size of padding for evaluation, eval window is [w_p//2 : M-w_p//2, w_p//2 : N-w_p//2]. Defaults to 0.")
@@ -90,9 +92,9 @@ for a_model_name in models_names:
     model_path = params["model_path"][model_path_index]
     model_path_index += 1
     if params['unet_type'] == 1:
-      model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"]).to(device)
+      model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"]).to(device)
     elif params['unet_type'] == 2:
-      model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"]).to(device)
+      model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"]).to(device)
     model_Unet.load_state_dict(torch.load(model_path)["model_state_dict"])
     model_Unet.eval()
     models.append(model_Unet)
