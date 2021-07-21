@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 from piqa import SSIM , MS_SSIM
 from src.dl_models.unet import UNet, UNet2
+import scipy.stats as st
 
 ## CONFIGURATION #########
 
@@ -235,6 +236,33 @@ if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
                             SAVE_IMAGES_PATH, 'error_graphs.png')
                 )
+plt.show()
+
+
+#SCATTER PLOTS
+xmin, xmax = -0.01, 0.8
+ymin, ymax = -0.01, 0.8
+
+# Peform the kernel density estimate
+xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+positions = np.vstack([xx.ravel(), yy.ravel()])
+values = np.vstack([gt_mean, pred_mean])
+kernel = st.gaussian_kde(values)
+f = np.reshape(kernel(positions).T, xx.shape)
+
+fig = plt.figure()
+plt.title('2D density distribution means')
+ax = fig.gca()
+ax.set_xlim(xmin, xmax)
+ax.set_ylim(ymin, ymax)
+# Contourf plot
+cfset = ax.contourf(xx, yy, f, cmap='Blues')
+cset = ax.contour(xx, yy, f, colors='k')
+# Label plot
+ax.clabel(cset, inline=1, fontsize=10)
+ax.set_xlabel('GT')
+ax.set_ylabel('Pred')
+
 plt.show()
 
 # IMG MEANS HISTOGRAM

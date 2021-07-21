@@ -18,7 +18,7 @@ from src.dl_models.unet import UNet, UNet2
 ap = argparse.ArgumentParser(description='Evaluate multiple models with multiple metrics')
 
 ap.add_argument("--models", nargs="+", default=["Unet"], 
-                help="Options: CMV, Persistence, Unet, \"BCMV <kernel_size>\". Defaults to Unet")
+                help="Options: CMV, Persistence, Unet, BCMV. Defaults to Unet")
 ap.add_argument("--metrics", nargs="+", default=["RMSE"],
                 help="Defaults to RMSE. Add %% for percentage metric")
 ap.add_argument("--csv-path-base", default=None,
@@ -31,10 +31,12 @@ ap.add_argument("--model-path", nargs="*", default=None,
                 help="Add model paths for NNs.")
 ap.add_argument("--save-errors", default=False, type=bool,
                 help="Save results in file. Defaults to False.")
-ap.add_argument("--sigmoid", default=False, type=bool,
-                help="Sigmoid for unets. Defaults to False.")
+ap.add_argument("--output-activation", default='sigmoid',
+                help="Output activation for unets. Defaults to sigmoid.")
 ap.add_argument("--unet-type", default=1, type=int,
                 help="Type of unet. Defaults to None.")
+ap.add_argument("--bias", default=False, type=bool,
+                help="bias of unet. Defaults to False.")
 
 ap.add_argument("--window-pad", default=0, type=int,
                 help="Size of padding for evaluation, eval window is [w_p//2 : M-w_p//2, w_p//2 : N-w_p//2]. Defaults to 0.")
@@ -50,11 +52,7 @@ PATH_DATA = params['data_path']
 models_names = params['models']
 metrics = params['metrics']
 
-for i in range(len(models_names)):
-  models_names[i] = models_names[i].lower()
-  if models_names[i].find("bcmv") != -1:
-      kernel_size = [int(word) for word in models_names[i].split() if word.isdigit()][0]
-      models_names[i] = "bcmv"
+models_names = [each_string.lower() for each_string in models_names]
 metrics = [each_string.upper() for each_string in metrics]
 
 #DataLoaders
@@ -84,7 +82,7 @@ for a_model_name in models_names:
   if "cmv" == a_model_name:
     models.append(model.Cmv2())
   if "bcmv" == a_model_name:
-    models.append(model.Cmv2(kernel_size=(kernel_size,kernel_size)))
+    models.append(model.Cmv2(kernel_size_list=[(5,5),(13,13),(31,31),(51,51),(65,65),(79,79)]))
   if "p" == a_model_name or "persistence" == a_model_name:
     models.append(model.Persistence())
   if "unet" == a_model_name:
@@ -94,9 +92,9 @@ for a_model_name in models_names:
     model_path = params["model_path"][model_path_index]
     model_path_index += 1
     if params['unet_type'] == 1:
-      model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_sigmoid=params["sigmoid"]).to(device)
+      model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"]).to(device)
     elif params['unet_type'] == 2:
-      model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_sigmoid=params["sigmoid"]).to(device)
+      model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"]).to(device)
     model_Unet.load_state_dict(torch.load(model_path)["model_state_dict"])
     model_Unet.eval()
     models.append(model_Unet)
