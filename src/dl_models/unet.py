@@ -146,6 +146,8 @@ class UNet2(nn.Module):
                 self.out_acitvation = nn.Sigmoid()
             if output_activation in ['relu', 'ReLu', 'Relu']:
                 self.out_acitvation = nn.Hardtanh(min_val=0, max_val=1.0)  #works as relu clip between [0,1]
+            if output_activation in ['tanh']:
+                self.out_acitvation = nn.Tanh()
         else:
             self.out_acitvation = nn.Identity()
 
