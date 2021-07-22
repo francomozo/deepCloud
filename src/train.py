@@ -836,7 +836,7 @@ def train_model_SSIMandMAE(
                 out_frames = out_frames.to(device=device)
 
                 frames_pred = model(in_frames)
-                val_loss = 1 - SSIM_criterion(frames_pred, out_frames) + MAE_criterion(frames_pred, out_frames)
+                val_loss = MAE_criterion(frames_pred, out_frames)
 
                 VAL_LOSS_EPOCH.append(val_loss.detach().item())
                 
