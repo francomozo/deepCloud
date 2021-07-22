@@ -664,7 +664,7 @@ def train_model_diff(model,
             # forward
             diff_pred = model(in_frames)
 
-            diff = torch.subtract(out_frames, in_frames[:,2])
+            diff = torch.subtract(out_frames[:,0], in_frames[:,2]).unsqueeze(1)
             loss = criterion(diff_pred, diff)
 
             # backward
@@ -689,7 +689,7 @@ def train_model_diff(model,
 
                 diff_pred = model(in_frames)
                 
-                frames_pred = torch.add(diff_pred, in_frames[:,2]) 
+                frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1)
                 
                 val_loss = criterion(out_frames, frames_pred)
 
