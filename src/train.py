@@ -662,10 +662,10 @@ def train_model_diff(model,
             out_frames = out_frames.to(device=device)
 
             # forward
-            frames_pred = model(in_frames)
+            diff_pred = model(in_frames)
 
             diff = torch.subtract(out_frames, in_frames[:,2])
-            loss = criterion(frames_pred, diff)
+            loss = criterion(diff_pred, diff)
 
             # backward
             optimizer.zero_grad()
@@ -687,10 +687,11 @@ def train_model_diff(model,
                 in_frames = in_frames.to(device=device)
                 out_frames = out_frames.to(device=device)
 
-                frames_pred = model(in_frames)
-                diff = torch.subtract(out_frames, in_frames[:,2])
+                diff_pred = model(in_frames)
                 
-                val_loss = criterion(frames_pred, diff)
+                frames_pred = torch.sum(diff_pred, in_frames[:,2]) 
+                
+                val_loss = criterion(out_frames, frames_pred)
 
                 VAL_LOSS_EPOCH.append(val_loss.detach().item())
                 
