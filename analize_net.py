@@ -239,32 +239,49 @@ if SAVE_IMAGES_PATH:
 plt.show()
 
 
-#MEANS DENSITY DISTRIBUTION
-xmin, xmax = -0.01, 1
-ymin, ymax = -0.01, 1
-
-# Peform the kernel density estimate
-xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-positions = np.vstack([xx.ravel(), yy.ravel()])
-values = np.vstack([gt_mean, pred_mean])
-kernel = st.gaussian_kde(values)
-f = np.reshape(kernel(positions).T, xx.shape)
-
-fig = plt.figure()
-plt.title('2D density distribution means')
-ax = fig.gca()
-ax.set_xlim(xmin, xmax)
-ax.set_ylim(ymin, ymax)
-# Contourf plot
-cfset = ax.contourf(xx, yy, f, cmap='Blues')
-cset = ax.contour(xx, yy, f, colors='k')
-# Label plot
-ax.clabel(cset, inline=1, fontsize=10)
-ax.set_xlabel('GT')
-ax.set_ylabel('Pred')
+#SCATTER PLOT
+plt.scatter(x=gt_mean, y=pred_mean)
+plt.title('Image means scatter plot')
+plt.xlabel('GT mean')
+plt.ylabel('Prediction mean')
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'means_distribution.png')
+                            SAVE_IMAGES_PATH, 'scatterplot_mean.png')
+                )
+plt.show()
+
+plt.scatter(x=gt_std, y=pred_std)
+plt.title('Image std scatter plot')
+plt.xlabel('GT std')
+plt.ylabel('Prediction std')
+if SAVE_IMAGES_PATH:
+    plt.savefig(os.path.join(
+                            SAVE_IMAGES_PATH, 'scatterplot_std.png')
+                )
+plt.show()
+
+#MEANS DENSITY DISTRIBUTION
+xmin, xmax = -0.01, 0.75
+ymin, ymax = -0.01, 0.75
+
+X, Y = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+positions = np.vstack([X.ravel(), Y.ravel()])
+values = np.vstack([gt_mean, pred_mean])
+kernel = st.gaussian_kde(values)
+Z = np.reshape(kernel(positions).T, X.shape)
+
+fig, ax = plt.subplots()
+ax.imshow(np.rot90(Z), cmap=plt.cm.gist_earth_r,
+          extent=[xmin, xmax, ymin, ymax])
+ax.plot(gt_mean, pred_mean, 'k.', markersize=2)
+ax.set_xlim([xmin, xmax])
+ax.set_ylim([ymin, ymax])
+ax.set_title('Scatter plot of Means with prob distribution')
+ax.set_xlabel('GT mean')
+ax.set_ylabel('Pred mean')
+if SAVE_IMAGES_PATH:
+    plt.savefig(os.path.join(
+                            SAVE_IMAGES_PATH, 'mean_distribution.png')
                 )
 plt.show()
 
@@ -273,24 +290,21 @@ xmin, xmax = -0.01, 0.4
 ymin, ymax = -0.01, 0.4
 
 # Peform the kernel density estimate
-xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-positions = np.vstack([xx.ravel(), yy.ravel()])
+X, Y = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+positions = np.vstack([X.ravel(), Y.ravel()])
 values = np.vstack([gt_std, pred_std])
 kernel = st.gaussian_kde(values)
-f = np.reshape(kernel(positions).T, xx.shape)
+Z = np.reshape(kernel(positions).T, X.shape)
 
-fig = plt.figure()
-plt.title('2D density distribution STD')
-ax = fig.gca()
-ax.set_xlim(xmin, xmax)
-ax.set_ylim(ymin, ymax)
-# Contourf plot
-cfset = ax.contourf(xx, yy, f, cmap='Blues')
-cset = ax.contour(xx, yy, f, colors='k')
-# Label plot
-ax.clabel(cset, inline=1, fontsize=10)
-ax.set_xlabel('GT')
-ax.set_ylabel('Pred')
+fig, ax = plt.subplots()
+ax.imshow(np.rot90(Z), cmap=plt.cm.gist_earth_r,
+          extent=[xmin, xmax, ymin, ymax])
+ax.plot(gt_mean, pred_mean, 'k.', markersize=2)
+ax.set_xlim([xmin, xmax])
+ax.set_ylim([ymin, ymax])
+ax.set_title('Scatter plot of STD with prob distribution')
+ax.set_xlabel('GT std')
+ax.set_ylabel('Pred std')
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
                             SAVE_IMAGES_PATH, 'std_distribution.png')
