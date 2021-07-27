@@ -56,7 +56,7 @@ val_mvd = MontevideoFoldersDataset_w_time(
 
 val_loader = DataLoader(val_mvd, batch_size=1, shuffle=False)
 in_frames, out_frames, out_time = next(iter(val_loader))
-M, N = out_frames.shape[0,0]
+M, N = out_frames.shape[0,0].shape[0], out_frames.shape[0,0].shape[1] 
 
 model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu'))["model_state_dict"])
 
