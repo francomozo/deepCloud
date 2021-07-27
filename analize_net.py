@@ -24,8 +24,8 @@ MODEL_PATH = 'checkpoints/10min_UNet2_diff_tanh_80_23-07-2021_07:53.pt'
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
 
-model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=True).to(device)
-#model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='relu', bias=False).to(device)
+#model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=True).to(device)
+model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='tanh', bias=False).to(device)
 SAVE_IMAGES_PATH = 'graphs/10min_UNET2_diff_tanh_80' 
 
 CROP_SIZE = 28
