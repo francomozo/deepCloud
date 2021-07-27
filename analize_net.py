@@ -130,7 +130,8 @@ with torch.no_grad():
         
         if PREDICT_DIFF:
             diff_pred = model(in_frames)        
-            frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1)       
+            frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1)  
+            frames_pred = torch.clamp(frames_pred, min=0, max=1)     
 
         # MAE
         MAE_loss = MAE(frames_pred, out_frames)
