@@ -47,10 +47,10 @@ class U_Net(nn.Module):
     UNet - Basic Implementation
     Paper : https://arxiv.org/abs/1505.04597
     """
-    def __init__(self, in_ch=3, out_ch=1):
+    def __init__(self, in_ch=3, out_ch=1, init_filter=64):
         super(U_Net, self).__init__()
 
-        n1 = 64
+        n1 = init_filter
         filters = [n1, n1 * 2, n1 * 4, n1 * 8, n1 * 16]
         
         self.Maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -168,10 +168,10 @@ class R2U_Net(nn.Module):
     R2U-Unet implementation
     Paper: https://arxiv.org/abs/1802.06955
     """
-    def __init__(self, img_ch=3, output_ch=1, t=2):
+    def __init__(self, img_ch=3, output_ch=1, t=2, init_filter=64):
         super(R2U_Net, self).__init__()
 
-        n1 = 64
+        n1 = init_filter
         filters = [n1, n1 * 2, n1 * 4, n1 * 8, n1 * 16]
 
         self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -287,10 +287,10 @@ class AttU_Net(nn.Module):
     Attention Unet implementation
     Paper: https://arxiv.org/abs/1804.03999
     """
-    def __init__(self, img_ch=3, output_ch=1):
+    def __init__(self, img_ch=3, output_ch=1, init_filter=64):
         super(AttU_Net, self).__init__()
 
-        n1 = 64
+        n1 = init_filter
         filters = [n1, n1 * 2, n1 * 4, n1 * 8, n1 * 16]
 
         self.Maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -375,10 +375,10 @@ class R2AttU_Net(nn.Module):
     Residual Recuurent Block with attention Unet
     Implementation : https://github.com/LeeJunHyun/Image_Segmentation
     """
-    def __init__(self, in_ch=3, out_ch=1, t=2):
+    def __init__(self, in_ch=3, out_ch=1, t=2, init_filter=64):
         super(R2AttU_Net, self).__init__()
 
-        n1 = 64
+        n1 = init_filter
         filters = [n1, n1 * 2, n1 * 4, n1 * 8, n1 * 16]
 
         self.Maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -485,10 +485,10 @@ class NestedUNet(nn.Module):
     Implementation of this paper:
     https://arxiv.org/pdf/1807.10165.pdf
     """
-    def __init__(self, in_ch=3, out_ch=1):
+    def __init__(self, in_ch=3, out_ch=1, init_filter=64):
         super(NestedUNet, self).__init__()
 
-        n1 = 64
+        n1 = init_filter
         filters = [n1, n1 * 2, n1 * 4, n1 * 8, n1 * 16]
 
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)

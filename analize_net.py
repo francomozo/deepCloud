@@ -16,7 +16,7 @@ import scipy.stats as st
 ## CONFIGURATION #########
 
 PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
-FRAME_OUT = 0  # 0->10min, 1->20min, 2->30min... 
+FRAME_OUT = 0  # 0->10min, 1->20min, 2->30min... [0,5]
 CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
 MODEL_PATH = 'checkpoints/10min_predict_ssim_60_05-07-2021_08:43.pt'
@@ -27,6 +27,9 @@ print('using device:', device)
 model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False).to(device)
 # model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False).to(device)
 SAVE_IMAGES_PATH = 'prueba' 
+
+CROP_SIZE = 28
+PREDICT_DIFF = False
 
 ###########################
 
@@ -52,6 +55,8 @@ val_mvd = MontevideoFoldersDataset_w_time(
                                             )
 
 val_loader = DataLoader(val_mvd, batch_size=1, shuffle=False)
+in_frames, out_frames, out_time = next(iter(val_loader))
+M, N = out_frames.shape[0,0]
 
 model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu'))["model_state_dict"])
 
@@ -64,8 +69,8 @@ worst_MAE_error = 0
 worst_MAE_time = ''
 best_MAE_error = 1
 best_MAE_time = ''
-best_MAE_images = np.zeros((5, 256, 256))
-worst_MAE_images = np.zeros((5, 256, 256))
+best_MAE_images = np.zeros((5, M, N))
+worst_MAE_images = np.zeros((5, M, N))
 MAE = nn.L1Loss()
 MAE_per_hour = {}
 MAE_per_hour_crop = {}
@@ -78,8 +83,8 @@ worst_MSE_time = ''
 best_MSE_error = 1
 best_MSE_time = ''    
 MSE = nn.MSELoss()
-best_MSE_images = np.zeros((5, 256, 256))
-worst_MSE_images = np.zeros((5, 256, 256))
+best_MSE_images = np.zeros((5, M, N))
+worst_MSE_images = np.zeros((5, M, N))
 MSE_per_hour = {}
 for i in range(0, 25):
     MSE_per_hour[i] = []    
@@ -88,8 +93,8 @@ worst_PSNR_error = 100
 worst_PSNR_time = ''
 best_PSNR_error = 0
 best_PSNR_time = ''
-best_PSNR_images = np.zeros((5, 256, 256))
-worst_PSNR_images = np.zeros((5, 256, 256))
+best_PSNR_images = np.zeros((5, M, N))
+worst_PSNR_images = np.zeros((5, M, N))
 PSNR_per_hour = {}
 for i in range(0, 25):
     PSNR_per_hour[i] = []   
@@ -103,8 +108,8 @@ worst_SSIM_error = 1
 worst_SSIM_time = ''
 best_SSIM_error = 0
 best_SSIM_time = ''
-best_SSIM_images = np.zeros((5, 256, 256))
-worst_SSIM_images = np.zeros((5, 256, 256))
+best_SSIM_images = np.zeros((5, M, N))
+worst_SSIM_images = np.zeros((5, M, N))
 SSIM_per_hour = {}
 SSIM_per_hour_crop = {}
 for i in range(0, 25):
@@ -120,11 +125,16 @@ with torch.no_grad():
                
         day, hour = int(out_time[0, FRAME_OUT, 0]), int(out_time[0 ,FRAME_OUT, 1]/1e4)
 
-        frames_pred = model(in_frames)
+        if not PREDICT_DIFF:
+            frames_pred = model(in_frames)
+        
+        if PREDICT_DIFF:
+            diff_pred = model(in_frames)        
+            frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1)       
 
         # MAE
         MAE_loss = MAE(frames_pred, out_frames)
-        MAE_loss_crop = MAE(frames_pred[:, :, 28:-28, 28:-28], out_frames[:, :, 28:-28, 28:-28])
+        MAE_loss_crop = MAE(frames_pred[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE], out_frames[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE])
         MAE_per_hour[hour].append(MAE_loss.detach().item())
         MAE_per_hour_crop[hour].append(MAE_loss_crop.detach().item())
         if MAE_loss.detach().item() > worst_MAE_error:
@@ -178,7 +188,7 @@ with torch.no_grad():
         # SSIM
         SSIM_loss = SSIM(frames_pred, out_frames)
         SSIM_per_hour[hour].append(SSIM_loss.detach().item())
-        SSIM_loss_crop = SSIM(frames_pred[:, :, 28:-28, 28:-28], out_frames[:, :, 28:-28, 28:-28])
+        SSIM_loss_crop = SSIM(frames_pred[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE], out_frames[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE])
         SSIM_per_hour_crop[hour].append(SSIM_loss_crop.detach().item())
         if SSIM_loss.detach().item() < worst_SSIM_error:
             worst_SSIM_error = SSIM_loss.detach().item()
@@ -240,6 +250,7 @@ plt.show()
 
 
 #SCATTER PLOT
+plt.figure(figsize=(5,5))
 plt.scatter(x=gt_mean, y=pred_mean)
 plt.title('Image means scatter plot')
 plt.xlabel('GT mean')
@@ -250,6 +261,7 @@ if SAVE_IMAGES_PATH:
                 )
 plt.show()
 
+plt.figure(figsize=(5,5))
 plt.scatter(x=gt_std, y=pred_std)
 plt.title('Image std scatter plot')
 plt.xlabel('GT std')
@@ -372,8 +384,8 @@ visualization.show_seq_and_pred(worst_SSIM_images, fig_name=fig_name, save_fig=T
 
 
 # PRECITIONS WITH INPUT ALL ONES OR ZEROS
-ones_frames = torch.tensor(np.ones((1, 3, 256, 256))).to(device)
-zeros_frames = torch.tensor(np.zeros((1, 3, 256, 256))).to(device)
+ones_frames = torch.tensor(np.ones((1, 3, M, N))).to(device)
+zeros_frames = torch.tensor(np.zeros((1, 3, M, N))).to(device)
 
 with torch.no_grad():
     ones_pred = model(ones_frames.float())
@@ -390,10 +402,21 @@ visualization.show_image_w_colorbar(zeros_pred[0,0].cpu().numpy(), fig_name=fig_
 img0 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_115017.npy'))
 img1 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_120017.npy'))
 img2 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_121017.npy'))
-output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_122017.npy'))
-
-in_frames= torch.tensor(np.ones((1, 3, 256, 256))).to(device)
-out_frames= torch.tensor(np.ones((1, 1, 256, 256))).to(device)
+if FRAME_OUT == 0:
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_122017.npy'))
+if FRAME_OUT == 1:
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_123017.npy'))
+if FRAME_OUT == 2:
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_124017.npy'))      
+if FRAME_OUT == 3:
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_125017.npy'))
+if FRAME_OUT == 4:
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_130017.npy'))
+if FRAME_OUT == 5:
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_131017.npy'))
+        
+in_frames= torch.tensor(np.ones((1, 3, M, N))).to(device)
+out_frames= torch.tensor(np.ones((1, 1, M, N))).to(device)
 in_frames[0,0] = torch.from_numpy(img0/100).float().to(device)
 in_frames[0,1] = torch.from_numpy(img1/100).float().to(device)
 in_frames[0,2] = torch.from_numpy(img2/100).float().to(device)
@@ -401,15 +424,21 @@ out_frames[0,0] = torch.from_numpy(output/100).float().to(device)
 
 model.eval()
 with torch.no_grad():
-    frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
+    if not PREDICT_DIFF:
+        frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
+    if PREDICT_DIFF:
+        diff_pred = model(in_frames.type(torch.cuda.FloatTensor))        
+        frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1) 
     
-frames_array = np.ones((5, 256, 256))
+frames_array = np.ones((5, M, N))
 frames_array[0:3] = in_frames[0].cpu().numpy()
 frames_array[3]= out_frames[0,0].cpu().numpy()
 frames_array[4] = frames_pred[0,0].cpu().numpy()
     
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'example_sequence.png')
 visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
+
+# FIRST LAYER OF FILTERS OUTPUT
 
 output_list = []
 
