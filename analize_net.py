@@ -19,7 +19,7 @@ PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
 FRAME_OUT = 0  # 0->10min, 1->20min, 2->30min... [0,5]
 CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
-MODEL_PATH = 'checkpoints/10min_Original_50_10-07-2021_06:06.pt'
+MODEL_PATH = 'checkpoints/10min_UNet2_diff_tanh_80_23-07-2021_07:53.pt'
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
@@ -29,7 +29,7 @@ model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='s
 SAVE_IMAGES_PATH = 'graphs/10min_UNET1_bias_50' 
 
 CROP_SIZE = 28
-PREDICT_DIFF = False
+PREDICT_DIFF = True
 
 ###########################
 
