@@ -117,6 +117,8 @@ for i in range(0, 25):
     SSIM_per_hour[i] = [] 
     SSIM_per_hour_crop[i] = []
 
+MAE_error_image = np.zeros((M,N))
+
 model.eval()
 with torch.no_grad():
     for val_batch_idx, (in_frames, out_frames, out_time) in enumerate(val_loader):
@@ -136,6 +138,7 @@ with torch.no_grad():
 
         # MAE
         MAE_loss = MAE(frames_pred, out_frames)
+        MAE_error_image += abs(out_frames[0,0] - frames_pred[0,0]) 
         MAE_loss_crop = MAE(frames_pred[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE], out_frames[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE])
         MAE_per_hour[hour].append(MAE_loss.detach().item())
         MAE_per_hour_crop[hour].append(MAE_loss_crop.detach().item())
@@ -209,6 +212,10 @@ with torch.no_grad():
         gt_std.append(torch.std(out_frames[0,0]).cpu().numpy())
         pred_mean.append(torch.mean(frames_pred[0,0]).cpu().numpy())
         pred_std.append(torch.std(frames_pred[0,0]).cpu().numpy())
+
+MAE_error_image = MAE_error_image/len(val_mvd)
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.png')
+visualization.show_image_w_colorbar(MAE_error_image, fig_name=fig_name, save_fig=True)
 
 mean_MAE = []
 mean_MAE_crop = []
