@@ -138,7 +138,7 @@ with torch.no_grad():
 
         # MAE
         MAE_loss = MAE(frames_pred, out_frames)
-        MAE_error_image += abs(out_frames[0,0] - frames_pred[0,0]) 
+        MAE_error_image += torch.abs(torch.subtract(out_frames[0,0], frames_pred[0,0])).cpu().numpy()
         MAE_loss_crop = MAE(frames_pred[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE], out_frames[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE])
         MAE_per_hour[hour].append(MAE_loss.detach().item())
         MAE_per_hour_crop[hour].append(MAE_loss_crop.detach().item())
