@@ -282,8 +282,8 @@ if SAVE_IMAGES_PATH:
 plt.show()
 
 #MEANS DENSITY DISTRIBUTION
-xmin, xmax = -0.01, 0.75
-ymin, ymax = -0.01, 0.75
+xmin, xmax = -0.01, 1.1
+ymin, ymax = -0.01, 1.1
 
 X, Y = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
 positions = np.vstack([X.ravel(), Y.ravel()])
