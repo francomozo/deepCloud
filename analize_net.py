@@ -17,17 +17,17 @@ import scipy.stats as st
 ## CONFIGURATION #########
 
 PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
-FRAME_OUT = 1  # 0->10min, 1->20min, 2->30min... [0,5]
+FRAME_OUT = 2  # 0->10min, 1->20min, 2->30min... [0,5]
 CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
-MODEL_PATH = 'checkpoints/20min/UNET_20min_60_06-07-2021_09:04.pt'
+MODEL_PATH = 'checkpoints/30min/30min_UNet2_SSIM_relu_f16_50_29-07-2021_08:49.pt'
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
 
-model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False).to(device)
-#model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='tanh', bias=False).to(device)
-SAVE_IMAGES_PATH = 'graphs/20min/UNET_20min_60' 
+#model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False).to(device)
+model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='relu', bias=False, filters=16).to(device)
+SAVE_IMAGES_PATH = 'graphs/10min/30min_UNet2_SSIM_relu_f16_50' 
 
 CROP_SIZE = 28
 PREDICT_DIFF = False
