@@ -32,13 +32,18 @@ class Persistence:
         predictions = [image]
         M,N = image.shape
 
-        for _ in range(predict_horizon): 
+        for i in range(predict_horizon): 
             if (isinstance(self, NoisyPersistence)):
                 predictions.append(np.clip(image + np.random.normal(0,self.sigma,(M,N)), 0,255))
             elif (isinstance(self, BlurredPersistence)):
-                blurred_pred = cv.GaussianBlur(image,self.kernel_size,0)
+                if self.kernel_size_list:
+                    kernel_size = self.kernel_size_list[i]
+                else:
+                    kernel_size = self.kernel_size
+                blurred_pred = cv.GaussianBlur(image, kernel_size, 0)
                 predictions.append(blurred_pred)
-                image = blurred_pred
+                if not self.kernel_size_list:
+                    image = blurred_pred
             else:
                 predictions.append(np.array(image))
 
@@ -65,9 +70,10 @@ class BlurredPersistence(Persistence):
     Args:
         Persistence ([type]): [description]
     """    
-    def __init__(self, kernel_size):
+    def __init__(self, kernel_size = (0,0), kernel_size_list = None):
         #kernel_size (tuple): size of kernel
         self.kernel_size = kernel_size
+        self.kernel_size_list = kernel_size_list
 
 class Cmv:
     def __init__(self, kernel_size = (0,0), kernel_size_list = None, dcfg=None):
