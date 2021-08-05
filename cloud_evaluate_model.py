@@ -85,6 +85,10 @@ for a_model_name in models_names:
     models.append(model.Cmv2(kernel_size_list=[(5,5),(13,13),(31,31),(51,51),(65,65),(79,79)]))
   if "p" == a_model_name or "persistence" == a_model_name:
     models.append(model.Persistence())
+  if "bp" == a_model_name or "blurredpersistence" == a_model_name:
+    models.append(model.BlurredPersistence(kernel_size_list=[(35,35),(73,73),(105,105),(137,137),(169,169),(201,201)]))
+  if "gt_blur" == a_model_name:
+    models.append("gt_blur")
   if "unet" == a_model_name:
     has_unet = True
     if params["model_path"] == None:
