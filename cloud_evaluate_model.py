@@ -37,6 +37,8 @@ ap.add_argument("--unet-type", default=1, type=int,
                 help="Type of unet. Defaults to None.")
 ap.add_argument("--bias", default=False, type=bool,
                 help="bias of unet. Defaults to False.")
+ap.add_argument("--filters", default=64, type=int,
+                help="Amount of filters of unet. Defaults to 64.")
 
 ap.add_argument("--window-pad", default=0, type=int,
                 help="Size of padding for evaluation, eval window is [w_p//2 : M-w_p//2, w_p//2 : N-w_p//2]. Defaults to 0.")
@@ -85,6 +87,10 @@ for a_model_name in models_names:
     models.append(model.Cmv2(kernel_size_list=[(5,5),(13,13),(31,31),(51,51),(65,65),(79,79)]))
   if "p" == a_model_name or "persistence" == a_model_name:
     models.append(model.Persistence())
+  if "bp" == a_model_name or "blurredpersistence" == a_model_name:
+    models.append(model.BlurredPersistence(kernel_size_list=[(35,35),(73,73),(105,105),(137,137),(169,169),(201,201)]))
+  if "gt_blur" == a_model_name:
+    models.append("gt_blur")
   if "unet" == a_model_name:
     has_unet = True
     if params["model_path"] == None:
@@ -92,9 +98,9 @@ for a_model_name in models_names:
     model_path = params["model_path"][model_path_index]
     model_path_index += 1
     if params['unet_type'] == 1:
-      model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"]).to(device)
+      model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
     elif params['unet_type'] == 2:
-      model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"]).to(device)
+      model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
     model_Unet.load_state_dict(torch.load(model_path)["model_state_dict"])
     model_Unet.eval()
     models.append(model_Unet)
