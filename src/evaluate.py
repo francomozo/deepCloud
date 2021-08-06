@@ -9,6 +9,7 @@ import math
 import torch
 import time
 from tqdm import tqdm
+import cv2 as cv
 
 import src.lib.utils as utils
 from src import model
@@ -266,8 +267,16 @@ def evaluate_model(model_instance, loader, predict_horizon,
                 predictions = np.array(predictions) 
                 dynamic_window = False
 
+            elif (isinstance(model_instance, str) and model_instance == "gt_blur"):
+                predictions = []
+                kernel_size_list = [(35,35),(73,73),(105,105),(137,137),(169,169),(201,201)]
+                for i in range(predict_horizon):
+                    predictions.append(cv.GaussianBlur(targets.cpu().detach().numpy()[i], kernel_size_list[i], 0))
+                predictions = np.array(predictions)
+                dynamic_window = False
+
             # evaluate
-            if not (isinstance(model_instance, torch.nn.Module) or isinstance(model_instance, list)):
+            if not (isinstance(model_instance, torch.nn.Module) or isinstance(model_instance, list) or isinstance(model_instance, str)):
                 predictions = predictions[1:]
             start = time.time()
             predict_errors = evaluate_image(
