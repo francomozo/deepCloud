@@ -287,7 +287,7 @@ class AttU_Net(nn.Module):
     Attention Unet implementation
     Paper: https://arxiv.org/abs/1804.03999
     """
-    def __init__(self, img_ch=3, output_ch=1, init_filter=64):
+    def __init__(self, img_ch=3, output_ch=1, output_activation='sigmoid', init_filter=64):
         super(AttU_Net, self).__init__()
 
         n1 = init_filter
@@ -322,8 +322,15 @@ class AttU_Net(nn.Module):
 
         self.Conv = nn.Conv2d(filters[0], output_ch, kernel_size=1, stride=1, padding=0)
 
-        #self.active = torch.nn.Sigmoid()
-
+        if output_activation:
+            if output_activation in ['sigmoid', 'Sigmoid', 'sigmoide', 'Sigmoide', 'sig']:
+                self.out_acitvation = nn.Sigmoid()
+            if output_activation in ['relu', 'ReLu', 'Relu']:
+                self.out_acitvation = nn.Hardtanh(min_val=0, max_val=1.0)  #works as relu clip between [0,1]
+            if output_activation in ['tanh']:
+                self.out_acitvation = nn.Tanh()
+        else:
+            self.out_acitvation = nn.Identity()
 
     def forward(self, x):
 
@@ -364,6 +371,7 @@ class AttU_Net(nn.Module):
         d2 = self.Up_conv2(d2)
 
         out = self.Conv(d2)
+        out = self.out_acitvation(out)
 
       #  out = self.active(out)
 
@@ -485,7 +493,7 @@ class NestedUNet(nn.Module):
     Implementation of this paper:
     https://arxiv.org/pdf/1807.10165.pdf
     """
-    def __init__(self, in_ch=3, out_ch=1, init_filter=64):
+    def __init__(self, in_ch=3, out_ch=1, output_activation='sigmoid', init_filter=64):
         super(NestedUNet, self).__init__()
 
         n1 = init_filter
@@ -515,7 +523,15 @@ class NestedUNet(nn.Module):
         self.conv0_4 = conv_block_nested(filters[0]*4 + filters[1], filters[0], filters[0])
 
         self.final = nn.Conv2d(filters[0], out_ch, kernel_size=1)
-
+        if output_activation:
+            if output_activation in ['sigmoid', 'Sigmoid', 'sigmoide', 'Sigmoide', 'sig']:
+                self.out_acitvation = nn.Sigmoid()
+            if output_activation in ['relu', 'ReLu', 'Relu']:
+                self.out_acitvation = nn.Hardtanh(min_val=0, max_val=1.0)  #works as relu clip between [0,1]
+            if output_activation in ['tanh']:
+                self.out_acitvation = nn.Tanh()
+        else:
+            self.out_acitvation = nn.Identity()
 
     def forward(self, x):
         
@@ -539,6 +555,7 @@ class NestedUNet(nn.Module):
         x0_4 = self.conv0_4(torch.cat([x0_0, x0_1, x0_2, x0_3, self.Up(x1_3)], 1))
 
         output = self.final(x0_4)
+        output = self.out_acitvation(output)
         return output
 
 #Dictioary Unet
