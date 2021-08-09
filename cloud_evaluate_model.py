@@ -21,6 +21,8 @@ ap.add_argument("--models", nargs="+", default=["Unet"],
                 help="Options: CMV, Persistence, Unet, BCMV. Defaults to Unet")
 ap.add_argument("--metrics", nargs="+", default=["RMSE"],
                 help="Defaults to RMSE. Add %% for percentage metric")
+ap.add_argument("--predict-horizon", default=6, type=int,
+                help="Defaults to 6.")
 ap.add_argument("--csv-path-base", default=None,
                 help="Csv path for baseline models (CMV, Persistence, BCMV). Defaults to None.")
 ap.add_argument("--csv-path-unet", default=None,
@@ -31,6 +33,8 @@ ap.add_argument("--model-path", nargs="*", default=None,
                 help="Add model paths for NNs.")
 ap.add_argument("--save-errors", default=False, type=bool,
                 help="Save results in file. Defaults to False.")
+ap.add_argument("--save-name", default=None,
+                help="Add name to results file. Defaults to None.")
 ap.add_argument("--output-activation", default='sigmoid',
                 help="Output activation for unets. Defaults to sigmoid.")
 ap.add_argument("--unet-type", default=1, type=int,
@@ -60,14 +64,14 @@ metrics = [each_string.upper() for each_string in metrics]
 #DataLoaders
 val_mvd = MontevideoFoldersDataset(path = PATH_DATA, 
                                    in_channel=2, 
-                                   out_channel=6,
+                                   out_channel=params['predict_horizon'],
                                    min_time_diff=5, max_time_diff=15, 
                                    csv_path=csv_path_base)
 
 normalize = preprocessing.normalize_pixels(mean0=False) 
 val_mvd_Unet = MontevideoFoldersDataset(path = PATH_DATA, 
                                         in_channel=3, 
-                                        out_channel=6,
+                                        out_channel=params['predict_horizon'],
                                         min_time_diff=5, max_time_diff=15,
                                         transform=normalize, 
                                         csv_path=csv_path_unet)
@@ -136,7 +140,7 @@ for metric in metrics:
       print('\nPredicting', models_names[idx])
       time.sleep(1)
       error_array = evaluate.evaluate_model(a_model, val_loader_aux, 
-                                            predict_horizon=6, 
+                                            predict_horizon=params['predict_horizon'], 
                                             device=device_aux, 
                                             metric=metric[:end_metric], 
                                             error_percentage=error_percentage,
@@ -154,11 +158,15 @@ for metric in metrics:
 
 if params['save_errors']:
   PATH = "reports/errors_evaluate_model/"
+  NAME = "errors_models_"
   if has_unet: 
-    NAME = 'errors_models_' +  os.path.basename(model_path) + '.pkl'
+    NAME = NAME + os.path.splitext(os.path.basename(model_path))[0]
   else:
     ts = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M")
-    NAME = 'errors_models_' + str(ts) + '.pkl'
+    NAME = NAME + "base_" + str(ts)
+  if params['save_name']:
+    NAME = NAME + "_" + params['save_name']
+  NAME = NAME + '.pkl'
   a_file = open(os.path.join(PATH, NAME), "wb")
   pickle.dump(errors_metrics, a_file)
   a_file.close()
