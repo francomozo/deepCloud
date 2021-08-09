@@ -901,6 +901,7 @@ def train_model_SSIMandMAE(
     
     return TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL
 
+
 def train_model_ssim_diff(  model,
                             train_criterion,
                             val_criterion,
@@ -990,6 +991,152 @@ def train_model_ssim_diff(  model,
                 frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1)
                 
                 val_loss = val_criterion(out_frames, frames_pred)
+
+                VAL_LOSS_EPOCH.append(val_loss.detach().item())
+                
+                if writer and (val_batch_idx == 0) and save_images and epoch>35:
+                    writer.add_images('groundtruth_batch', out_frames[:10], epoch)
+                    writer.add_images('predictions_batch', frames_pred[:10], epoch)
+                    
+        VAL_LOSS_GLOBAL.append(sum(VAL_LOSS_EPOCH)/len(VAL_LOSS_EPOCH))
+
+        if scheduler:
+            scheduler.step(VAL_LOSS_GLOBAL[-1])
+        
+        end_epoch = time.time()
+        TIME = end_epoch - start_epoch
+        
+        if verbose:
+            # print statistics
+            print(f'Epoch({epoch + 1}/{epochs}) | ', end='')
+            print(f'Train_loss({(TRAIN_LOSS_GLOBAL[-1]):06.4f}) | Val_loss({VAL_LOSS_GLOBAL[-1]:.4f}) | ', end='')
+            print(f'Time_Epoch({TIME:.2f}s)') # this part maybe dont print
+                    
+        if writer: 
+            #add values to tensorboard 
+            writer.add_scalar("TRAIN LOSS, EPOCH MEAN", TRAIN_LOSS_GLOBAL[-1], epoch)
+            writer.add_scalar("VALIDATION LOSS, EPOCH MEAN", VAL_LOSS_GLOBAL[-1] , epoch)
+            writer.add_scalar("Learning rate", optimizer.state_dict()["param_groups"][0]["lr"], epoch)            
+
+        if VAL_LOSS_GLOBAL[-1] < BEST_VAL_ACC:
+            if verbose:
+                print('New Best Model')
+            BEST_VAL_ACC = VAL_LOSS_GLOBAL[-1]
+            model_dict = {
+                'epoch': epoch + 1,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1],
+                'val_loss_epoch_mean': VAL_LOSS_GLOBAL[-1]
+            }
+            model_not_saved = True
+
+        if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
+            if model_not_saved:
+                if verbose:
+                    print('Saving Checkpoint')
+                PATH = 'checkpoints/'
+                ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
+                NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
+
+                torch.save(model_dict, PATH + NAME)
+                model_not_saved = False
+                
+    # if training finished and best model not saved
+    if model_not_saved:
+        if verbose:
+            print('Saving Checkpoint')
+        PATH = 'checkpoints/'
+        ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
+        NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
+
+        torch.save(model_dict, PATH + NAME)
+    
+    return TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL
+
+
+def train_model_MSE(
+                        model,
+                        train_criterion,
+                        val_criterion,
+                        optimizer,
+                        device,
+                        train_loader,
+                        epochs,
+                        val_loader,
+                        checkpoint_every=None,
+                        verbose=True,
+                        writer=None,
+                        scheduler=None,
+                        model_name='model',
+                        save_images=True):
+    
+    """ This train function evaluates on all the validation dataset one time per epoch
+
+    Args:
+        model (torch.model): [description]
+        criterion (torch.criterion): [description]
+        optimizer (torch.optim): [description]
+        device ([type]): [description]
+        train_loader ([type]): [description]
+        epochs (int): [description]
+        val_loader ([type]): [description]
+        checkpoint_every (int, optional): [description]. Defaults to None.
+        verbose (bool, optional): Print trainning status. Defaults to True.
+        writer (tensorboard.writer, optional): Logs loss values to tensorboard. Defaults to None.
+        scheduler ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL: Lists containing the mean error of each epoch
+    """    
+    TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
+    VAL_LOSS_GLOBAL = []
+    
+    TIME = []
+
+    BEST_VAL_ACC = 1e5
+    
+    if writer:
+        in_frames, _ = next(iter(train_loader))
+        in_frames = in_frames.to(device=device)
+        writer.add_graph(model, input_to_model=in_frames, verbose=False)
+        
+    for epoch in range(epochs):
+        start_epoch = time.time()
+        TRAIN_LOSS_EPOCH = [] #stores values inside the current epoch
+
+        for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
+            model.train()
+
+            in_frames = in_frames.to(device=device)
+            out_frames = out_frames.to(device=device)
+
+            # forward
+            frames_pred = model(in_frames)
+            loss = train_criterion(frames_pred, out_frames)
+
+            # backward
+            optimizer.zero_grad()
+            loss.backward()
+
+            # gradient descent or adam step
+            optimizer.step()
+
+            TRAIN_LOSS_EPOCH.append(loss.detach().item())
+            
+        TRAIN_LOSS_GLOBAL.append(sum(TRAIN_LOSS_EPOCH)/len(TRAIN_LOSS_EPOCH))
+        
+        #evaluation
+        model.eval()
+
+        with torch.no_grad():
+            VAL_LOSS_EPOCH = []
+            for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
+                in_frames = in_frames.to(device=device)
+                out_frames = out_frames.to(device=device)
+
+                frames_pred = model(in_frames)
+                val_loss = val_criterion(frames_pred, out_frames)
 
                 VAL_LOSS_EPOCH.append(val_loss.detach().item())
                 
