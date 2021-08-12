@@ -229,10 +229,11 @@ def evaluate_model(model_instance, loader, predict_horizon,
             if (isinstance(model_instance, list)):
                 # direct NNs models
                 predictions = []
-                inputs = inputs.to(device=device)
-                for i in range(predict_horizon):
-                    prediction = model_instance[i](inputs.unsqueeze(0))
-                    predictions.append(prediction.cpu().detach().numpy().squeeze())
+                with torch.no_grad():
+                    inputs = inputs.to(device=device)
+                    for i in range(predict_horizon):
+                        prediction = model_instance[i](inputs.unsqueeze(0))
+                        predictions.append(prediction.cpu().detach().numpy().squeeze())
                 predictions = np.array(predictions) 
                 dynamic_window = False
                 
@@ -259,11 +260,12 @@ def evaluate_model(model_instance, loader, predict_horizon,
             elif (isinstance(model_instance, torch.nn.Module) and model_instance.n_classes == 1):
                 # recursive NN model
                 predictions = []
-                for i in range(predict_horizon):
-                    inputs = inputs.to(device=device)
-                    prediction = model_instance(inputs.unsqueeze(0))
-                    predictions.append(prediction.cpu().detach().numpy().squeeze())
-                    inputs = torch.cat((inputs[1:], prediction.squeeze(0)))
+                with torch.no_grad():
+                    for i in range(predict_horizon):
+                        inputs = inputs.to(device=device)
+                        prediction = model_instance(inputs.unsqueeze(0))
+                        predictions.append(prediction.cpu().detach().numpy().squeeze())
+                        inputs = torch.cat((inputs[1:], prediction.squeeze(0)))
                 predictions = np.array(predictions) 
                 dynamic_window = False
 
