@@ -16,7 +16,7 @@ import time
 from src.dl_models.phydnet import ConvLSTM,PhyCell, EncoderRNN
 #from data.moving_mnist import MovingMNIST
 from src.dl_models.phydnet import K2M
-from skimage.measure import compare_ssim as ssim
+from skimage.metrics import structural_similarity as ssim
 import argparse
 import matplotlib.pyplot as plt
 
