@@ -143,7 +143,7 @@ def evaluate(encoder, loader):
             
             cross_entropy = -target*np.log(predictions) - (1-target) * np.log(1-predictions)
             cross_entropy = cross_entropy.sum()
-            cross_entropy = cross_entropy / (args.batch_size*target_length)
+            cross_entropy = cross_entropy / (batch_size*target_length)
             total_bce +=  cross_entropy
      
     print('eval mse ', total_mse/len(loader),  ' eval mae ', total_mae/len(loader),' eval ssim ',total_ssim/len(loader), ' time= ', time.time()-t0)        
