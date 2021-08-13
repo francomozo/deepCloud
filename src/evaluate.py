@@ -274,12 +274,13 @@ def evaluate_model(model_instance, loader, predict_horizon,
             elif (isinstance(model_instance, torch.nn.Module) and model_instance.n_classes == 1):
                 # recursive NN model
                 predictions = []
+                inputs_aux = torch.clone(inputs)
                 with torch.no_grad():
                     for i in range(predict_horizon):
-                        inputs = inputs.to(device=device)
-                        prediction = model_instance(inputs.unsqueeze(0))
+                        inputs_aux = inputs_aux.to(device=device)
+                        prediction = model_instance(inputs_aux.unsqueeze(0))
                         predictions.append(prediction.cpu().detach().numpy().squeeze())
-                        inputs = torch.cat((inputs[1:], prediction.squeeze(0)))
+                        inputs_aux = torch.cat((inputs_aux[1:], prediction.squeeze(0)))
                 predictions = np.array(predictions) 
                 dynamic_window = False
 
