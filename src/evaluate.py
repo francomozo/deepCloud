@@ -3,20 +3,21 @@
 #
 
 import numpy as np
-from skimage.metrics import structural_similarity as ssim
 import skimage.metrics
 import math
 import torch
 import time
 from tqdm import tqdm
 import cv2 as cv
+from piqa import SSIM
 
 import src.lib.utils as utils
 from src import model
 
 def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100, 
                    window_pad=0, window_pad_height=0, window_pad_width=0,
-                   dynamic_window=False, evaluate_day_pixels=True, error_percentage=False):
+                   dynamic_window=False, evaluate_day_pixels=True, error_percentage=False,
+                   input=None):
     """
     Evaluates the precision of the prediction compared to the gorund truth using different metrics
 
@@ -91,6 +92,8 @@ def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100,
         cosangs_map = np.ones((pf-pi, qf-qi))
         pred = predictions[i,pi:pf,qi:qf]
         gt_aux = gt[i,pi:pf,qi:qf]
+        if input is not None:
+            input_aux = input[pi:pf,qi:qf]
         
         if (pred.shape != gt_aux.shape):
             raise ValueError('Input images must have the same dimensions.')
@@ -103,6 +106,8 @@ def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100,
         if nan_in_pred:
             gt_aux = gt_aux[np.logical_not(np.isnan(pred))]
             cosangs_map = cosangs_map[np.logical_not(np.isnan(pred))]
+            if input is not None:
+                input_aux = input_aux[np.logical_not(np.isnan(pred))]
             pred = pred[np.logical_not(np.isnan(pred))]
             
         if(metric == 'RMSE'):
@@ -122,7 +127,16 @@ def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100,
                 error.append(20*np.log10(pixel_max_value))
      
         elif (metric == 'SSIM'):
-            error.append(ssim(pred*(cosangs_map==1),gt_aux*(cosangs_map==1) , win_size=101  ))
+            if pred.max()>1:
+                normalize = 100
+            else:
+                normalize = 1
+            SSIM_criterion = SSIM(n_channels=1).cuda()
+            pred = torch.from_numpy(pred*(cosangs_map==1)/normalize)
+            pred = pred.unsqueeze(0).unsqueeze(0).cuda()
+            gt_aux = torch.from_numpy(gt_aux*(cosangs_map==1)/normalize)
+            gt_aux = gt_aux.unsqueeze(0).unsqueeze(0).cuda()
+            error.append(SSIM_criterion(pred,gt_aux).cpu().numpy()*normalize)
         elif (metric == 'NRMSE'):
             nrmse = skimage.metrics.normalized_root_mse(gt_aux*(cosangs_map==1),pred*(cosangs_map==1))
             error.append(nrmse)
@@ -132,7 +146,7 @@ def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100,
             error.append(re_rmse)
         elif (metric == 'FS'):
             rmse = np.sqrt(np.mean(((pred-gt_aux)*(cosangs_map==1))**2))
-            rmse_persistence = np.sqrt(np.mean(((predictions[0,pi:pf,qi:qf] -gt_aux )*(cosangs_map==1))**2))
+            rmse_persistence = np.sqrt(np.mean(((input_aux-gt_aux)*(cosangs_map==1))**2))
             if rmse_persistence == 0 :
                 fs = 1
                 error.append(fs)
@@ -260,12 +274,13 @@ def evaluate_model(model_instance, loader, predict_horizon,
             elif (isinstance(model_instance, torch.nn.Module) and model_instance.n_classes == 1):
                 # recursive NN model
                 predictions = []
+                inputs_aux = torch.clone(inputs)
                 with torch.no_grad():
                     for i in range(predict_horizon):
-                        inputs = inputs.to(device=device)
-                        prediction = model_instance(inputs.unsqueeze(0))
+                        inputs_aux = inputs_aux.to(device=device)
+                        prediction = model_instance(inputs_aux.unsqueeze(0))
                         predictions.append(prediction.cpu().detach().numpy().squeeze())
-                        inputs = torch.cat((inputs[1:], prediction.squeeze(0)))
+                        inputs_aux = torch.cat((inputs_aux[1:], prediction.squeeze(0)))
                 predictions = np.array(predictions) 
                 dynamic_window = False
 
@@ -281,6 +296,7 @@ def evaluate_model(model_instance, loader, predict_horizon,
             if not (isinstance(model_instance, torch.nn.Module) or isinstance(model_instance, list) or isinstance(model_instance, str)):
                 predictions = predictions[1:]
             start = time.time()
+            input = inputs[-1].cpu().numpy() if metric == 'FS' else None
             predict_errors = evaluate_image(
                                         predictions = predictions, 
                                         gt = targets.cpu().detach().numpy(), 
@@ -290,7 +306,8 @@ def evaluate_model(model_instance, loader, predict_horizon,
                                         error_percentage = error_percentage,
                                         window_pad=window_pad, 
                                         window_pad_height=window_pad_height, 
-                                        window_pad_width=window_pad_width)
+                                        window_pad_width=window_pad_width,
+                                        input=input)
             error_list.append(predict_errors)
             end = time.time()
             eval_time.append(end-start)

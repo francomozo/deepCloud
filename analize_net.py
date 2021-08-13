@@ -406,7 +406,7 @@ fig_name = os.path.join(SAVE_IMAGES_PATH, 'prediction_from_zeros.png')
 visualization.show_image_w_colorbar(zeros_pred[0,0].cpu().numpy(), fig_name=fig_name, save_fig=True)
 
                
-# OUTPUT WITH MOST MOVED SEQUENCE
+# OUTPUT WITH MOST NANS SEQUENCE
                
 img0 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_115017.npy'))
 img1 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_120017.npy'))
@@ -444,7 +444,46 @@ frames_array[0:3] = in_frames[0].cpu().numpy()
 frames_array[3]= out_frames[0,0].cpu().numpy()
 frames_array[4] = frames_pred[0,0].cpu().numpy()
     
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'example_sequence.png')
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_nan_sequence.png')
+visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
+
+img0 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_135018.npy'))
+img1 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_140018.npy'))
+img2 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_141018.npy'))
+if FRAME_OUT == 0:
+    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_142018.npy'))
+if FRAME_OUT == 1:
+    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_143018.npy'))
+if FRAME_OUT == 2:
+    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_144018.npy'))      
+if FRAME_OUT == 3:
+    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_145018.npy'))
+if FRAME_OUT == 4:
+    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_150018.npy'))
+if FRAME_OUT == 5:
+    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_151018.npy'))
+        
+in_frames= torch.tensor(np.ones((1, 3, M, N))).to(device)
+out_frames= torch.tensor(np.ones((1, 1, M, N))).to(device)
+in_frames[0,0] = torch.from_numpy(img0/100).float().to(device)
+in_frames[0,1] = torch.from_numpy(img1/100).float().to(device)
+in_frames[0,2] = torch.from_numpy(img2/100).float().to(device)
+out_frames[0,0] = torch.from_numpy(output/100).float().to(device)
+
+model.eval()
+with torch.no_grad():
+    if not PREDICT_DIFF:
+        frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
+    if PREDICT_DIFF:
+        diff_pred = model(in_frames.type(torch.cuda.FloatTensor))        
+        frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1) 
+    
+frames_array = np.ones((5, M, N))
+frames_array[0:3] = in_frames[0].cpu().numpy()
+frames_array[3]= out_frames[0,0].cpu().numpy()
+frames_array[4] = frames_pred[0,0].cpu().numpy()
+    
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence.png')
 visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
 
 # FIRST LAYER OF FILTERS OUTPUT
