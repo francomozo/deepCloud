@@ -3,13 +3,13 @@
 #
 
 import numpy as np
-from skimage.metrics import structural_similarity as ssim
 import skimage.metrics
 import math
 import torch
 import time
 from tqdm import tqdm
 import cv2 as cv
+from piqa import SSIM
 
 import src.lib.utils as utils
 from src import model
@@ -122,7 +122,16 @@ def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100,
                 error.append(20*np.log10(pixel_max_value))
      
         elif (metric == 'SSIM'):
-            error.append(ssim(pred*(cosangs_map==1),gt_aux*(cosangs_map==1) , win_size=101  ))
+            if pred.max()>1:
+                normalize = 100
+            else:
+                normalize = 1
+            SSIM_criterion = SSIM(n_channels=1).cuda()
+            pred = torch.from_numpy(pred*(cosangs_map==1)/normalize)
+            pred = pred.unsqueeze(0).unsqueeze(0).cuda()
+            gt_aux = torch.from_numpy(gt_aux*(cosangs_map==1)/normalize)
+            gt_aux = gt_aux.unsqueeze(0).unsqueeze(0).cuda()
+            error.append(SSIM_criterion(pred,gt_aux).cpu().numpy()*normalize)
         elif (metric == 'NRMSE'):
             nrmse = skimage.metrics.normalized_root_mse(gt_aux*(cosangs_map==1),pred*(cosangs_map==1))
             error.append(nrmse)
