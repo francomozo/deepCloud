@@ -190,10 +190,10 @@ phycell  =  PhyCell(input_shape=(64,64), input_dim=64, F_hidden_dims=[49], n_lay
 convcell =  ConvLSTM(input_shape=(64,64), input_dim=64, hidden_dims=[128,128,64], n_layers=3, kernel_size=(3,3), device=device)   
 encoder  = EncoderRNN(phycell, convcell, device)
 
-nepochs = 1
+nepochs = 10
 print_every = 1
 eval_every = 1
-save_name = ''
+save_name = 'phydnet'
 
 train_losses = trainIters(train_loader=train_loader,
                           val_loader=val_loader,
