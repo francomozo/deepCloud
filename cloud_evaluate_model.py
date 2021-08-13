@@ -125,6 +125,8 @@ for metric in metrics:
     #fix to normalize errors:
     if metric[:end_metric] == 'MSE':
         fix = fix*100
+    if metric[:end_metric] == 'FS':
+        fix = fix/100
 
     errors_metric = {}
     for idx, a_model in enumerate(models):

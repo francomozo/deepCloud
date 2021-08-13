@@ -16,7 +16,8 @@ from src import model
 
 def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100, 
                    window_pad=0, window_pad_height=0, window_pad_width=0,
-                   dynamic_window=False, evaluate_day_pixels=True, error_percentage=False):
+                   dynamic_window=False, evaluate_day_pixels=True, error_percentage=False,
+                   input=None):
     """
     Evaluates the precision of the prediction compared to the gorund truth using different metrics
 
@@ -91,6 +92,8 @@ def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100,
         cosangs_map = np.ones((pf-pi, qf-qi))
         pred = predictions[i,pi:pf,qi:qf]
         gt_aux = gt[i,pi:pf,qi:qf]
+        if input is not None:
+            input_aux = input[pi:pf,qi:qf]
         
         if (pred.shape != gt_aux.shape):
             raise ValueError('Input images must have the same dimensions.')
@@ -103,6 +106,8 @@ def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100,
         if nan_in_pred:
             gt_aux = gt_aux[np.logical_not(np.isnan(pred))]
             cosangs_map = cosangs_map[np.logical_not(np.isnan(pred))]
+            if input is not None:
+                input_aux = input_aux[np.logical_not(np.isnan(pred))]
             pred = pred[np.logical_not(np.isnan(pred))]
             
         if(metric == 'RMSE'):
@@ -141,7 +146,7 @@ def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100,
             error.append(re_rmse)
         elif (metric == 'FS'):
             rmse = np.sqrt(np.mean(((pred-gt_aux)*(cosangs_map==1))**2))
-            rmse_persistence = np.sqrt(np.mean(((predictions[0,pi:pf,qi:qf] -gt_aux )*(cosangs_map==1))**2))
+            rmse_persistence = np.sqrt(np.mean(((input_aux-gt_aux)*(cosangs_map==1))**2))
             if rmse_persistence == 0 :
                 fs = 1
                 error.append(fs)
@@ -290,6 +295,7 @@ def evaluate_model(model_instance, loader, predict_horizon,
             if not (isinstance(model_instance, torch.nn.Module) or isinstance(model_instance, list) or isinstance(model_instance, str)):
                 predictions = predictions[1:]
             start = time.time()
+            input = inputs[-1].cpu().numpy() if metric == 'FS' else None
             predict_errors = evaluate_image(
                                         predictions = predictions, 
                                         gt = targets.cpu().detach().numpy(), 
@@ -299,7 +305,8 @@ def evaluate_model(model_instance, loader, predict_horizon,
                                         error_percentage = error_percentage,
                                         window_pad=window_pad, 
                                         window_pad_height=window_pad_height, 
-                                        window_pad_width=window_pad_width)
+                                        window_pad_width=window_pad_width,
+                                        input=input)
             error_list.append(predict_errors)
             end = time.time()
             eval_time.append(end-start)
