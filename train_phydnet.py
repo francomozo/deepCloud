@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 import numpy as np
 import datetime
