@@ -138,7 +138,7 @@ def evaluate(encoder, val_loader, writer=None):
                                                                            decoding=False)
                 decoder_input = output_image
                 if writer and (i == 0):
-                    writer.add_images('predictions_batch', frames_pred[:5, 0, 0], epoch)
+                    writer.add_images('predictions_batch', output_image, epoch)
                     
                 predictions.append(output_image.cpu())
 
