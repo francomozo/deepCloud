@@ -162,7 +162,7 @@ def evaluate(encoder, val_loader, epoch, writer=None):
             total_bce +=  cross_entropy
      
     print('eval mse ', total_mse/len(val_loader),  ' eval mae ', total_mae/len(val_loader),' eval ssim ',total_ssim/len(val_loader), 'eval time= ', time.time()-t0)        
-    return total_mse/val_len(loader),  total_mae/len(val_loader), total_ssim/len(val_loader)
+    return total_mse/len(val_loader),  total_mae/len(val_loader), total_ssim/len(val_loader)
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
