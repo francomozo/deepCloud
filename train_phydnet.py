@@ -88,7 +88,7 @@ def trainIters(train_loader, val_loader, encoder, nepochs, print_every=10, eval_
             print('epoch ', epoch,  ' loss ', loss_epoch, 'train time epoch ', time.time()-t0)
             
         if (epoch+1) % eval_every == 0:
-            mse, mae, ssim = evaluate(encoder, val_loader, writer) 
+            mse, mae, ssim = evaluate(encoder, val_loader, epoch, writer) 
             scheduler_enc.step(mse)
             if writer: 
                 writer.add_scalar("VAL MSE", mse, epoch)
@@ -115,7 +115,7 @@ def trainIters(train_loader, val_loader, encoder, nepochs, print_every=10, eval_
                           
     return train_losses
 
-def evaluate(encoder, val_loader, writer=None):
+def evaluate(encoder, val_loader, epoch, writer=None):
     total_mse, total_mae, total_ssim,total_bce = 0,0,0,0
     t0 = time.time()
     with torch.no_grad():
