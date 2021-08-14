@@ -15,11 +15,11 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 torch.manual_seed(50)
 PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/10min_UNet2_sigmoid_mae_f32_60_04-08-2021_20:43.pt'
 CSV_PATH='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train_cosangs_in3_out1.csv'
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 3e-4
 BATCH_SIZE = 4
-NUM_EPOCHS = 100
+NUM_EPOCHS = 30
 LAMBDA_GP = 0
-#CRITIC_ITERATIONS = 5
+CRITIC_ITERATIONS = 5
 
 
 # utils.py
@@ -73,8 +73,8 @@ gen.train()
 disc.train()
 
 # tb
-writer_gt = SummaryWriter(f"runs/gan/gt")
-writer_pred = SummaryWriter(f"runs/gan/pred")
+writer_gt = SummaryWriter(f"runs/gan_w_criticiter/gt")
+writer_pred = SummaryWriter(f"runs/gan_w_criticiter/pred")
 step = 0
 
 for epoch in range(NUM_EPOCHS):
@@ -102,11 +102,12 @@ for epoch in range(NUM_EPOCHS):
         opt_disc.step()
 
         # Train Generator: max E[disc(gen_noise)] <-> min -E[disc(gen_noise)]
-        disc_pred = disc(pred).reshape(-1)
-        loss_gen = -torch.mean(disc_pred)
-        gen.zero_grad()
-        loss_gen.backward()
-        opt_gen.step()
+        if batch_idx % CRITIC_ITERATIONS == 0:
+            disc_pred = disc(pred).reshape(-1)
+            loss_gen = -torch.mean(disc_pred)
+            gen.zero_grad()
+            loss_gen.backward()
+            opt_gen.step()
 
         # Print losses occasionally and print to tensorboard
         if batch_idx % 100 == 0 and batch_idx > 0:
