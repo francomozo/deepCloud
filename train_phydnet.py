@@ -116,24 +116,25 @@ def trainIters(train_loader, val_loader, encoder, nepochs, print_every=10, eval_
     return train_losses
 
 def evaluate(encoder, val_loader, epoch, writer=None):
-    total_mse, total_mae, total_ssim,total_bce = 0,0,0,0
+    total_mse, total_mae, total_ssim, total_bce = 0,0,0,0
     t0 = time.time()
     with torch.no_grad():
         for i, (in_frames, out_frames) in enumerate(val_loader):
-            input_tensor = in_frames.unsqueeze(2).to(device=device)
-            target_tensor = out_frames.unsqueeze(2).to(device=device)
+            input_tensor = in_frames.unsqueeze(2).to(device=device) # [N, in_frames, 1, H, W]
+            target_tensor = out_frames.unsqueeze(2).to(device=device) # [N, out_frames, 1, H, W]
             
-            input_length = input_tensor.size()[1]
-            target_length = target_tensor.size()[1]
+            input_length = input_tensor.size()[1] # in_frames
+            target_length = target_tensor.size()[1] # out_frames
 
-            for ei in range(input_length-1):
+            # por que hace esto? No es lo mismo que hacerlo directamente con ei=input_length-2 ?
+            for ei in range(input_length-1): # [0, 1]
                 encoder_output, encoder_hidden, _,_,_  = encoder(input_tensor[:,ei,:,:,:], (ei==0))
 
-            decoder_input = input_tensor[:,-1,:,:,:] # first decoder input= last image of input sequence
+            decoder_input = input_tensor[:,-1,:,:,:] # first decoder input = last image of input sequence
             predictions = []
 
             for di in range(target_length):
-                decoder_output, decoder_hidden, output_image,_,_ = encoder(decoder_input,
+                decoder_output, decoder_hidden, output_image, _,_ = encoder(decoder_input,
                                                                            first_timestep=False,
                                                                            decoding=False)
                 decoder_input = output_image
@@ -142,13 +143,15 @@ def evaluate(encoder, val_loader, epoch, writer=None):
                     
                 predictions.append(output_image.cpu())
 
-            input = input_tensor.cpu().numpy()
+            #input = input_tensor.cpu().numpy()
             target = target_tensor.cpu().numpy()
             predictions = np.stack(predictions) 
             predictions = predictions.swapaxes(0,1)
-
-            mse_batch = np.mean((predictions-target)**2, axis=(0,1,2)).sum()
-            mae_batch = np.mean(np.abs(predictions-target), axis=(0,1,2)).sum() 
+            
+            #mse_batch = np.mean((predictions-target)**2, axis=(0,1,2)).sum()
+            mse_batch = np.mean((predictions-target)**2)
+            #mae_batch = np.mean(np.abs(predictions-target), axis=(0,1,2)).sum()
+            mae_batch = np.mean(np.abs(predictions-target)) 
             total_mse += mse_batch
             total_mae += mae_batch
             
@@ -161,66 +164,70 @@ def evaluate(encoder, val_loader, epoch, writer=None):
             cross_entropy = cross_entropy / (batch_size*target_length)
             total_bce +=  cross_entropy
      
-    print('eval mse ', total_mse/len(val_loader),  ' eval mae ', total_mae/len(val_loader),' eval ssim ',total_ssim/len(val_loader), 'eval time= ', time.time()-t0)        
+    print('eval mse ', total_mse/len(val_loader),  'eval mae ', total_mae/len(val_loader), 'eval ssim ',total_ssim/len(val_loader), 'eval time= ', time.time()-t0)        
     return total_mse/len(val_loader),  total_mae/len(val_loader), total_ssim/len(val_loader)
 
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+if __name__ == '__main__':
+    
+    torch.manual_seed(50)
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-normalize = preprocessing.normalize_pixels(mean0=False)
-val_mvd = MontevideoFoldersDataset(
-                                    path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',
-                                    in_channel=3,
-                                    out_channel=1,
-                                    min_time_diff=5,
-                                    max_time_diff=15,
-                                    csv_path=None,
-                                    transform=normalize
-                                    )
+    normalize = preprocessing.normalize_pixels(mean0=False)
+    val_mvd = MontevideoFoldersDataset(
+                                        path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',
+                                        in_channel=3,
+                                        out_channel=1,
+                                        min_time_diff=5,
+                                        max_time_diff=15,
+                                        csv_path=None,
+                                        transform=normalize
+                                        )
 
+    train_mvd = MontevideoFoldersDataset(
+                                        path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/',
+                                        in_channel=3,
+                                        out_channel=1,
+                                        min_time_diff=5,
+                                        max_time_diff=15,
+                                        csv_path=None,
+                                        transform=normalize
+                                        )
 
-train_mvd = MontevideoFoldersDataset(
-                                    path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/',
-                                    in_channel=3,
-                                    out_channel=1,
-                                    min_time_diff=5,
-                                    max_time_diff=15,
-                                    csv_path=None,
-                                    transform=normalize
-                                    )
+    batch_size = 2
 
-batch_size=10
+    train_loader = DataLoader(train_mvd, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
+    val_loader = DataLoader(val_mvd, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 
-train_loader = DataLoader(train_mvd, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
-val_loader = DataLoader(val_mvd, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
+    constraints = torch.zeros((49,7,7)).to(device)
+    ind = 0
+    for i in range(0,7):
+        for j in range(0,7):
+            constraints[ind,i,j] = 1
+            ind +=1
 
-constraints = torch.zeros((49,7,7)).to(device)
-ind = 0
-for i in range(0,7):
-    for j in range(0,7):
-        constraints[ind,i,j] = 1
-        ind +=1
+    comment = f' batch_size:{batch_size}'
+    # writer = SummaryWriter(log_dir='runs/phydnet' ,comment=comment)
+    writer = None
 
-comment = f' batch_size:{batch_size}'
-writer = SummaryWriter(log_dir='runs/phydnet' ,comment=comment)
+    phycell  =  PhyCell(input_shape=(64,64), input_dim=64, F_hidden_dims=[49], n_layers=1, kernel_size=(7,7), device=device) 
+    convcell =  ConvLSTM(input_shape=(64,64), input_dim=64, hidden_dims=[128,128,64], n_layers=3, kernel_size=(3,3), device=device)   
+    encoder  = EncoderRNN(phycell, convcell, device)
 
-phycell  =  PhyCell(input_shape=(64,64), input_dim=64, F_hidden_dims=[49], n_layers=1, kernel_size=(7,7), device=device) 
-convcell =  ConvLSTM(input_shape=(64,64), input_dim=64, hidden_dims=[128,128,64], n_layers=3, kernel_size=(3,3), device=device)   
-encoder  = EncoderRNN(phycell, convcell, device)
+    nepochs = 1
+    print_every = 1
+    eval_every = 1
+    model_name = ''
 
-nepochs = 10
-print_every = 1
-eval_every = 1
-model_name = ''
+    train_losses = trainIters(
+                            train_loader=train_loader,
+                            val_loader=val_loader,
+                            encoder=encoder,
+                            nepochs=nepochs,
+                            print_every=print_every,
+                            eval_every=eval_every,
+                            checkpoint=False,
+                            model_name=model_name,
+                            writer=writer)
 
-train_losses = trainIters(train_loader=train_loader,
-                          val_loader=val_loader,
-                          encoder=encoder,
-                          nepochs=nepochs,
-                          print_every=print_every,
-                          eval_every=eval_every,
-                          checkpoint=False,
-                          model_name=model_name,
-                          writer=writer)
-
-if writer:
-  writer.close()
+    if writer:
+        writer.close()
