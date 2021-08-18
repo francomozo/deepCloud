@@ -201,16 +201,17 @@ for i in range(0,7):
         ind +=1
 
 comment = f' batch_size:{batch_size}'
-writer = SummaryWriter(log_dir='runs/phydnet' ,comment=comment)
+writer = SummaryWriter(log_dir='runs/phydnet2' ,comment=comment)
 
 phycell  =  PhyCell(input_shape=(64,64), input_dim=64, F_hidden_dims=[49], n_layers=1, kernel_size=(7,7), device=device) 
 convcell =  ConvLSTM(input_shape=(64,64), input_dim=64, hidden_dims=[128,128,64], n_layers=3, kernel_size=(3,3), device=device)   
 encoder  = EncoderRNN(phycell, convcell, device)
 
-nepochs = 50
+nepochs = 60
 print_every = 1
 eval_every = 1
 model_name = ''
+checkpoint=False
 
 train_losses = trainIters(train_loader=train_loader,
                           val_loader=val_loader,
@@ -218,7 +219,7 @@ train_losses = trainIters(train_loader=train_loader,
                           nepochs=nepochs,
                           print_every=print_every,
                           eval_every=eval_every,
-                          checkpoint=False,
+                          checkpoint=checkpoint,
                           model_name=model_name,
                           writer=writer)
 
