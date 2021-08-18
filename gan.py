@@ -1,6 +1,7 @@
 import random
 
 import torch
+import torch.nn as nn
 import torch.optim as optim
 import torchvision
 from torch.utils.data import DataLoader
@@ -15,12 +16,38 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 torch.manual_seed(50)
 PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/10min_UNet2_sigmoid_mae_f32_60_04-08-2021_20:43.pt'
 CSV_PATH='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train_cosangs_in3_out1.csv'
-LEARNING_RATE = 3e-4
-BATCH_SIZE = 4
+LEARNING_RATE = 1e-4
+BATCH_SIZE = 8
 NUM_EPOCHS = 30
-LAMBDA_GP = 0
+LAMBDA_GP = 10
 CRITIC_ITERATIONS = 5
 
+class Discriminator(nn.Module):
+    def __init__(self, channels_img, features_d):
+        super(Discriminator, self).__init__()
+        self.disc = nn.Sequential(
+            # input: N x channels_img x 64 x 64
+            nn.Conv2d(channels_img, features_d, kernel_size=4, stride=2, padding=1),
+            nn.LeakyReLU(0.2),
+            # _block(in_channels, out_channels, kernel_size, stride, padding)
+            self._block(features_d, features_d * 2, 4, 2, 1),
+            self._block(features_d * 2, features_d * 4, 4, 2, 1),
+            self._block(features_d * 4, features_d * 8, 4, 2, 1),
+            # After all _block img output is 4x4 (Conv2d below makes into 1x1)
+            nn.Conv2d(features_d * 8, 1, kernel_size=4, stride=2, padding=0),
+        )
+
+    def _block(self, in_channels, out_channels, kernel_size, stride, padding):
+        return nn.Sequential(
+            nn.Conv2d(
+                in_channels, out_channels, kernel_size, stride, padding, bias=False,
+            ),
+            nn.InstanceNorm2d(out_channels, affine=True),
+            nn.LeakyReLU(0.2),
+        )
+
+    def forward(self, x):
+        return self.disc(x)
 
 # utils.py
 def gradient_penalty(disc, real, fake, device="cpu"):
@@ -57,7 +84,10 @@ train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_wor
 
 # Nets
 gen = UNet2(n_channels=3, n_classes=1, bilinear=True, filters=32).to(device)
-disc = UNet2(n_channels=1, n_classes=1, bilinear=True, filters=32).to(device)
+# try using other discriminator
+disc = Discriminator(1, 64).to(device)
+
+#disc = UNet2(n_channels=1, n_classes=1, bilinear=True, filters=32).to(device)
 # gen.load_state_dict(torch.load(PT_PATH)["model_state_dict"])
 #disc.load_state_dict(torch.load(PT_PATH)["model_state_dict"])
 #gen.apply(train.weights_init)
@@ -73,8 +103,8 @@ gen.train()
 disc.train()
 
 # tb
-writer_gt = SummaryWriter(f"runs/gan_w_criticiter/gt")
-writer_pred = SummaryWriter(f"runs/gan_w_criticiter/pred")
+writer_gt = SummaryWriter(f"runs/gan-30_epochs-critic_iters/gt")
+writer_pred = SummaryWriter(f"runs/gan-30_epochs-critic_iters/pred")
 step = 0
 
 for epoch in range(NUM_EPOCHS):
