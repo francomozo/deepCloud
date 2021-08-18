@@ -6,43 +6,22 @@ import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from src import preprocessing, train
+from src import preprocessing
 from src.data import MontevideoFoldersDataset
+from src.dl_models.gan import Discriminator
 from src.dl_models.unet import UNet2
+from src.lib.utils import gradient_penalty
 
 # Paras and hyperparams
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 torch.manual_seed(50)
 PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/10min_UNet2_sigmoid_mae_f32_60_04-08-2021_20:43.pt'
 CSV_PATH='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train_cosangs_in3_out1.csv'
-LEARNING_RATE = 3e-4
-BATCH_SIZE = 4
+LEARNING_RATE = 1e-4
+BATCH_SIZE = 8
 NUM_EPOCHS = 30
-LAMBDA_GP = 0
+LAMBDA_GP = 10
 CRITIC_ITERATIONS = 5
-
-
-# utils.py
-def gradient_penalty(disc, real, fake, device="cpu"):
-    BATCH_SIZE, C, H, W = real.shape
-    alpha = torch.rand((BATCH_SIZE, 1, 1, 1)).repeat(1, C, H, W).to(device)
-    interpolated_images = real * alpha + fake * (1 - alpha)
-
-    # Calculate disc scores
-    mixed_scores = disc(interpolated_images)
-
-    # Take the gradient of the scores with respect to the images
-    gradient = torch.autograd.grad(
-        inputs=interpolated_images,
-        outputs=mixed_scores,
-        grad_outputs=torch.ones_like(mixed_scores),
-        create_graph=True,
-        retain_graph=True,
-    )[0]
-    gradient = gradient.view(gradient.shape[0], -1)
-    gradient_norm = gradient.norm(2, dim=1)
-    gradient_penalty = torch.mean((gradient_norm - 1) ** 2)
-    return gradient_penalty
 
 # Dataloaders
 normalize = preprocessing.normalize_pixels()
@@ -57,11 +36,9 @@ train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_wor
 
 # Nets
 gen = UNet2(n_channels=3, n_classes=1, bilinear=True, filters=32).to(device)
-disc = UNet2(n_channels=1, n_classes=1, bilinear=True, filters=32).to(device)
-# gen.load_state_dict(torch.load(PT_PATH)["model_state_dict"])
-#disc.load_state_dict(torch.load(PT_PATH)["model_state_dict"])
-#gen.apply(train.weights_init)
-#disc.apply(train.weights_init)
+disc = Discriminator(1, 64).to(device)
+
+gen.load_state_dict(torch.load(PT_PATH)["model_state_dict"])
 
 # Initializate optimizer
 #opt_gen = optim.Adam(gen.parameters(), lr=LEARNING_RATE, betas=(0.0, 0.9))
@@ -73,24 +50,21 @@ gen.train()
 disc.train()
 
 # tb
-writer_gt = SummaryWriter(f"runs/gan_w_criticiter/gt")
-writer_pred = SummaryWriter(f"runs/gan_w_criticiter/pred")
+#writer_gt = SummaryWriter(f"runs/gan-30_epochs-critic_iters/gt")
+#writer_pred = SummaryWriter(f"runs/gan-30_epochs-critic_iters/pred")
+#writer = SummaryWriter(f"runs/test_gan")
+writer = SummaryWriter(comment = 'algo')
+
 step = 0
 
 for epoch in range(NUM_EPOCHS):
     for batch_idx, (in_frames, gt) in enumerate(train_loader):
         
-        in_frames = in_frames.to(device) # this is the noise (B, C, H, W)=(1, 3, 256, 256)
-        gt = gt.to(device) # this is the real (1, 1, 256, 256))
-        cur_batch_size = gt.shape[0]
-        # HERE THE PAPER TRAINS A FEW ITER THE DISC BUT I WONT DO THAT
+        in_frames = in_frames.to(device)
+        gt = gt.to(device)
+        
         # Train Critic: max E[critic(real)] - E[critic(fake)]
-        # equivalent to minimizing the negative of that
-        # for _ in range(CRITIC_ITERATIONS):
-        #noise = torch.randn(cur_batch_size, Z_DIM, 1, 1).to(device)
-        
-        pred = gen(in_frames) # (1, 1, 256, 256)
-        
+        pred = gen(in_frames)
         disc_pred = disc(pred).reshape(-1)
         disc_gt = disc(gt).reshape(-1)
         gp = gradient_penalty(disc, gt, pred, device=device)
@@ -118,9 +92,14 @@ for epoch in range(NUM_EPOCHS):
             #print(f'{torch.mean(disc_gt)}, {-torch.mean(disc_pred)}, {LAMBDA_GP * gp}')
 
             with torch.no_grad():
-                img_grid_gt = torchvision.utils.make_grid(gt, normalize=True)
-                img_grid_pred = torchvision.utils.make_grid(pred, normalize=True)  
+                writer.add_scalar('Gen Loss', loss_gen, global_step=step)
+                writer.add_scalar('Disc Loss', loss_disc, global_step=step)
                 
-                writer_gt.add_image("gt", img_grid_gt, global_step=step)
-                writer_pred.add_image("pred", img_grid_pred, global_step=step)
+                
+                # print images to tb, disabled 
+                #img_grid_gt = torchvision.utils.make_grid(gt, normalize=True)
+                #img_grid_pred = torchvision.utils.make_grid(pred, normalize=True)  
+                
+                #writer_gt.add_image("gt", img_grid_gt, global_step=step)
+                #writer_pred.add_image("pred", img_grid_pred, global_step=step)
             step += 1
