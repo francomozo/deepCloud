@@ -18,7 +18,6 @@ import torch
 
 
 def gradient_penalty(disc, real, fake, device="cpu"):
-    # for wgans
     BATCH_SIZE, C, H, W = real.shape
     alpha = torch.rand((BATCH_SIZE, 1, 1, 1)).repeat(1, C, H, W).to(device)
     interpolated_images = real * alpha + fake * (1 - alpha)
