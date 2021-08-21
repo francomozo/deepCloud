@@ -294,7 +294,10 @@ def image_sequence_generator_folders(path, in_channel,out_channel, min_time_diff
                 if complete_seq: 
                     writer.writerow(image_sequence)
     
-def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_time_diff, max_time_diff, csv_path, folders=None, meta_path='/clusteruy/home03/DeepCloud/deepCloud/data/raw/meta'):
+def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_time_diff, max_time_diff, csv_path, 
+                                             folders=None,
+                                             meta_path='/clusteruy/home03/DeepCloud/deepCloud/data/raw/meta',
+                                             region=None):
     """Recieves a folder with images named as ART_2020XXX_hhmmss.npy and it generates a csv file with the 
     available sequences of a specified length. Images from Dawn/Dusk are not included.
 
@@ -341,7 +344,11 @@ def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_
                                 aux = 1
                             _, cosangs_thresh = get_cosangs_mask(meta_path=meta_path,
                                             img_name=folderfiles[i+j+aux])
-                            if (np.mean(cosangs_thresh[1550:1550+256, 1600:1600+256]) != 1.0):
+                            if region is None:
+                                img = cosangs_thresh[1550:1550+256, 1600:1600+256] # cut montevideo
+                            elif region == 'uru':
+                                img = cosangs_thresh[1205:1205+512, 1450:1450+512]
+                            if (np.mean(img) != 1.0):
                                 complete_seq = False
                         
                         if  dt_min < time_diff < dt_max: #las imagenes estan bien espaciadas en el tiempo
