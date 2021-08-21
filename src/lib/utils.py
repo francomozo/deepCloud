@@ -376,6 +376,8 @@ def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_
                                 img = cosangs_thresh[1550:1550+256, 1600:1600+256] # cut montevideo
                             elif region == 'uru':
                                 img = cosangs_thresh[1205:1205+512, 1450:1450+512]
+                            elif region == 'region3':
+                                img = cosangs_thresh[800:800+1024, 1250:1250+1024]
                             if (np.mean(img) != 1.0):
                                 complete_seq = False
                         
