@@ -16,6 +16,34 @@ import pandas as pd
 import src.lib.preprocessing_functions as pf
 import torch
 
+def save_gan_checkpoint(gen, disc, opt_gen, opt_disc, curr_epoch, gen_loss, disc_loss, desc):
+    # gen_loss and disc_loss are lists with losses for each epoch
+
+    PATH = 'checkpoints/'
+
+    gen_dict = {
+        'epoch': curr_epoch,
+        'gen_state_dict': gen.state_dict(),
+        'opt_state_dict': opt_gen.state_dict(),
+        'gen_epoch_loss': gen_loss,
+    }
+
+    disc_dict = {
+            'epoch': curr_epoch,
+            'disc_state_dict': disc.state_dict(),
+            'opt_state_dict': opt_disc.state_dict(),
+            'disc_epoch_loss': disc_loss,
+    }
+
+    ts = datetime.now().strftime("%d-%m-%Y_%H:%M")
+    GEN_NAME = f'gen_{curr_epoch}epochs_{desc}_{ts}.pt'
+    DISC_NAME = f'disc_{curr_epoch}epochs_{desc}_{ts}.pt'
+
+    torch.save(gen_dict, PATH + GEN_NAME)
+    torch.save(disc_dict, PATH + DISC_NAME)
+    print("Checkpoints saved.")
+    return
+
 
 def gradient_penalty(disc, real, fake, device="cpu"):
     BATCH_SIZE, C, H, W = real.shape
