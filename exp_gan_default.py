@@ -1,5 +1,6 @@
 import datetime
 import random
+import os
 
 import numpy as np
 import torch
@@ -13,15 +14,15 @@ from src import evaluate, preprocessing
 from src.data import MontevideoFoldersDataset
 from src.dl_models.gan import Discriminator
 from src.dl_models.unet import UNet2
-from src.lib.utils import gradient_penalty, save_checkpoint
+from src.lib.utils import gradient_penalty, save_checkpoint, clear_lines
 
-exp_num = 0
+expId = 'zzzz' # string
+objective_loss = 0.05803579
 
 # Params =======================
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print(f'Using device {device}')
 torch.manual_seed(50)
-#PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/10min_UNet2_sigmoid_mae_f32_60_04-08-2021_20:43.pt'
 PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/10min_2_50_09-07-2021_06:21.pt'
 
 DATA_PATH_TRAIN = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/'
@@ -42,8 +43,8 @@ predict_horizon = 6 # this is for validation
     
 # Hyperparams =======================
 LEARNING_RATE = 1e-4
-BATCH_SIZE = 8
-NUM_EPOCHS = 30
+BATCH_SIZE = 12
+NUM_EPOCHS = 1
 LAMBDA_GP = 5
 CRITIC_ITERATIONS = 5
 FEATURES_D = 32
@@ -81,24 +82,23 @@ disc.train()
 # Auxiliar variables =======================
 criterion = nn.MSELoss()
 best_val_loss = 1e3
-
-# description of the experiment:
 ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
-exp_desc = f'lr({LEARNING_RATE})_opt(rmsprop)_lambda_gp({LAMBDA_GP})_load_dict(10min_UNet2_sigmoid_mae_f32_60_04-08-2021_20:43.pt)_features_d({FEATURES_D})_csv(train_cosangs_in3_out1)'
+os.mkdir(f'{os.getcwd()}/checkpoints/{expId}')
 
 # tb
-#writer_gt = SummaryWriter(f"runs/exp{exp_num}_{ts}/{exp_desc}/gt")
-#writer_pred = SummaryWriter(f"runs/exp{exp_num}_{ts}/{exp_desc}/pred")
-#writer = SummaryWriter(f"runs/exp{exp_num}_{ts}/{exp_desc}/loss")
-#step = 0
+writer_gt = SummaryWriter(f"runs/{expId}/gt")
+writer_pred = SummaryWriter(f"runs/{expId}/pred")
+writer_loss = SummaryWriter(f"runs/{expId}/loss")
+step = 0
 
 gen_loss_by_epochs = []
 disc_loss_by_epochs = []
 for epoch in range(NUM_EPOCHS):
     gen_epoch_loss_list = []
     disc_epoch_loss_list = []
-    gen.train()
-    
+    print(f'== Epoch {epoch+1}/{NUM_EPOCHS}') 
+    gen.train() 
+
     for batch_idx, (in_frames, gt) in enumerate(train_loader):
         
         in_frames = in_frames.to(device)
@@ -124,17 +124,17 @@ for epoch in range(NUM_EPOCHS):
             loss_gen.backward()
             opt_gen.step()
 
-        # if batch_idx % 100 == 0 and batch_idx > 0:
-        #     with torch.no_grad():
-        #         writer.add_scalar('Gen Loss', loss_gen, global_step=step)
-        #         writer.add_scalar('Disc Loss', loss_disc, global_step=step)
+        if batch_idx % 300 == 0 and batch_idx > 0:
+            with torch.no_grad():
+                writer_loss.add_scalar('Gen Loss', loss_gen, global_step=step)
+                writer_loss.add_scalar('Disc Loss', loss_disc, global_step=step)
                 
-        #         img_grid_gt = torchvision.utils.make_grid(gt, normalize=True)
-        #         img_grid_pred = torchvision.utils.make_grid(pred, normalize=True)  
+                img_grid_gt = torchvision.utils.make_grid(gt.detach()[:4], normalize=True)
+                img_grid_pred = torchvision.utils.make_grid(pred.detach()[:4], normalize=True)  
                 
-        #         writer_gt.add_image("gt", img_grid_gt, global_step=step)
-        #         writer_pred.add_image("pred", img_grid_pred, global_step=step)
-        #     step += 1
+                writer_gt.add_image("gt", img_grid_gt, global_step=step)
+                writer_pred.add_image("pred", img_grid_pred, global_step=step)
+            step += 1
         
         # for each batch save losses to calculate mean for each epoch 
         gen_epoch_loss_list.append(loss_gen.detach().item())
@@ -145,37 +145,33 @@ for epoch in range(NUM_EPOCHS):
     disc_loss_by_epochs.append(sum(disc_epoch_loss_list)/len(disc_epoch_loss_list))
 
     # validation each epoch
-    
     gen.eval()
-    print(f'== Epoch {epoch+1}/{NUM_EPOCHS}') 
-    # cut to end 
     val_err_array = evaluate.evaluate_model(gen, val_loader, 
                                             predict_horizon=predict_horizon, 
                                             device=device,
                                             metric='RMSE')
     val_err_array = np.mean(val_err_array, axis=0) # vector of length 'predict_horizon'
- 
-    print(f'\t -> Gen_epoch_loss: {gen_loss_by_epochs[-1]:.8f}, Disc_epoch_loss: {disc_loss_by_epochs[-1]:.8f}. Val_loss: {val_err_array[0]:.8f}.')
+    
+    clear_lines(2)
+    print(f'\t -> Disc_epoch_loss: {disc_loss_by_epochs[-1]:.8f}. Gen_epoch_loss: {gen_loss_by_epochs[-1]:.8f}. Val_loss: {val_err_array[0]:.8f}.')
     print(f'\t -> Val_pred_horiz_loss: {val_err_array}')
     
-#     # save best model (on val)
-#     if val_loss < best_val_loss:
-#         if best_val_loss != 1e3:
-#             print(f'\t -> New best model!!!')
-#         gen_dict = {
-#             'epoch': epoch+1,
-#             'model_state_dict': gen.state_dict(),
-#             'opt_state_dict': opt_gen.state_dict(),
-#             'gen_epoch_loss': gen_loss_by_epochs,
-#         }
+    # save best model (on val)
+    if val_err_array[0] < best_val_loss:
+        if best_val_loss != 1e3:
+            print(f'\t -> New best model!!!')
+        gen_dict = {
+            'epoch': epoch+1,
+            'model_state_dict': gen.state_dict(),
+            'opt_state_dict': opt_gen.state_dict(),
+            'gen_epoch_loss': gen_loss_by_epochs,
+        }
+        disc_dict = {
+                'epoch': epoch+1,
+                'model_state_dict': disc.state_dict(),
+                'opt_state_dict': opt_disc.state_dict(),
+                'disc_epoch_loss': disc_loss_by_epochs,
+        }
+        best_val_loss = val_err_array[0]
 
-#         disc_dict = {
-#                 'epoch': epoch+1,
-#                 'model_state_dict': disc.state_dict(),
-#                 'opt_state_dict': opt_disc.state_dict(),
-#                 'disc_epoch_loss': disc_loss_by_epochs,
-#         }
-#         best_val_loss = val_loss
-
-
-# save_checkpoint(gen_dict, disc_dict, exp_desc, exp_num)       
+save_checkpoint(gen_dict, disc_dict, expId)       

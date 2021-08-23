@@ -6,6 +6,7 @@
 import csv
 import datetime
 import os
+import sys
 import shutil
 from datetime import datetime, timedelta
 from os import listdir
@@ -16,18 +17,14 @@ import pandas as pd
 import src.lib.preprocessing_functions as pf
 import torch
 
-def save_checkpoint(gen_dict, disc_dict, desc, exp_num=None):
+def save_checkpoint(gen_dict, disc_dict, expId):
      
-    PATH = 'checkpoints/{exp_num}/' # this wont work if exp_num is None
+    PATH = f"checkpoints/{expId}/"
     curr_epoch = gen_dict['epoch']
 
     ts = datetime.now().strftime("%d-%m-%Y_%H:%M")
-    if exp_num is not None:
-        GEN_NAME = f'exp_num{exp_num}_{ts}_gen_{curr_epoch}epochs_{desc}.pt'
-        DISC_NAME = f'exp_num{exp_num}_{ts}_disc_{curr_epoch}epochs_{desc}.pt'
-    else:
-        GEN_NAME = f'gen_{curr_epoch}epochs_{desc}_{ts}.pt'
-        DISC_NAME = f'disc_{curr_epoch}epochs_{desc}_{ts}.pt'
+    GEN_NAME = f'{expId}_gen_{ts}.pt'
+    DISC_NAME = f'{expId}_disc_{ts}.pt'
 
     torch.save(gen_dict, PATH + GEN_NAME)
     torch.save(disc_dict, PATH + DISC_NAME)
@@ -544,3 +541,8 @@ def data_separator_by_folder(data_path):
                     print ("Successfully created the directory ")
                 first = False
             shutil.move(data_path + filename, data_path+ filename[4:11]+ '/')
+
+def clear_lines(num_lines):
+    for _ in range(num_lines):
+        sys.stdout.write("\033[F") #back to previous line 
+        sys.stdout.write("\033[K") #clear line 
