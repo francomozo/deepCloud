@@ -21,16 +21,17 @@ exp_num = 0
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print(f'Using device {device}')
 torch.manual_seed(50)
-PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/10min_UNet2_sigmoid_mae_f32_60_04-08-2021_20:43.pt'
+#PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/10min_UNet2_sigmoid_mae_f32_60_04-08-2021_20:43.pt'
+PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/10min_2_50_09-07-2021_06:21.pt'
 
 DATA_PATH_TRAIN = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/'
-DATA_PATH_VAL = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation'
+DATA_PATH_VAL = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
 csv_on_train = True
 if csv_on_train:
     CSV_PATH_TRAIN = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train_cosangs_in3_out1.csv'
 else:
     CSV_PATH_TRAIN = None
-csv_on_val = True
+csv_on_val = False
 if csv_on_val:
     CSV_PATH_VAL = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/val_cosangs_in3_out6.csv' 
 else:
@@ -64,8 +65,9 @@ val_mvd = MontevideoFoldersDataset(path=DATA_PATH_VAL,
 val_loader = DataLoader(val_mvd)
 
 # Nets =======================
-gen = UNet2(n_channels=3, n_classes=1, bilinear=True, filters=32).to(device)
+#gen = UNet2(n_channels=3, n_classes=1, bilinear=True, filters=32).to(device)
 disc = Discriminator(channels_img=1, features_d=FEATURES_D).to(device)
+gen = UNet2(n_channels=3, n_classes=1, bilinear=True, bias=True).to(device)
 
 gen.load_state_dict(torch.load(PT_PATH)["model_state_dict"])
 
@@ -96,7 +98,6 @@ for epoch in range(NUM_EPOCHS):
     gen_epoch_loss_list = []
     disc_epoch_loss_list = []
     gen.train()
-    print(f'== Epoch {epoch+1}/{NUM_EPOCHS}') 
     
     for batch_idx, (in_frames, gt) in enumerate(train_loader):
         
@@ -144,16 +145,18 @@ for epoch in range(NUM_EPOCHS):
     disc_loss_by_epochs.append(sum(disc_epoch_loss_list)/len(disc_epoch_loss_list))
 
     # validation each epoch
+    
+    gen.eval()
+    print(f'== Epoch {epoch+1}/{NUM_EPOCHS}') 
+    # cut to end 
     val_err_array = evaluate.evaluate_model(gen, val_loader, 
                                             predict_horizon=predict_horizon, 
                                             device=device,
                                             metric='RMSE')
-    val_err_mean = np.mean(val_err_array, axis=0)
-    
-    # print losses (gen, disc, val_loss)
-    print(f'\t -> Gen_epoch_loss: {gen_loss_by_epochs[-1]:.8f}, Disc_epoch_loss: {disc_loss_by_epochs[-1]:.8f}. Val_loss: {val_err_mean:.8f}.')
-    print(f'\t -> Val_loss_1hr: {val_err_array}')
-    
+    val_err_array = np.mean(val_err_array, axis=0) # vector of length 'predict_horizon'
+ 
+    print(f'\t -> Gen_epoch_loss: {gen_loss_by_epochs[-1]:.8f}, Disc_epoch_loss: {disc_loss_by_epochs[-1]:.8f}. Val_loss: {val_err_array[0]:.8f}.')
+    print(f'\t -> Val_pred_horiz_loss: {val_err_array}')
     
 #     # save best model (on val)
 #     if val_loss < best_val_loss:
