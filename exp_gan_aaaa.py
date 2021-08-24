@@ -16,7 +16,7 @@ from src.dl_models.gan import Discriminator
 from src.dl_models.unet import UNet2
 from src.lib.utils import gradient_penalty, save_checkpoint
 
-expId = # string
+expId = 'xxxx' # string
 objective_loss = 0.05803579
 
 # Params =======================
@@ -44,7 +44,7 @@ predict_horizon = 6 # this is for validation
 # Hyperparams =======================
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 12
-NUM_EPOCHS = 3
+NUM_EPOCHS = 50
 LAMBDA_GP = 5
 CRITIC_ITERATIONS = 5
 FEATURES_D = 32

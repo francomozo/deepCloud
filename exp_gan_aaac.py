@@ -16,7 +16,7 @@ from src.dl_models.gan import Discriminator
 from src.dl_models.unet import UNet2
 from src.lib.utils import gradient_penalty, save_checkpoint
 
-expId = # string
+expId = 'aaac'# string
 objective_loss = 0.05803579
 
 # Params =======================
@@ -27,7 +27,7 @@ PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/10min_2_50_09-07-20
 
 DATA_PATH_TRAIN = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/'
 DATA_PATH_VAL = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
-csv_on_train = False
+csv_on_train = True
 if csv_on_train:
     CSV_PATH_TRAIN = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train_cosangs_in3_out1.csv'
 else:
@@ -42,9 +42,9 @@ predict_horizon = 6 # this is for validation
 
     
 # Hyperparams =======================
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 5e-5
 BATCH_SIZE = 12
-NUM_EPOCHS = 3
+NUM_EPOCHS = 30
 LAMBDA_GP = 5
 CRITIC_ITERATIONS = 5
 FEATURES_D = 32
