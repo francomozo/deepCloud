@@ -10,9 +10,13 @@ import time
 from tqdm import tqdm
 import cv2 as cv
 from piqa import SSIM
+from torch.utils.data import DataLoader
+import torchvision
 
 import src.lib.utils as utils
 from src import model
+from src import preprocessing
+from src.data import MontevideoFoldersDataset
 
 def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100, 
                    window_pad=0, window_pad_height=0, window_pad_width=0,
@@ -318,3 +322,101 @@ def evaluate_model(model_instance, loader, predict_horizon,
         print(f'Cmv predict time: {np.sum(cmv_predict_time):.2f} seconds.')
     print(f'Evaluation time: {np.sum(eval_time):.2f} seconds.')
     return np.array(error_list)
+
+
+def evaluate_gan_val(model_instance, loader, predict_horizon, 
+                   device=None, metric='RMSE', error_percentage=False,
+                   window_pad=0, window_pad_height=0, window_pad_width=0):
+    """
+        This function is the same as evaluate_model but without tqdm
+        for sbatch porpuses
+    """
+    error_list =[]
+
+    per_predict_time= []
+    eval_time = []
+    cmv_predict_time = []
+    
+    for idx, (inputs, targets) in enumerate(loader):
+        inputs = inputs.squeeze()
+        targets = targets.squeeze()
+        
+        # predict depending on model
+        if (isinstance(model_instance, list)):
+            # direct NNs models
+            predictions = []
+            with torch.no_grad():
+                inputs = inputs.to(device=device)
+                for i in range(predict_horizon):
+                    prediction = model_instance[i](inputs.unsqueeze(0))
+                    predictions.append(prediction.cpu().detach().numpy().squeeze())
+            predictions = np.array(predictions) 
+            dynamic_window = False
+            
+        elif (isinstance(model_instance, torch.nn.Module) and model_instance.n_classes == 1):
+            # recursive NN model
+            predictions = []
+            inputs_aux = torch.clone(inputs)
+            with torch.no_grad():
+                for i in range(predict_horizon):
+                    inputs_aux = inputs_aux.to(device=device)
+                    prediction = model_instance(inputs_aux.unsqueeze(0))
+                    predictions.append(prediction.cpu().detach().numpy().squeeze())
+                    inputs_aux = torch.cat((inputs_aux[1:], prediction.squeeze(0)))
+            predictions = np.array(predictions) 
+            dynamic_window = False
+
+        # evaluate
+        if not (isinstance(model_instance, torch.nn.Module) or isinstance(model_instance, list) or isinstance(model_instance, str)):
+            predictions = predictions[1:]
+        start = time.time()
+        input = inputs[-1].cpu().numpy() if metric == 'FS' else None
+        predict_errors = evaluate_image(
+                                    predictions = predictions, 
+                                    gt = targets.cpu().detach().numpy(), 
+                                    gt_ts = None,
+                                    metric=metric, dynamic_window=dynamic_window,
+                                    evaluate_day_pixels = False, 
+                                    error_percentage = error_percentage,
+                                    window_pad=window_pad, 
+                                    window_pad_height=window_pad_height, 
+                                    window_pad_width=window_pad_width,
+                                    input=input)
+        error_list.append(predict_errors)
+        end = time.time()
+        eval_time.append(end-start)
+    
+    return np.array(error_list)
+
+def make_val_grid(model, 
+                  sequences=1,
+                  device='cuda',
+                  data_path_val='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',
+                  csv_path_val='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/val_cosangs_in3_out6.csv'):
+
+    model.eval()
+    normalize = preprocessing.normalize_pixels()
+    val_mvd = MontevideoFoldersDataset(path=data_path_val,
+                                            in_channel=3, out_channel=1,
+                                            min_time_diff=5, max_time_diff=15,
+                                            transform=normalize,
+                                            csv_path=csv_path_val)
+    val_loader = DataLoader(val_mvd)
+    grid = []
+    flag = 0
+    for idx, (in_frames, out_frames) in enumerate(val_loader):
+        in_frames = in_frames.to(device=device)
+        out_frames = out_frames.to(device=device)
+        if idx % 100 == 0:
+            flag += 1
+            frames_pred = model(in_frames)
+            B, C, H, W = in_frames.shape
+            in_frames = torch.reshape(in_frames.detach(), (C, B, H, W))
+            grid.append(torch.cat((in_frames.detach(), out_frames.detach(), frames_pred.detach()), dim=0))
+            if flag == sequences:
+                break
+    
+    grid = torch.cat(grid)
+    print(grid.shape)
+    return torchvision.utils.make_grid(grid, nrow=5, normalize=True)
+

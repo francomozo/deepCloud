@@ -1,229 +1,150 @@
-# USAGE:
-#   Depracated functions that have usage.
-#   Should be used as little as possible.
-#
 
-# First version of the SatelliteImagesDataset with sliding window. Takes too long.
-# Loades images in each iteration.
-class SatelliteImagesDatasetSW_v1(Dataset):
-    """ [WARNING]: This function is depracated. Too slow. Use SatelliteImagesDatasetSW instead.
-        South America Satellite Images Dataset
+import torch
+import torch.optim as optim
+import torchvision
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
-    Args:
-        root_dir (string): Directory with all images from day n.
-        window (int): Size of the moving window to load the images.
-        transform (callable, optional): Optional transform to be applied on a sample.
-        
-        
-    Returns:
-        [dict]: {'images': images, 'time_stamps': time_stamps}
-    """
+from src import preprocessing
+from src.data import MontevideoFoldersDataset
+from src.dl_models.unet import UNet2
+from src.lib.utils import gradient_penalty
 
-    dia_ref = datetime.datetime(2019,12,31)
-    
-    
-    
-    def __init__(self, root_dir, window=1, transform=None):
-        self.root_dir = root_dir
-        self.images_list = np.sort(os.listdir(self.root_dir))
-        self.transform = transform
-        self.window = window
-        
-    
-    def __len__(self):
-        return len(self.images_list) - self.window + 1
-    
-    def __getitem__(self, idx):
-        try:
-            img_names = [os.path.join(self.root_dir, self.images_list[idx])
-                         for idx in np.arange(idx, self.window + idx, 1)]
 
-            images = np.array([np.load(img_name) for img_name in img_names])
+# Paras and hyperparams
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+torch.manual_seed(50)
+PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/10min_UNet2_sigmoid_mae_f32_60_04-08-2021_20:43.pt'
+CSV_PATH='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train_cosangs_in3_out1.csv'
+OUTPUT_FILE_PATH = '/clusteruy/home/franco.mozo/outputs_gan_gs.txt'
+BATCH_SIZE = 1
+NUM_EPOCHS = 1
+CRITIC_ITERATIONS = 5
+
+
+# GRID SEARCH
+lrs = [1e-4, 3e-4, 1e-5, 5e-5]
+lambda_gps = [0, 1, 5, 10]
+critic_iters = [True, False]
+optimizers = ['rmsprop', 'adam']
+load_dicts = [False]
+
+hparams = [(lr, lambda_gp, critic_iter, optim_type, load_dict) for lr in lrs
+                                               for lambda_gp in lambda_gps
+                                               for critic_iter in critic_iters
+                                               for optim_type in optimizers
+                                               for load_dict in load_dicts]
+total_gs = len(hparams)
+for index, (LEARNING_RATE, LAMBDA_GP, critic_iter, optim_type, load_dict) in enumerate(hparams):
+    print('========================================================================')
+    print(
+        f'Iter {index+1}/{total_gs}. \
+        Hparams: lr={LEARNING_RATE}, lambda_gp={LAMBDA_GP}, critic_iter={critic_iter}, optim_type={optim_type}, load_dict={load_dict}.'
+    )
+
+    # Dataloaders
+    normalize = preprocessing.normalize_pixels()
+    train_ds = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/',    
+                                     in_channel=3,
+                                     out_channel=1,
+                                     min_time_diff=5, max_time_diff=15,
+                                     csv_path=CSV_PATH,
+                                     transform=normalize)
+    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=2, pin_memory=True)
+
+    # Nets
+    gen = UNet2(n_channels=3, n_classes=1, bilinear=True, filters=32).to(device)
+    disc = UNet2(n_channels=1, n_classes=1, bilinear=True, filters=32).to(device)
+    if load_dict:
+        gen.load_state_dict(torch.load(PT_PATH)["model_state_dict"])
+
+
+    # Initializate optimizer
+    if optim_type == 'adam':
+        opt_gen = optim.Adam(gen.parameters(), lr=LEARNING_RATE, betas=(0.0, 0.9))
+        opt_disc = optim.Adam(disc.parameters(), lr=LEARNING_RATE, betas=(0.0, 0.9))
+    else:
+        opt_gen = optim.RMSprop(gen.parameters(), lr=LEARNING_RATE)
+        opt_disc = optim.RMSprop(disc.parameters(), lr=LEARNING_RATE)
+
+    gen.train()
+    disc.train()
+
+    # tb
+    writer_gt = SummaryWriter(f"runs/gan/gs/lr({LEARNING_RATE})-lambda({LAMBDA_GP})-critic_iter({critic_iter})-optim_type({optim_type})-load_dict({load_dict})/gt")
+    writer_pred = SummaryWriter(f"runs/gan/gs/lr({LEARNING_RATE})-lambda({LAMBDA_GP})-critic_iter({critic_iter})-optim_type({    optim_type})-load_dict({load_dict})/pred")
+    step = 0
+
+    for epoch in range(NUM_EPOCHS):
+        losses_gen = []
+        losses_disc = []
+        for batch_idx, (in_frames, gt) in enumerate(train_loader):
             
-            if self.transform:
-                images = np.array([self.transform(image) for image in images])
-                # images = np.array([self.transform(Image.fromarray(image)) for image in images])
-            
-            img_names = [re.sub("[^0-9]", "", self.images_list[idx]) 
-                         for idx in np.arange(idx, self.window + idx, 1)]
+            in_frames = in_frames.to(device) # this is the noise (B, C, H, W)=(1, 3, 256, 256)
+            gt = gt.to(device) # this is the real (1, 1, 256, 256))
+            cur_batch_size = gt.shape[0]
+            # Train Critic: max E[critic(real)] - E[critic(fake)]
            
-            time_stamps = [self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), 
-                                                             hours=int(img_name[7:9]), 
-                                                             minutes=int(img_name[9:11]), 
-                                                             seconds=int(img_name[11:]))
-                            for img_name in img_names]
-
-            samples = {'images': images,
-                      'time_stamps': [utils.datetime2str(ts) for ts in time_stamps]}
+            pred = gen(in_frames) # (1, 1, 256, 256)
             
-            return samples        
-        except IndexError:
-            print('End of sliding window')
+            disc_pred = disc(pred).reshape(-1)
+            disc_gt = disc(gt).reshape(-1)
+            gp = gradient_penalty(disc, gt, pred, device=device)
+            loss_disc = (
+                -(torch.mean(disc_gt) - torch.mean(disc_pred)) + LAMBDA_GP * gp
+            )
+            disc.zero_grad()
+            loss_disc.backward(retain_graph=True)
+            opt_disc.step()
+
+            # only update generator every CRITIC_ITERATIONS iterations if critic_iter true
+            # else, do it every iteration (there should be a better way to do this)
+            if critic_iter == True: # ie: Train more the critic (or discriminator)
+                if batch_idx % CRITIC_ITERATIONS == 0:
+                    # Train Generator: max E[disc(gen_noise)] <-> min -E[disc(gen_noise)]
+                    disc_pred = disc(pred).reshape(-1)
+                    loss_gen = -torch.mean(disc_pred)
+                    gen.zero_grad()
+                    loss_gen.backward()
+                    opt_gen.step()
+            else:
+                disc_pred = disc(pred).reshape(-1)
+                loss_gen = -torch.mean(disc_pred)
+                gen.zero_grad()
+                loss_gen.backward()
+                opt_gen.step()
             
+            # Print losses occasionally and print to tensorboard
+            if batch_idx % 100 == 0 and batch_idx > 0:
+                print(
+                    f"Epoch [{epoch+1}/{NUM_EPOCHS}] Batch {batch_idx}/{len(train_loader)} \
+                    Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
+                )
+                losses_gen.append(loss_gen)
+                losses_disc.append(loss_disc)
 
-class SatelliteImagesDataset(Dataset):
-    """ [WARNING]: This function is depracated.
-        First version of a simple dataset class for one image at a time.
-        South America Satellite Images Dataset
-
-    Args:
-        root_dir (string): Directory with all images from day n.
-        transform (callable, optional): Optional transform to be applied on a sample.
-        
-    Returns:
-        [dict]: {'image': image, 'time_stamp': time_stamp}
-    """
-
-    dia_ref = datetime.datetime(2019,12,31)
-    
-    def __init__(self, root_dir, transform=None):
-        self.root_dir = root_dir
-        self.images_list = np.sort(os.listdir(self.root_dir))
-        self.transform = transform
-    
-    def __len__(self):
-        return len(self.images_list)
-    
-    def __getitem__(self, idx):
-        img_name = os.path.join(self.root_dir, 
-                                self.images_list[idx])
-        image = np.load(img_name)
-        if self.transform:
-            image = self.transform(image)
-        
-        img_name = re.sub("[^0-9]", "", self.images_list[idx])
-        time_stamp = self.dia_ref + datetime.timedelta(days=int(img_name[4:7]), hours =int(img_name[7:9]), 
-                                                   minutes = int(img_name[9:11]), seconds = int(img_name[11:]) )
-        
-        sample = {'image': image,
-                  'time_stamp': utils.datetime2str(time_stamp)}
-        
-        return sample
-    
-def train_model_old(model,
-                    loader,
-                    criterion,
-                    optimizer,
-                    device,
-                    curr_epoch,
-                    loss_history,
-                    train_for=0,
-                    verbose=True,
-                    checkpoint_every=0,
-                    print_cuda_mem=False,
-                    loader_val=None,
-                    trial=None):
-    """Trains model, prints cuda mem, saves checkpoints, resumes training.
-
-    Args:
-        device : torch.device()
-        curr_epoch : Current epoch the model is. Zero if it was never trained
-        loss_history ([list]): Empty list if the model was never trained
-        train_for (int, optional): Number of epochs to train. Defaults to 0.
-        verbose (bool, optional): Print epoch counter and time of each epoch. Defaults to True.
-        checkpoint_every (int, optional): Save checkpoint every "checkpoint_every" epochs. Defaults to 0.
-        print_cuda_mem (bool, optional): Defaults to False.
-        loader_val (optional): Pytorch Dataloader for validation
-        trial (optional): optuna class for hyperparameters
-    """
-
-    loss_history_val = []
-    val_step = 0
-    num_val_samples = 400
-    print_every = 100
-    if not train_for:
-        return loss_history
-    last_epoch = train_for + curr_epoch
-
-    curr_epoch += 1
-
-    if print_cuda_mem:
-        print_cuda_memory()
-        
-    if writer:
-        in_frames, _ = next(iter(train_loader))
-        in_frames = in_frames.to(device=device)
-        writer.add_graph(model, input_to_model=in_frames, verbose=False)
-
-    while True:
-        if verbose:
-            print("EPOCH:", curr_epoch)
-        start = time.time()
-        start_batch = time.time()
-        secuence_number = 0
-        loss_total = 0
-        loss_count = 0
-        for id, (data, targets) in enumerate(loader):
-            model.train()
-            start_batch = time.time()
-            data = data.to(device=device)
-            targets = targets.to(device=device)
-
-            scores = model(data)
-            loss = criterion(scores, targets)
-            loss_total += loss.item()
-            loss_count += 1
-
-            optimizer.zero_grad()
-            loss.backward()
-
-            optimizer.step()
-
-            # Validation
-            secuence_number += data.shape[0]
-            if loader_val is not None and secuence_number >= 400:
-                model.eval()
                 with torch.no_grad():
-                    secuence_number = 0
-                    loss_val_total = 0
-                    loss_val_count = 0
-                    for id_val, (data, targets) in enumerate(loader_val):
-                        data = data.to(device=device)
-                        targets = targets.to(device=device)
+                    img_grid_gt = torchvision.utils.make_grid(gt, normalize=True)
+                    img_grid_pred = torchvision.utils.make_grid(pred, normalize=True)  
+                    
+                    writer_gt.add_image("gt", img_grid_gt, global_step=step)
+                    writer_pred.add_image("pred", img_grid_pred, global_step=step)
+                step += 1
+        # write to file the best and worst losses
+        output_file = open(OUTPUT_FILE_PATH,"a")
+        
+        max_gen, min_gen = max(losses_gen), min(losses_gen)
+        max_disc, min_disc = max(losses_disc), min(losses_disc)
+        gen_loss, disc_loss = losses_gen[-1], losses_disc[-1]
 
-                        scores_val = model(data)
-                        loss_val = criterion(scores_val, targets)
-                        loss_val_total += loss_val.item()
-                        loss_val_count += 1
-                        if (id_val * data.shape[0] >= num_val_samples):
-                            break
-
-                    loss_val_average = loss_val_total/loss_val_count
-                    loss_history_val.append(np.array(loss_val_average))
-                    if trial is not None:
-                        trial.report(loss_val_average, val_step)
-                        val_step += 1
-                        if trial.should_prune():
-                            raise optuna.exceptions.TrialPruned()
-            end_batch = time.time()
-            if verbose and (id+1) % print_every == 0:
-                print('Iteration', id+1, '/', len(loader), ',loss = %.4f' % loss.item(), ',epoch_loss = %.4f' %
-                      (loss_total/loss_count), ',Iteration time = %.2f' % ((end_batch-start_batch)/print_every), 's')
-        if print_cuda_mem:
-            print()
-            print_cuda_memory()
-            print_cuda_mem = False
-
-        # Time
-        end = time.time()
-        if verbose:
-            print(f'Time elapsed in epoch: {(end - start):.2f} secs.')
-
-        loss_history.append(np.array(loss_total/loss_count))
-
-        PATH = "checkpoints/model_epoch" + str(curr_epoch) + ".pt"
-
-        if checkpoint_every:
-            if curr_epoch % checkpoint_every == 0:
-                torch.save({
-                    'epoch': curr_epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'loss_history': loss_history,
-                    'loss_history_val': loss_history_val
-                }, PATH)
-
-        if curr_epoch == last_epoch:
-            return loss_history, loss_history_val
-
-        curr_epoch += 1
+        string1 = f'Iter {index+1}/{total_gs} ========================================== \n' 
+        string2 = f'Hparams: lr={LEARNING_RATE}, lambda_gp={LAMBDA_GP}, critic_iter={critic_iter}, optim_type={optim_type}, load_dict={load_dict}. \n'
+        
+        string3 = f'\t max_gen={max_gen}, min_gen={min_gen} \n\t max_disc={max_disc}, min_disc={min_disc} \n\n'
+        string4 = f'\t last_gen_loss={gen_loss} \n\t last_disc_loss={disc_loss} \n\n'
+        
+        output_file.write(string1)
+        output_file.write(string2)
+        output_file.write(string3)
+        output_file.write(string4)
+        output_file.close()

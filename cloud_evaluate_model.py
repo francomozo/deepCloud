@@ -88,11 +88,11 @@ for a_model_name in models_names:
   if "cmv" == a_model_name:
     models.append(model.Cmv2())
   if "bcmv" == a_model_name:
-    models.append(model.Cmv2(kernel_size_list=[(5,5),(13,13),(31,31),(51,51),(65,65),(79,79)]))
+    models.append(model.Cmv2(kernel_size_list=[(5,5),(17,17),(41,41),(65,65),(89,89),(113,113),(137,137),(157,157),(181,181),(205,205),(225,225),(249,249)]))
   if "p" == a_model_name or "persistence" == a_model_name:
     models.append(model.Persistence())
   if "bp" == a_model_name or "blurredpersistence" == a_model_name:
-    models.append(model.BlurredPersistence(kernel_size_list=[(35,35),(73,73),(105,105),(137,137),(169,169),(201,201)]))
+    models.append(model.BlurredPersistence(kernel_size_list=[(33,33),(73,73),(109,109),(145,145),(181,181),(213,213),(249,249),(285,285),(321,321),(361,361),(405,405),(445,445)])) 
   if "gt_blur" == a_model_name:
     models.append("gt_blur")
   if "unet" == a_model_name:

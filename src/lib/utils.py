@@ -6,6 +6,7 @@
 import csv
 import datetime
 import os
+import sys
 import shutil
 from datetime import datetime, timedelta
 from os import listdir
@@ -15,6 +16,49 @@ import numpy as np
 import pandas as pd
 import src.lib.preprocessing_functions as pf
 import torch
+
+def save_checkpoint(gen_dict, disc_dict, expId):
+     
+    PATH = f"checkpoints/{expId}/"
+    curr_epoch = gen_dict['epoch']
+
+    ts = datetime.now().strftime("%d-%m-%Y_%H:%M")
+    GEN_NAME = f'{expId}_gen_{ts}.pt'
+    DISC_NAME = f'{expId}_disc_{ts}.pt'
+
+    torch.save(gen_dict, PATH + GEN_NAME)
+    torch.save(disc_dict, PATH + DISC_NAME)
+    print("Checkpoints saved.")
+    return
+
+
+def save_gan_checkpoint(gen, disc, opt_gen, opt_disc, curr_epoch, gen_loss, disc_loss, desc):
+    # gen_loss and disc_loss are lists with losses for each epoch
+
+    PATH = 'checkpoints/'
+
+    gen_dict = {
+        'epoch': curr_epoch,
+        'model_state_dict': gen.state_dict(),
+        'opt_state_dict': opt_gen.state_dict(),
+        'gen_epoch_loss': gen_loss,
+    }
+
+    disc_dict = {
+            'epoch': curr_epoch,
+            'model_state_dict': disc.state_dict(),
+            'opt_state_dict': opt_disc.state_dict(),
+            'disc_epoch_loss': disc_loss,
+    }
+
+    ts = datetime.now().strftime("%d-%m-%Y_%H:%M")
+    GEN_NAME = f'gen_{curr_epoch}epochs_{desc}_{ts}.pt'
+    DISC_NAME = f'disc_{curr_epoch}epochs_{desc}_{ts}.pt'
+
+    torch.save(gen_dict, PATH + GEN_NAME)
+    torch.save(disc_dict, PATH + DISC_NAME)
+    print("Checkpoints saved.")
+    return
 
 
 def gradient_penalty(disc, real, fake, device="cpu"):
@@ -294,7 +338,10 @@ def image_sequence_generator_folders(path, in_channel,out_channel, min_time_diff
                 if complete_seq: 
                     writer.writerow(image_sequence)
     
-def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_time_diff, max_time_diff, csv_path, folders=None, meta_path='/clusteruy/home03/DeepCloud/deepCloud/data/raw/meta'):
+def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_time_diff, max_time_diff, csv_path, 
+                                             folders=None,
+                                             meta_path='/clusteruy/home03/DeepCloud/deepCloud/data/raw/meta',
+                                             region=None):
     """Recieves a folder with images named as ART_2020XXX_hhmmss.npy and it generates a csv file with the 
     available sequences of a specified length. Images from Dawn/Dusk are not included.
 
@@ -341,7 +388,13 @@ def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_
                                 aux = 1
                             _, cosangs_thresh = get_cosangs_mask(meta_path=meta_path,
                                             img_name=folderfiles[i+j+aux])
-                            if (np.mean(cosangs_thresh[1550:1550+256, 1600:1600+256]) != 1.0):
+                            if region is None:
+                                img = cosangs_thresh[1550:1550+256, 1600:1600+256] # cut montevideo
+                            elif region == 'uru':
+                                img = cosangs_thresh[1205:1205+512, 1450:1450+512]
+                            elif region == 'region3':
+                                img = cosangs_thresh[800:800+1024, 1250:1250+1024]
+                            if (np.mean(img) != 1.0):
                                 complete_seq = False
                         
                         if  dt_min < time_diff < dt_max: #las imagenes estan bien espaciadas en el tiempo
@@ -488,3 +541,8 @@ def data_separator_by_folder(data_path):
                     print ("Successfully created the directory ")
                 first = False
             shutil.move(data_path + filename, data_path+ filename[4:11]+ '/')
+
+def clear_lines(num_lines):
+    for _ in range(num_lines):
+        sys.stdout.write("\033[F") #back to previous line 
+        sys.stdout.write("\033[K") #clear line 

@@ -15,3 +15,12 @@ runs/fashion_mnist_experiment_1/events.out.tfevents.1622560447.LAPTOP-999G7J0E.1
 runs/
 nb-andres.ipynb
 checkpoints/
+exp_gan_a[a-z]*.py
+pytorch_modelsize
+nb-unet-study.ipynb
+nb-cloud-cast.ipynb
+CloudCast/
+
+probabilistic_unet.py
+graphs/
+nb-outlier-finder.ipynb
