@@ -16,3 +16,11 @@ runs/
 nb-andres.ipynb
 checkpoints/
 exp_gan_a[a-z]*.py
+pytorch_modelsize
+nb-unet-study.ipynb
+nb-cloud-cast.ipynb
+CloudCast/
+
+probabilistic_unet.py
+graphs/
+nb-outlier-finder.ipynb
