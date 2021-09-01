@@ -11,7 +11,7 @@ import shutil
 from datetime import datetime, timedelta
 from os import listdir
 from os.path import isfile, join
-
+import pickle
 import numpy as np
 import pandas as pd
 import src.lib.preprocessing_functions as pf
@@ -546,3 +546,11 @@ def clear_lines(num_lines):
     for _ in range(num_lines):
         sys.stdout.write("\033[F") #back to previous line 
         sys.stdout.write("\033[K") #clear line 
+
+def save_pickle_dict(path='reports/model_training', name='', dict_=None):
+    with open(os.path.join(path, name + '.pkl'), 'wb') as f:
+        pickle.dump(dict_, f, pickle.HIGHEST_PROTOCOL) 
+
+def load_pickle_dict(path='reports/model_training', name=''):
+    with open(os.path.join(path, name + '.pkl'), 'rb') as f:
+        return pickle.load(f)

@@ -1215,8 +1215,7 @@ def train_model_MSE(
 
 def train_model_full(
                     model,
-                    train_criterion,
-                    train_w_ssim=False,
+                    train_loss,
                     optimizer,
                     device,
                     train_loader,
@@ -1234,8 +1233,7 @@ def train_model_full(
 
     Args:
         model (torch.model): [description]
-        train_criterion (torch.criterion): [description]
-        train_w_ssim (bool): The train criterion is the SSIM function
+        train_loss (str): Train criterion to use ('mae','mse','ssim')
         optimizer (torch.optim): [description]
         device ([type]): [description]
         train_loader ([type]): [description]
@@ -1257,12 +1255,19 @@ def train_model_full(
         VAL_SSIM_LOSS_GLOBAL: Lists containing the mean SSIM error of each epoch in validation
     """    
     
-    if  predict_diff and train_w_ssim:
+    if  predict_diff and (train_loss in ['ssim', 'SSIM']):
         raise ValueError('Cannot use ssim as train function and predict diff. (Yet)')
     
     mse_loss = nn.MSELoss()
     mae_loss = nn.L1Loss()
-    ssim_loss = SSIM(n_channels=1).cuda() 
+    ssim_loss = SSIM(n_channels=1).device()
+    
+    if train_loss in ['mae', 'MAE']:
+        train_criterion = mae_loss
+    if train_loss in ['mse', 'MSE']:
+        train_criterion = mse_loss
+    if train_loss in ['ssim', 'SSIM']:
+        train_criterion = ssim_loss
     
     if model_name is None:
         model_name = 'model' 
@@ -1284,7 +1289,7 @@ def train_model_full(
         
     for epoch in range(epochs):
         start_epoch = time.time()
-        TRAIN_LOSS_EPOCH = [] #stores values inside the current epoch
+        TRAIN_LOSS_EPOCH = 0 #stores values inside the current epoch
 
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
             model.train()
@@ -1294,13 +1299,14 @@ def train_model_full(
 
             # forward
             frames_pred = model(in_frames)
-            if not train_w_ssim:
+            if train_loss in ['mae', 'MAE', 'mse', 'MSE']:
                 if predict_diff:
                     diff = torch.subtract(out_frames[:,0], in_frames[:,2]).unsqueeze(1)
                     loss = train_criterion(frames_pred, diff)
                 else: 
-                    loss = train_criterion(frames_pred, out_framess)
-            else:
+                    loss = train_criterion(frames_pred, out_frames)
+                    
+            if train_loss in ['ssim', 'SSIM']:
                 loss = 1 - train_criterion(frames_pred, out_frames)
             # backward
             optimizer.zero_grad()
@@ -1309,9 +1315,9 @@ def train_model_full(
             # gradient descent or adam step
             optimizer.step()
 
-            TRAIN_LOSS_EPOCH.append(loss.detach().item())
+            TRAIN_LOSS_EPOCH += loss.detach().item()
             
-        TRAIN_LOSS_GLOBAL.append(sum(TRAIN_LOSS_EPOCH)/len(TRAIN_LOSS_EPOCH))
+        TRAIN_LOSS_GLOBAL.append(TRAIN_LOSS_EPOCH/len(train_loader))
         
         #evaluation
         model.eval()
@@ -1387,23 +1393,27 @@ def train_model_full(
             actual_loss = 1 - VAL_SSIM_LOSS_GLOBAL[-1]
                                 
         if actual_loss < BEST_VAL_ACC:
-            if verbose:
-                print('New Best Model')
             BEST_VAL_ACC = actual_loss
+            
+            if verbose: print('New Best Model')    
             model_dict = {
                 'epoch': epoch + 1,
-                'validation_loss': loss_for_scheduler
+                'train_loss': train_loss,
+                'predict diff': predict_diff,
+                'validation_loss': loss_for_scheduler,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1],
-                'val_loss_epoch_mean': actual_loss
+                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL,
+                'val_mae_loss': VAL_MAE_LOSS_GLOBAL,
+                'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
+                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL
             }
             model_not_saved = True
 
         if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
             if model_not_saved:
-                if verbose:
-                    print('Saving Checkpoint')
+                if verbose: print('Saving Checkpoint')
+                    
                 PATH = 'checkpoints/'
                 ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
                 NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
@@ -1413,8 +1423,7 @@ def train_model_full(
                 
     # if training finished and best model not saved
     if model_not_saved:
-        if verbose:
-            print('Saving Checkpoint')
+        if verbose: print('Saving Checkpoint')
         PATH = 'checkpoints/'
         ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
         NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
