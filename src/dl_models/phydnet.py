@@ -260,6 +260,7 @@ class EncoderRNN(torch.nn.Module):
         self.decoder_Dp = self.decoder_Dp.to(device) 
         self.decoder_Dr = self.decoder_Dr.to(device)               
         self.decoder_D = self.decoder_D.to(device)
+        
         self.phycell = phycell.to(device)
         self.convcell = convcell.to(device)
 
