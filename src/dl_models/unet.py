@@ -9,7 +9,7 @@ class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels, mid_channels=None, bias=False):
         super().__init__()
         if not mid_channels:
-            mid_channels = out_channels
+            mid_channels = out_channels # In Down mid_channels = out_channels 
         self.double_conv = nn.Sequential(
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=bias),
             nn.BatchNorm2d(mid_channels),
@@ -99,11 +99,11 @@ class UNet(nn.Module):
         self.dropout2D = nn.Dropout2d(p=p)
         if output_activation:
             if output_activation in ['sigmoid', 'Sigmoid', 'sigmoide', 'Sigmoide', 'sig']:
-                self.out_acitvation = nn.Sigmoid()
+                self.out_activation = nn.Sigmoid()
             if output_activation in ['relu', 'ReLu', 'Relu']:
-                self.out_acitvation = nn.Hardtanh(min_val=0, max_val=1.0)  #works as relu clip between [0,1]
+                self.out_activation = nn.Hardtanh(min_val=0, max_val=1.0)  #works as relu clip between [0,1]
         else:
-            self.out_acitvation = nn.Identity()
+            self.out_activation = nn.Identity()
 
     def forward(self, x):
         x1 = self.inc(x)  # convolution (64 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (64 filters 3x3, pad=1 )=> [BN] => ReLU) 
@@ -117,7 +117,7 @@ class UNet(nn.Module):
         x = self.up3(x, x2)
         x = self.up4(x, x1)
         out = self.outc(x)
-        out = self.out_acitvation(out)
+        out = self.out_activation(out)
         return out
         
 class UNet2(nn.Module):
@@ -143,13 +143,13 @@ class UNet2(nn.Module):
         self.dropout2D = nn.Dropout2d(p=p)
         if output_activation:
             if output_activation in ['sigmoid', 'Sigmoid', 'sigmoide', 'Sigmoide', 'sig']:
-                self.out_acitvation = nn.Sigmoid()
+                self.out_activation = nn.Sigmoid()
             if output_activation in ['relu', 'ReLu', 'Relu']:
-                self.out_acitvation = nn.Hardtanh(min_val=0, max_val=1.0)  #works as relu clip between [0,1]
+                self.out_activation = nn.Hardtanh(min_val=0, max_val=1.0)  #works as relu clip between [0,1]
             if output_activation in ['tanh']:
-                self.out_acitvation = nn.Tanh()
+                self.out_activation = nn.Tanh()
         else:
-            self.out_acitvation = nn.Identity()
+            self.out_activation = nn.Identity()
 
     def forward(self, x_in):
         x1 = self.inc(x_in)  # convolution (64 filters 3x3 , padd=1 )=> [BN] => ReLU) and convolution (64 filters 3x3, pad=1 )=> [BN] => ReLU) 
@@ -171,5 +171,5 @@ class UNet2(nn.Module):
         x_out = torch.cat([x9, x_in], dim=1)
         x_out = self.outc(x_out)
         
-        x_out = self.out_acitvation(x_out)
+        x_out = self.out_activation(x_out)
         return x_out

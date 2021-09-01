@@ -208,7 +208,7 @@ if __name__ == '__main__':
     comment = f' batch_size:{batch_size}'
     # writer = SummaryWriter(log_dir='runs/phydnet' ,comment=comment)
     writer = None
-
+    
     phycell  =  PhyCell(input_shape=(64,64), input_dim=64, F_hidden_dims=[49], n_layers=1, kernel_size=(7,7), device=device) 
     convcell =  ConvLSTM(input_shape=(64,64), input_dim=64, hidden_dims=[128,128,64], n_layers=3, kernel_size=(3,3), device=device)   
     encoder  = EncoderRNN(phycell, convcell, device)
