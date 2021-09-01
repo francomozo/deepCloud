@@ -1234,7 +1234,8 @@ def train_model_full(
 
     Args:
         model (torch.model): [description]
-        criterion (torch.criterion): [description]
+        train_criterion (torch.criterion): [description]
+        train_w_ssim (bool): The train criterion is the SSIM function
         optimizer (torch.optim): [description]
         device ([type]): [description]
         train_loader ([type]): [description]
@@ -1244,10 +1245,20 @@ def train_model_full(
         verbose (bool, optional): Print trainning status. Defaults to True.
         writer (tensorboard.writer, optional): Logs loss values to tensorboard. Defaults to None.
         scheduler ([type], optional): [description]. Defaults to None.
-
+        loss_for_scheduler (string): choose validation error to use for scheduler steps
+        model_name (string): Prefix Name for the checkpoint model to be saved
+        save_images (bool): If true images are saved on the tensorboard
+        predict_diff (bool): If True the model predicts the difference between las input image and output
+        
     Returns:
-        TRAIN_LOSS_GLOBAL, VAL_LOSS_GLOBAL: Lists containing the mean error of each epoch
+        TRAIN_LOSS_GLOBAL: Mean train loss in each epoch 
+        VAL_MAE_LOSS_GLOBAL: Lists containing the mean MAE error of each epoch in validation
+        VAL_MSE_LOSS_GLOBAL: Lists containing the mean MSE error of each epoch in validation
+        VAL_SSIM_LOSS_GLOBAL: Lists containing the mean SSIM error of each epoch in validation
     """    
+    
+    if  predict_diff and train_w_ssim:
+        raise ValueError('Cannot use ssim as train function and predict diff. (Yet)')
     
     mse_loss = nn.MSELoss()
     mae_loss = nn.L1Loss()
@@ -1283,8 +1294,12 @@ def train_model_full(
 
             # forward
             frames_pred = model(in_frames)
-            if not train_w_ssim: 
-                loss = train_criterion(frames_pred, out_frames)
+            if not train_w_ssim:
+                if predict_diff:
+                    diff = torch.subtract(out_frames[:,0], in_frames[:,2]).unsqueeze(1)
+                    loss = train_criterion(frames_pred, diff)
+                else: 
+                    loss = train_criterion(frames_pred, out_framess)
             else:
                 loss = 1 - train_criterion(frames_pred, out_frames)
             # backward
@@ -1311,9 +1326,15 @@ def train_model_full(
                 out_frames = out_frames.to(device=device)
 
                 frames_pred = model(in_frames)
-                mae_val_loss += mae_loss(frames_pred, out_frames).detach().item()
-                mse_val_loss += mse_loss(frames_pred, out_frames).detach().item()
+                
+                if predict_diff:
+                    frames_pred = torch.add(frames_pred[:,0], in_frames[:,2]).unsqueeze(1)
+                    mae_val_loss += mae_loss(frames_pred, out_frames).detach().item()
+                    mse_val_loss += mse_loss(frames_pred, out_frames).detach().item()
+                    
                 if not predict_diff:
+                    mae_val_loss += mae_loss(frames_pred, out_frames).detach().item()
+                    mse_val_loss += mse_loss(frames_pred, out_frames).detach().item()
                     ssim_val_loss += ssim_loss(frames_pred, out_frames).detach().item()
           
                 if writer and (val_batch_idx == 0) and save_images and epoch>35:
@@ -1400,4 +1421,4 @@ def train_model_full(
 
         torch.save(model_dict, PATH + NAME)
     
-    return TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL,
+    return TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL
