@@ -1263,7 +1263,7 @@ def train_model_full(
     
     mse_loss = nn.MSELoss()
     mae_loss = nn.L1Loss()
-    ssim_loss = SSIM(n_channels=1).device()
+    ssim_loss = SSIM(n_channels=1).cuda()
     
     if train_loss in ['mae', 'MAE']:
         train_criterion = mae_loss
