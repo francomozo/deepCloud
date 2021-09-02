@@ -1258,6 +1258,9 @@ def train_model_full(
     if  predict_diff and (train_loss in ['ssim', 'SSIM']):
         raise ValueError('Cannot use ssim as train function and predict diff. (Yet)')
     
+    if  predict_diff and (loss_for_scheduler in ['ssim', 'SSIM']):
+        raise ValueError('Cannot predict_diff and use ssim loss measure for validation and scheduler. (Yet)')
+    
     mse_loss = nn.MSELoss()
     mae_loss = nn.L1Loss()
     ssim_loss = SSIM(n_channels=1).device()
@@ -1357,11 +1360,11 @@ def train_model_full(
             VAL_SSIM_LOSS_GLOBAL.append(ssim_loss/len(val_loader))
         
         if scheduler:
-            if loss_for_scheduler in ['mae', 'MAE']
+            if loss_for_scheduler in ['mae', 'MAE']:
                 scheduler.step(VAL_MAE_LOSS_GLOBAL[-1])
-            if loss_for_scheduler in ['mse', 'MSE']
+            if loss_for_scheduler in ['mse', 'MSE']:
                 scheduler.step(VAL_MSE_LOSS_GLOBAL[-1])    
-            if loss_for_scheduler in ['ssim', 'SSIM']
+            if loss_for_scheduler in ['ssim', 'SSIM']:
                 scheduler.step(1 - VAL_SSIM_LOSS_GLOBAL[-1])
                      
         end_epoch = time.time()
