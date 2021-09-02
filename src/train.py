@@ -1354,10 +1354,10 @@ def train_model_full(
                         writer.add_images('groundtruth_batch', out_frames[0], epoch)
                         writer.add_images('predictions_batch', frames_pred[0], epoch)
                     
-        VAL_MAE_LOSS_GLOBAL.append(mae_loss/len(val_loader))
-        VAL_MSE_LOSS_GLOBAL.append(mse_loss/len(val_loader))
+        VAL_MAE_LOSS_GLOBAL.append(mae_val_loss/len(val_loader))
+        VAL_MSE_LOSS_GLOBAL.append(mse_val_loss/len(val_loader))
         if not predict_diff:
-            VAL_SSIM_LOSS_GLOBAL.append(ssim_loss/len(val_loader))
+            VAL_SSIM_LOSS_GLOBAL.append(ssim_val_loss/len(val_loader))
         
         if scheduler:
             if loss_for_scheduler in ['mae', 'MAE']:
