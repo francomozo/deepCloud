@@ -17,7 +17,7 @@ import scipy.stats as st
 ## CONFIGURATION #########
 
 PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
-FRAME_OUT = 2  # 0->10min, 1->20min, 2->30min... [0,5]
+FRAME_OUT = 2  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
 CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
 MODEL_PATH = 'checkpoints/30min_UNet2_SSIM_relu_f64_40_01-08-2021_23:43.pt'
@@ -44,9 +44,8 @@ except:
 
 #Evaluate Unet
 
-select_frame = preprocessing.select_output_frame(FRAME_OUT)
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
-transforms = [select_frame,normalize]
+transforms = [normalize]
 
 val_mvd = MontevideoFoldersDataset_w_time(
                                             path=PATH_DATA,
@@ -55,7 +54,8 @@ val_mvd = MontevideoFoldersDataset_w_time(
                                             min_time_diff=5,
                                             max_time_diff=15,
                                             csv_path=CSV_PATH,
-                                            transform=transforms
+                                            transform=transforms,
+                                            output_last=True
                                             )
 
 val_loader = DataLoader(val_mvd, batch_size=1, shuffle=False)
@@ -78,9 +78,6 @@ worst_MAE_images = np.zeros((5, M, N))
 MAE = nn.L1Loss()
 MAE_per_hour = {}
 MAE_per_hour_crop = {}
-for i in range(0, 25):
-    MAE_per_hour[i] = []
-    MAE_per_hour_crop[i] = []
 
 worst_MSE_error = 0
 worst_MSE_time = ''
@@ -90,8 +87,6 @@ MSE = nn.MSELoss()
 best_MSE_images = np.zeros((5, M, N))
 worst_MSE_images = np.zeros((5, M, N))
 MSE_per_hour = {}
-for i in range(0, 25):
-    MSE_per_hour[i] = []    
 
 worst_PSNR_error = 100
 worst_PSNR_time = ''
@@ -100,8 +95,6 @@ best_PSNR_time = ''
 best_PSNR_images = np.zeros((5, M, N))
 worst_PSNR_images = np.zeros((5, M, N))
 PSNR_per_hour = {}
-for i in range(0, 25):
-    PSNR_per_hour[i] = []   
 
 try:
     SSIM = SSIM(n_channels=1).cuda()
@@ -116,9 +109,6 @@ best_SSIM_images = np.zeros((5, M, N))
 worst_SSIM_images = np.zeros((5, M, N))
 SSIM_per_hour = {}
 SSIM_per_hour_crop = {}
-for i in range(0, 25):
-    SSIM_per_hour[i] = [] 
-    SSIM_per_hour_crop[i] = []
 
 MAE_error_image = np.zeros((M,N))
 
@@ -129,7 +119,10 @@ with torch.no_grad():
         in_frames = in_frames.to(device=device)
         out_frames = out_frames.to(device=device)
                
-        day, hour = int(out_time[0, FRAME_OUT, 0]), int(out_time[0 ,FRAME_OUT, 1]/1e4)
+        day, hour, minute  = int(out_time[0, 0, 0]), int(out_time[0, 0, 1]), int(out_time[0, 0, 2]) 
+        
+        if day == 18:
+            break
 
         if not PREDICT_DIFF:
             frames_pred = model(in_frames)
@@ -143,70 +136,138 @@ with torch.no_grad():
         MAE_loss = MAE(frames_pred, out_frames)
         MAE_error_image += torch.abs(torch.subtract(out_frames[0,0], frames_pred[0,0])).cpu().numpy()
         MAE_loss_crop = MAE(frames_pred[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE], out_frames[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE])
-        MAE_per_hour[hour].append(MAE_loss.detach().item())
-        MAE_per_hour_crop[hour].append(MAE_loss_crop.detach().item())
+        if minute < 30:
+            if (hour, 0) in MAE_per_hour.keys():
+                MAE_per_hour[(hour, 0)].append(MAE_loss.detach().item())
+                MAE_per_hour_crop[(hour, 0)].append(MAE_loss_crop.detach().item())
+            else:
+                MAE_per_hour[(hour,0)] = []
+                MAE_per_hour[(hour,0)].append(MAE_loss.detach().item())
+                MAE_per_hour_crop[(hour,0)] = []
+                MAE_per_hour_crop[(hour,0)].append(MAE_loss_crop.detach().item())
+        else:
+            if (hour,30) in MAE_per_hour.keys():
+                MAE_per_hour[(hour, 30)].append(MAE_loss.detach().item())
+                MAE_per_hour_crop[(hour, 30)].append(MAE_loss_crop.detach().item())
+            else:
+                MAE_per_hour[(hour, 30)] = []
+                MAE_per_hour[(hour, 30)].append(MAE_loss.detach().item())
+                MAE_per_hour_crop[(hour, 30)] = []
+                MAE_per_hour_crop[(hour, 30)].append(MAE_loss_crop.detach().item())
         if MAE_loss.detach().item() > worst_MAE_error:
             worst_MAE_error = MAE_loss.detach().item()
-            worst_MAE_time = out_time[0, FRAME_OUT]
+            worst_MAE_time = out_time[0, 0]
             worst_MAE_images[0:3] = in_frames[0].cpu().numpy()
             worst_MAE_images[3] = out_frames[0, 0].cpu().numpy()
             worst_MAE_images[4] = frames_pred[0, 0].cpu().numpy()
             
-        if MAE_loss.item() < best_MAE_error:
+        if MAE_loss.detach().item() < best_MAE_error:
             best_MAE_error = MAE_loss.item()
-            best_MAE_time = out_time[0, FRAME_OUT]
+            best_MAE_time = out_time[0, 0]
             best_MAE_images[0:3] = in_frames[0].cpu().numpy()
             best_MAE_images[3] = out_frames[0,0].cpu().numpy()
             best_MAE_images[4] = frames_pred[0,0].cpu().numpy()
         
         # MSE
         MSE_loss = MSE(frames_pred, out_frames)
-        MSE_per_hour[hour].append(MSE_loss.detach().item())
+        if minute<30:
+            if (hour,0) in MSE_per_hour.keys():
+                MSE_per_hour[(hour,0)].append(MSE_loss.detach().item())
+            else:
+                MSE_per_hour[(hour,0)] = []
+                MSE_per_hour[(hour,0)].append(MSE_loss.detach().item())
+        else:
+            if (hour,30) in MSE_per_hour.keys():
+                MSE_per_hour[(hour,30)].append(MSE_loss.detach().item())
+            else:
+                MSE_per_hour[(hour,30)] = []
+                MSE_per_hour[(hour,30)].append(MSE_loss.detach().item())
+                
         if MSE_loss.detach().item() > worst_MSE_error:
             worst_MSE_error = MSE_loss.detach().item()
-            worst_MSE_time = out_time[0, FRAME_OUT]
+            worst_MSE_time = out_time[0, 0]
             worst_MSE_images[0:3] = in_frames[0].cpu().numpy()
             worst_MSE_images[3] = out_frames[0, 0].cpu().numpy()
             worst_MSE_images[4] = frames_pred[0, 0].cpu().numpy()
-        if MSE_loss.item() < best_MSE_error:
+        if MSE_loss.detach().item() < best_MSE_error:
             best_MSE_error = MSE_loss.detach().item()
-            best_MSE_time = out_time[0, FRAME_OUT]
+            best_MSE_time = out_time[0, 0]
             best_MSE_images[0:3] = in_frames[0].cpu().numpy()
             best_MSE_images[3] = out_frames[0,0].cpu().numpy()
             best_MSE_images[4] = frames_pred[0, 0].cpu().numpy()
             
-        # PSNR        
-        if (MSE_per_hour[hour][-1] != 0 ):
-            PSNR_per_hour[hour].append(10* np.log10(1**2/MSE_per_hour[hour][-1])) 
+        # PSNR
+        if minute < 30:
+            minute_key = 0
+            if (MSE_per_hour[(hour,0)][-1] != 0):
+                if (hour,0) in PSNR_per_hour.keys():
+                    PSNR_per_hour[(hour,0)].append(10* np.log10(1**2/MSE_per_hour[(hour,0)][-1]))
+                else:
+                    PSNR_per_hour[(hour,0)] = [10* np.log10(1**2/MSE_per_hour[(hour,0)][-1])]
+            else:
+                if (hour,0) in PSNR_per_hour.keys():
+                    PSNR_per_hour[(hour,0)].append(20*np.log10(1))
+                else:
+                    PSNR_per_hour[(hour,0)] = [20*np.log10(1)]
         else:
-            PSNR_per_hour[hour].append(20*np.log10(1))
-        if PSNR_per_hour[hour][-1] < worst_PSNR_error:
-            worst_PSNR_error = PSNR_per_hour[hour][-1]
-            worst_PSNR_time = out_time[0, FRAME_OUT]
+            minute_key = 30
+            if (MSE_per_hour[(hour,30)][-1] != 0):
+                if (hour,30) in PSNR_per_hour.keys():
+                    PSNR_per_hour[(hour,30)].append(10* np.log10(1**2/MSE_per_hour[(hour,30)][-1]))
+                else:
+                    PSNR_per_hour[(hour,30)] = [10* np.log10(1**2/MSE_per_hour[(hour,30)][-1])]
+            else:
+                if (hour,30) in PSNR_per_hour.keys():
+                    PSNR_per_hour[(hour,30)].append(20*np.log10(1))
+                else:
+                    PSNR_per_hour[(hour,30)] = [20*np.log10(1)]
+                    
+        if PSNR_per_hour[(hour, minute_key)][-1] < worst_PSNR_error:
+            worst_PSNR_error = PSNR_per_hour[(hour, minute_key)][-1]
+            worst_PSNR_time = out_time[0, 0]
             worst_PSNR_images[0:3] = in_frames[0].cpu().numpy()
             worst_PSNR_images[3] = out_frames[0,0].cpu().numpy()
             worst_PSNR_images[4] = frames_pred[0,0].cpu().numpy()
-        if PSNR_per_hour[hour][-1] > best_PSNR_error:
-            best_PSNR_error = PSNR_per_hour[hour][-1]
-            best_PSNR_time = out_time[0, FRAME_OUT]
+            
+        if PSNR_per_hour[(hour, minute_key)][-1] > best_PSNR_error:
+            best_PSNR_error = PSNR_per_hour[(hour, minute_key)][-1]
+            best_PSNR_time = out_time[0, 0]
             best_PSNR_images[0:3] = in_frames[0].cpu().numpy()
             best_PSNR_images[3] = out_frames[0,0].cpu().numpy()
             best_PSNR_images[4] = frames_pred[0,0].cpu().numpy()
         
         # SSIM
         SSIM_loss = SSIM(frames_pred, out_frames)
-        SSIM_per_hour[hour].append(SSIM_loss.detach().item())
         SSIM_loss_crop = SSIM(frames_pred[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE], out_frames[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE])
-        SSIM_per_hour_crop[hour].append(SSIM_loss_crop.detach().item())
+                    
+        if minute<30:
+            if (hour,0) in SSIM_per_hour.keys():
+                SSIM_per_hour[(hour,0)].append(SSIM_loss.detach().item())
+                SSIM_per_hour_crop[(hour,0)].append(SSIM_loss_crop.detach().item())
+            else:
+                SSIM_per_hour[(hour,0)] = []
+                SSIM_per_hour[(hour,0)].append(SSIM_loss.detach().item())
+                SSIM_per_hour_crop[(hour,0)] = []
+                SSIM_per_hour_crop[(hour,0)].append(SSIM_loss_crop.detach().item())
+        else:
+            if (hour,30) in SSIM_per_hour.keys():
+                SSIM_per_hour[(hour,30)].append(SSIM_loss.detach().item())
+                SSIM_per_hour_crop[(hour,30)].append(SSIM_loss_crop.detach().item())
+            else:
+                SSIM_per_hour[(hour,30)] = []
+                SSIM_per_hour[(hour,30)].append(SSIM_loss.detach().item())
+                SSIM_per_hour_crop[(hour,30)] = []
+                SSIM_per_hour_crop[(hour,30)].append(SSIM_loss_crop.detach().item())
+        
         if SSIM_loss.detach().item() < worst_SSIM_error:
             worst_SSIM_error = SSIM_loss.detach().item()
-            worst_SSIM_time = out_time[0, FRAME_OUT]
+            worst_SSIM_time = out_time[0, 0]
             worst_SSIM_images[0:3] = in_frames[0].cpu().numpy()
             worst_SSIM_images[3] = out_frames[0,0].cpu().numpy()
             worst_SSIM_images[4] = frames_pred[0,0].cpu().numpy()
-        if SSIM_loss.item() > best_SSIM_error:
+        if SSIM_loss.detach().item() > best_SSIM_error:
             best_SSIM_error = SSIM_loss.detach().item()
-            best_SSIM_time = out_time[0, FRAME_OUT]
+            best_SSIM_time = out_time[0, 0]
             best_SSIM_images[0:3] = in_frames[0].cpu().numpy()
             best_SSIM_images[3] = out_frames[0,0].cpu().numpy()
             best_SSIM_images[4] = frames_pred[0,0].cpu().numpy()
@@ -226,58 +287,141 @@ mean_MSE = []
 mean_PSNR = []
 mean_SSIM = []
 mean_SSIM_crop = []
+
+sorted_keys = sorted(MAE_per_hour.keys(), key=lambda element: (element[0], element[1]))
 hour_list = []
-for i in range(25): 
-    if len(MAE_per_hour[i])>0:
-        hour_list.append(i)
-        mean_MAE.append(np.mean(MAE_per_hour[i]))
-        mean_MAE_crop.append(np.mean(MAE_per_hour_crop[i]))
-        mean_MSE.append(np.mean(MSE_per_hour[i]))
-        mean_PSNR.append(np.mean(PSNR_per_hour[i]))
-        mean_SSIM.append(np.mean(SSIM_per_hour[i]))
-        mean_SSIM_crop.append(np.mean(SSIM_per_hour_crop[i]))
-        
+
+for key in sorted_keys:
+    hour_list.append(str(key[0]).zfill(2) + ':' + str(key[1]).zfill(2))
+    mean_MAE.append(np.mean(MAE_per_hour[key]))
+    mean_MAE_crop.append(np.mean(MAE_per_hour_crop[key]))
+    mean_MSE.append(np.mean(MSE_per_hour[key]))
+    mean_PSNR.append(np.mean(PSNR_per_hour[key]))
+    mean_SSIM.append(np.mean(SSIM_per_hour[key]))
+    mean_SSIM_crop.append(np.mean(SSIM_per_hour_crop[key]))
+
 # ERROR GRAPHS
-fig, axs = plt.subplots(1, 4, figsize=(20,5))
-axs[0].plot(hour_list, mean_MAE, 'r-o', label='Full window')
-axs[0].plot(hour_list, mean_MAE_crop, 'g-o', label='Crop')
-axs[0].legend(loc='upper right')
-axs[0].set_title('MAE')
-#axs[0].set(xlabel='hour', ylabel='Error')
-axs[1].plot(hour_list, mean_MSE,'r-o')
-axs[1].set_title('MSE')
-#axs[1].set(xlabel='hour', ylabel='Error')
-axs[2].plot(hour_list, mean_PSNR,'r-o')
-axs[2].set_title('PSNR')
-#axs[2].set(xlabel='hour', ylabel='Error')
-axs[3].plot(hour_list, mean_SSIM, 'r-o', label='Full Window')
-axs[3].plot(hour_list, mean_SSIM_crop, 'g-o', label='Crop')
-axs[3].legend(loc='upper left')
-axs[3].set_title('SSIM')
+# fig, axs = plt.subplots(4, 1, figsize=(20, 10))
+# axs[0].plot(mean_MAE, 'r-o', label='Full window')
+# axs[0].plot(mean_MAE_crop, 'g-o', label='Crop')
+# axs[0].legend(loc='upper right')
+# axs[0].xticks(range(len(hour_list)), hour_list)
+# axs[0].gcf().autofmt_xdate()
+# axs[0].set_title('MAE')
+# #axs[0].set(xlabel='hour', ylabel='Error')
+# axs[1].plot(mean_MSE, 'r-o')
+# axs[1].set_title('MSE')
+# axs[1].xticks(range(len(hour_list)), hour_list)
+# axs[1].gcf().autofmt_xdate()
+# #axs[1].set(xlabel='hour', ylabel='Error')
+# axs[2].plot(mean_PSNR, 'r-o')
+# axs[2].set_title('PSNR')
+# axs[2].xticks(range(len(hour_list)), hour_list)
+# axs[2].gcf().autofmt_xdate()
+# #axs[2].set(xlabel='hour', ylabel='Error')
+# axs[3].plot(mean_SSIM, 'r-o', label='Full Window')
+# axs[3].plot(mean_SSIM_crop, 'g-o', label='Crop')
+# axs[3].legend(loc='upper left')
+# axs[3].xticks(range(len(hour_list)), hour_list)
+# axs[3].gcf().autofmt_xdate()
+# axs[3].set_title('SSIM')
+# if SAVE_IMAGES_PATH:
+#     plt.savefig(os.path.join(
+#                             SAVE_IMAGES_PATH, 'error_graphs.png')
+#                 )
+# plt.show()
+
+plt.figure(figsize=(12, 6))
+plt.plot(mean_MAE, '-o', label='Full window')
+plt.plot(mean_MAE_crop, '-o', label='Crop')
+plt.legend(loc='upper right')
+plt.xticks(range(len(hour_list)), hour_list)
+plt.gcf().autofmt_xdate()
+plt.title('Mean MAE error per hour')
+plt.xlabel('Time of day')
+plt.ylabel('MAE')
+plt.show()
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'error_graphs.png')
+                            SAVE_IMAGES_PATH, 'MAE_p_hour.png')
+                )
+plt.show()
+
+plt.figure(figsize=(12, 6))
+plt.plot(mean_MSE, '-o')
+plt.xticks(range(len(hour_list)), hour_list)
+plt.gcf().autofmt_xdate()
+plt.title('Mean MSE error per hour')
+plt.xlabel('Time of day')
+plt.ylabel('MSE')
+if SAVE_IMAGES_PATH:
+    plt.savefig(os.path.join(
+                            SAVE_IMAGES_PATH, 'MSE_p_hour.png')
+                )
+plt.show()
+
+
+plt.figure(figsize=(12, 6))
+plt.plot(mean_SSIM, '-o', label='Full Window')
+plt.plot(mean_SSIM_crop, '-o', label='Crop')
+plt.legend(loc='upper right')
+plt.xticks(range(len(hour_list)), hour_list)
+plt.gcf().autofmt_xdate()
+plt.title('Mean SSIM error per hour')
+plt.xlabel('Time of day')
+plt.ylabel('SSIM')
+if SAVE_IMAGES_PATH:
+    plt.savefig(os.path.join(
+                            SAVE_IMAGES_PATH, 'SSIM_p_hour.png')
+                )
+plt.show()
+
+
+plt.figure(figsize=(12, 6))
+plt.plot(mean_PSNR, '-o')
+plt.xticks(range(len(hour_list)), hour_list)
+plt.gcf().autofmt_xdate()
+plt.title('Mean PSNR error per hour')
+plt.xlabel('Time of day')
+plt.ylabel('PSNR')
+if SAVE_IMAGES_PATH:
+    plt.savefig(os.path.join(
+                            SAVE_IMAGES_PATH, 'PSNR_p_hour.png')
                 )
 plt.show()
 
 
 #SCATTER PLOT
+m, b = np.polyfit(gt_mean, pred_mean, 1)
 plt.figure(figsize=(5,5))
 plt.scatter(x=gt_mean, y=pred_mean)
+plt.plot(gt_mean, m*np.array(gt_mean) + b, 'r')
+textstr = '\n'.join((
+    r'$m=%.2f$' % (m, ),
+    r'$n=%.2f$' % (b, )))
 plt.title('Image means scatter plot')
 plt.xlabel('GT mean')
 plt.ylabel('Prediction mean')
+plt.text(np.min(gt_mean), np.max(pred_mean),textstr, fontsize=14,
+        va='top', ha='left')
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
                             SAVE_IMAGES_PATH, 'scatterplot_mean.png')
                 )
 plt.show()
 
+m, b = np.polyfit(gt_std, pred_std, 1)
 plt.figure(figsize=(5,5))
 plt.scatter(x=gt_std, y=pred_std)
+plt.plot(gt_std, m*np.array(gt_std) + b, 'r')
+textstr = '\n'.join((
+    r'$m=%.2f$' % (m, ),
+    r'$n=%.2f$' % (b, )))
 plt.title('Image std scatter plot')
 plt.xlabel('GT std')
 plt.ylabel('Prediction std')
+plt.text(np.min(gt_std), np.max(pred_std),textstr, fontsize=14,
+        va='top', ha='left')
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
                             SAVE_IMAGES_PATH, 'scatterplot_std.png')
@@ -285,8 +429,8 @@ if SAVE_IMAGES_PATH:
 plt.show()
 
 #MEANS DENSITY DISTRIBUTION
-xmin, xmax = -0.01, 1.1
-ymin, ymax = -0.01, 1.1
+xmin, xmax = np.min(gt_mean)-0.01, np.max(gt_mean)+0.01
+ymin, ymax = np.min(pred_mean)-0.01, np.max(pred_mean)+0.01
 
 X, Y = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
 positions = np.vstack([X.ravel(), Y.ravel()])
@@ -310,8 +454,8 @@ if SAVE_IMAGES_PATH:
 plt.show()
 
 #STD DENSITY DISTRIBUTION
-xmin, xmax = -0.01, 0.4
-ymin, ymax = -0.01, 0.4
+xmin, xmax = np.min(gt_std)-0.01, np.max(gt_std)+0.01
+ymin, ymax = np.min(pred_std)-0.01, np.max(pred_std)+0.01
 
 # Peform the kernel density estimate
 X, Y = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
@@ -323,7 +467,7 @@ Z = np.reshape(kernel(positions).T, X.shape)
 fig, ax = plt.subplots()
 ax.imshow(np.rot90(Z), cmap=plt.cm.gist_earth_r,
           extent=[xmin, xmax, ymin, ymax])
-ax.plot(gt_mean, pred_mean, 'k.', markersize=2)
+ax.plot(gt_std, pred_std, 'k.', markersize=2)
 ax.set_xlim([xmin, xmax])
 ax.set_ylim([ymin, ymax])
 ax.set_title('Scatter plot of STD with prob distribution')
@@ -337,8 +481,8 @@ plt.show()
 
 # IMG MEANS HISTOGRAM
 plt.figure(figsize=(8,6))
-gt_mean_hist, gt_mean_bins, _ = plt.hist(gt_mean, bins=100, density=True, alpha=0.5, label="GT")
-pred_mean_hist, pred_mean_bins, _ = plt.hist(pred_mean, bins=100, density=True, alpha=0.5, label="Pred")
+gt_mean_hist, gt_mean_bins, _ = plt.hist(gt_mean, bins=100, alpha=0.5, label="GT")
+pred_mean_hist, pred_mean_bins, _ = plt.hist(pred_mean, bins=100, alpha=0.5, label="Pred")
 l1 = plt.axvline(np.mean(gt_mean), c='b')
 l2 = plt.axvline(np.mean(pred_mean), c='r')
 plt.xlabel("Data", size=14)
@@ -353,8 +497,8 @@ plt.show()
 
 # IMG STD DEV HISTOGRAM
 plt.figure(figsize=(8,6))
-gt_std_hist, gt_std_bins, _ = plt.hist(gt_std, bins=100, density=True, alpha=0.5, label="GT")
-pred_std_hist, pred_std_bins, _ =plt.hist(pred_std, bins=100, density=True, alpha=0.5, label="Pred")
+gt_std_hist, gt_std_bins, _ = plt.hist(gt_std, bins=100, alpha=0.5, label="GT")
+pred_std_hist, pred_std_bins, _ =plt.hist(pred_std, bins=100, alpha=0.5, label="Pred")
 l1 = plt.axvline(np.mean(gt_std), c='b')
 l2 = plt.axvline(np.mean(pred_std), c='r')
 plt.xlabel("Data", size=14)
@@ -370,28 +514,28 @@ plt.show()
 #BEST AND WORST PREDICTIONS
 
 # print('MAE best prediction, day:', int(best_MAE_time[0].numpy()),'hour:', int(best_MAE_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE best prediction, day:'+str(int(best_MAE_time[0].numpy()))+'hour:'+ str(int(best_MAE_time[1].numpy())))
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE best prediction, day:'+str(int(best_MAE_time[0].numpy()))+'hour:'+ str(int(best_MAE_time[1].numpy())).zfill(2)+str(int(best_MAE_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(best_MAE_images, fig_name=fig_name, save_fig=True)
 # print('MAE worst prediction, day:', int(worst_MAE_time[0].numpy()),'hour:', int(worst_MAE_time[1].numpy())) 
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE worst prediction, day:'+str(int(worst_MAE_time[0].numpy()))+'hour:'+ str(int(worst_MAE_time[1].numpy())))
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE worst prediction, day:'+str(int(worst_MAE_time[0].numpy()))+'hour:'+ str(int(worst_MAE_time[1].numpy())).zfill(2) + str(int(worst_MAE_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(worst_MAE_images, fig_name=fig_name, save_fig=True)
 # print('MSE best prediction, day:', int(best_MSE_time[0].numpy()),'hour:', int(best_MSE_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'MSE best prediction, day:'+str(int(best_MSE_time[0].numpy()))+'hour:'+ str(int(best_MSE_time[1].numpy())))
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'MSE best prediction, day:'+str(int(best_MSE_time[0].numpy()))+'hour:'+ str(int(best_MSE_time[1].numpy())).zfill(2) + str(int(best_MSE_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(best_MSE_images, fig_name=fig_name, save_fig=True)
 # print('MSE worst prediction, day:', int(worst_MSE_time[0].numpy()),'hour:', int(worst_MSE_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'MSE worst prediction, day:'+str(int(worst_MSE_time[0].numpy()))+'hour:'+ str(int(worst_MSE_time[1].numpy())))
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'MSE worst prediction, day:'+str(int(worst_MSE_time[0].numpy()))+'hour:'+ str(int(worst_MSE_time[1].numpy())).zfill(2) + str(int(worst_MSE_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(worst_MSE_images, fig_name=fig_name, save_fig=True)
 # print('PSNR best prediction, day:', int(best_PSNR_time[0].numpy()),'hour:', int(best_PSNR_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'PSNR best prediction, day:'+str(int(best_PSNR_time[0].numpy()))+'hour:'+ str(int(best_PSNR_time[1].numpy())))
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'PSNR best prediction, day:'+str(int(best_PSNR_time[0].numpy()))+'hour:'+ str(int(best_PSNR_time[1].numpy())).zfill(2) + str(int(best_PSNR_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(best_PSNR_images, fig_name=fig_name, save_fig=True)
 # print('PSNR worst prediction, day:', int(worst_PSNR_time[0].numpy()),'hour:', int(worst_PSNR_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'PSNR worst prediction, day:'+str(int(worst_PSNR_time[0].numpy()))+'hour:'+ str(int(worst_PSNR_time[1].numpy())))
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'PSNR worst prediction, day:'+str(int(worst_PSNR_time[0].numpy()))+'hour:'+ str(int(worst_PSNR_time[1].numpy())).zfill(2) + str(int(worst_PSNR_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(worst_PSNR_images, fig_name=fig_name, save_fig=True)
 # print('SSIM best prediction, day:', int(best_SSIM_time[0].numpy()),'hour:', int(best_SSIM_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'SSIM best prediction, day:'+str(int(best_SSIM_time[0].numpy()))+'hour:'+ str(int(best_SSIM_time[1].numpy())))
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'SSIM best prediction, day:'+str(int(best_SSIM_time[0].numpy()))+'hour:'+ str(int(best_SSIM_time[1].numpy())).zfill(2) + str(int(best_SSIM_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(best_SSIM_images, fig_name=fig_name, save_fig=True)
 # print('SSIM worst prediction, day:', int(worst_SSIM_time[0].numpy()),'hour:', int(worst_SSIM_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'SSIM worst prediction, day:'+str(int(worst_SSIM_time[0].numpy()))+'hour:'+ str(int(worst_SSIM_time[1].numpy())))
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'SSIM worst prediction, day:'+str(int(worst_SSIM_time[0].numpy()))+'hour:'+ str(int(worst_SSIM_time[1].numpy())).zfill(2) + str(int(worst_SSIM_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(worst_SSIM_images, fig_name=fig_name, save_fig=True)
 
 
@@ -416,16 +560,24 @@ img1 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_120017.npy'))
 img2 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_121017.npy'))
 if FRAME_OUT == 0:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_122017.npy'))
-if FRAME_OUT == 1:
+elif FRAME_OUT == 1:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_123017.npy'))
-if FRAME_OUT == 2:
+elif FRAME_OUT == 2:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_124017.npy'))      
-if FRAME_OUT == 3:
+elif FRAME_OUT == 3:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_125017.npy'))
-if FRAME_OUT == 4:
+elif FRAME_OUT == 4:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_130017.npy'))
-if FRAME_OUT == 5:
+elif FRAME_OUT == 5:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_131017.npy'))
+elif FRAME_OUT ==11:
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_141017.npy'))
+elif FRAME_OUT == 17:
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_151017.npy'))
+elif FRAME_OUT == 23:
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_161017.npy'))
+else:
+    raise ValueError('Prediction time must be 10,20,30,40,50,60,120,180 or 240 minutes.')
         
 in_frames= torch.tensor(np.ones((1, 3, M, N))).to(device)
 out_frames= torch.tensor(np.ones((1, 1, M, N))).to(device)
@@ -450,21 +602,31 @@ frames_array[4] = frames_pred[0,0].cpu().numpy()
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_nan_sequence.png')
 visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
 
+# LARGEST MOVEMENT left to right --->
+
 img0 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_135018.npy'))
 img1 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_140018.npy'))
 img2 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_141018.npy'))
 if FRAME_OUT == 0:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_142018.npy'))
-if FRAME_OUT == 1:
+elif FRAME_OUT == 1:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_143018.npy'))
-if FRAME_OUT == 2:
+elif FRAME_OUT == 2:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_144018.npy'))      
-if FRAME_OUT == 3:
+elif FRAME_OUT == 3:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_145018.npy'))
-if FRAME_OUT == 4:
+elif FRAME_OUT == 4:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_150018.npy'))
-if FRAME_OUT == 5:
+elif FRAME_OUT == 5:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_151018.npy'))
+elif FRAME_OUT ==11:
+    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_161018.npy'))
+elif FRAME_OUT == 17:
+    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_171017.npy'))
+elif FRAME_OUT == 23:
+    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_181017.npy'))
+else:
+    raise ValueError('Prediction time must be 10,20,30,40,50,60,120,180 or 240 minutes.')
         
 in_frames= torch.tensor(np.ones((1, 3, M, N))).to(device)
 out_frames= torch.tensor(np.ones((1, 1, M, N))).to(device)
