@@ -83,7 +83,8 @@ disc.train()
 criterion = nn.MSELoss()
 best_val_loss = 1e3
 ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
-os.mkdir(f'{os.getcwd()}/checkpoints/{expId}')
+if os.path.isdir(f'{os.getcwd()}/checkpoints/{expId}') == False:
+    os.mkdir(f'{os.getcwd()}/checkpoints/{expId}')
 
 # tb
 writer_gt = SummaryWriter(f"runs/{expId}/gt")
