@@ -17,14 +17,18 @@ import pandas as pd
 import src.lib.preprocessing_functions as pf
 import torch
 
-def save_checkpoint(gen_dict, disc_dict, expId):
-     
+def save_checkpoint(gen_dict, disc_dict, expId, sub_expId=None):
+
     PATH = f"checkpoints/{expId}/"
     curr_epoch = gen_dict['epoch']
 
     ts = datetime.now().strftime("%d-%m-%Y_%H:%M")
-    GEN_NAME = f'{expId}_gen_{ts}.pt'
-    DISC_NAME = f'{expId}_disc_{ts}.pt'
+    if sub_expId is None:
+        GEN_NAME = f'{expId}_gen_{ts}.pt'
+        DISC_NAME = f'{expId}_disc_{ts}.pt'
+    else:
+        GEN_NAME = f'{expId}{sub_expId}_gen_{ts}.pt'
+        DISC_NAME = f'{expId}{sub_expId}_disc_{ts}.pt'
 
     torch.save(gen_dict, PATH + GEN_NAME)
     torch.save(disc_dict, PATH + DISC_NAME)
