@@ -3,6 +3,7 @@
 #
 import datetime
 import time
+import os
 
 import numpy as np
 import optuna
@@ -1415,7 +1416,7 @@ def train_model_full(
                 ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
                 NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
 
-                torch.save(model_dict, PATH + NAME)
+                torch.save(model_dict, os.path.join(PATH,NAME))
                 model_not_saved = False
                 
     # if training finished and best model not saved
@@ -1425,6 +1426,6 @@ def train_model_full(
         ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
         NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
 
-        torch.save(model_dict, PATH + NAME)
+        torch.save(model_dict, os.path.join(PATH,NAME))
     
     return TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL
