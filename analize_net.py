@@ -17,23 +17,23 @@ import scipy.stats as st
 ## CONFIGURATION #########
 
 PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
-FRAME_OUT = 2  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
+FRAME_OUT = 5  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
 CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
-MODEL_PATH = 'checkpoints/30min_UNet2_SSIM_relu_f64_40_01-08-2021_23:43.pt'
+MODEL_PATH = 'checkpoints/MVD/60min/diff/60min_UNET_mvd_mae_filters64_tanh_diffTrue_40_05-09-2021_02:38.pt'
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
 
-#model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False).to(device)
-model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='relu', bias=False, filters=64).to(device)
+model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='tanh', bias=False, filters=64).to(device)
+#model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='relu', bias=False, filters=64).to(device)
 #model = AttU_Net(img_ch=3, output_ch=1, init_filter=32).to(device)
 #model = NestedUNet(in_ch=3, out_ch=1, init_filter=32).to(device)
 
-SAVE_IMAGES_PATH = 'graphs/30min/30min_UNet2_SSIM_relu_f64_40' 
+SAVE_IMAGES_PATH = 'graphs/MVD/60min/60min_UNET_mvd_mae_filters64_tanh_diffTrue_40_05-09-2021_02:38.pt' 
 
 CROP_SIZE = 28
-PREDICT_DIFF = False
+PREDICT_DIFF = True
 
 ###########################
 
