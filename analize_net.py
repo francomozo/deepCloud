@@ -337,7 +337,7 @@ plt.gcf().autofmt_xdate()
 plt.title('Mean MAE error per hour')
 plt.xlabel('Time of day')
 plt.ylabel('MAE')
-plt.show()
+plt.grid()
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
                             SAVE_IMAGES_PATH, 'MAE_p_hour.png')
@@ -351,6 +351,7 @@ plt.gcf().autofmt_xdate()
 plt.title('Mean MSE error per hour')
 plt.xlabel('Time of day')
 plt.ylabel('MSE')
+plt.grid()
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
                             SAVE_IMAGES_PATH, 'MSE_p_hour.png')
@@ -367,6 +368,7 @@ plt.gcf().autofmt_xdate()
 plt.title('Mean SSIM error per hour')
 plt.xlabel('Time of day')
 plt.ylabel('SSIM')
+plt.grid()
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
                             SAVE_IMAGES_PATH, 'SSIM_p_hour.png')
@@ -381,6 +383,7 @@ plt.gcf().autofmt_xdate()
 plt.title('Mean PSNR error per hour')
 plt.xlabel('Time of day')
 plt.ylabel('PSNR')
+plt.grid()
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
                             SAVE_IMAGES_PATH, 'PSNR_p_hour.png')
