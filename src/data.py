@@ -825,7 +825,7 @@ class PatchesFoldersDataset(Dataset):
     """Dataset for patches in R3 Dataset, separated by folders named 2020XXX
     """    
     def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=False):
-        super(MontevideoFoldersDataset, self).__init__()
+        super(PatchesFoldersDataset, self).__init__()
 
         self.path = path
         self.in_channel = in_channel
