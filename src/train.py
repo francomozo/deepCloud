@@ -3,6 +3,7 @@
 #
 import datetime
 import time
+import os
 
 import numpy as np
 import optuna
@@ -1258,9 +1259,6 @@ def train_model_full(
     if  predict_diff and (train_loss in ['ssim', 'SSIM']):
         raise ValueError('Cannot use ssim as train function and predict diff. (Yet)')
     
-    if  predict_diff and (loss_for_scheduler in ['ssim', 'SSIM']):
-        raise ValueError('Cannot predict_diff and use ssim loss measure for validation and scheduler. (Yet)')
-    
     mse_loss = nn.MSELoss()
     mae_loss = nn.L1Loss()
     ssim_loss = SSIM(n_channels=1).cuda()
@@ -1343,8 +1341,10 @@ def train_model_full(
                 
                 if predict_diff:
                     frames_pred = torch.add(frames_pred[:,0], in_frames[:,2]).unsqueeze(1)
+                    frames_pred = torch.clamp(frames_pred, min=0, max=1)
                     mae_val_loss += mae_loss(frames_pred, out_frames).detach().item()
                     mse_val_loss += mse_loss(frames_pred, out_frames).detach().item()
+                    ssim_val_loss += ssim_loss(frames_pred, out_frames).detach().item()
                     
                 if not predict_diff:
                     mae_val_loss += mae_loss(frames_pred, out_frames).detach().item()
@@ -1361,8 +1361,7 @@ def train_model_full(
                     
         VAL_MAE_LOSS_GLOBAL.append(mae_val_loss/len(val_loader))
         VAL_MSE_LOSS_GLOBAL.append(mse_val_loss/len(val_loader))
-        if not predict_diff:
-            VAL_SSIM_LOSS_GLOBAL.append(ssim_val_loss/len(val_loader))
+        VAL_SSIM_LOSS_GLOBAL.append(ssim_val_loss/len(val_loader))
         
         if scheduler:
             if loss_for_scheduler in ['mae', 'MAE']:
@@ -1378,10 +1377,7 @@ def train_model_full(
         if verbose:
             # print statistics
             print(f'Epoch({epoch + 1}/{epochs}) | ', end='')
-            if not predict_diff:
-                print(f'Train_loss({(TRAIN_LOSS_GLOBAL[-1]):06.4f}) | Val MAE({VAL_MAE_LOSS_GLOBAL[-1]:.4f}) | Val MSE({VAL_MSE_LOSS_GLOBAL[-1]:.4f}) | Val SSIM({VAL_SSIM_LOSS_GLOBAL[-1]:.4f}) | ', end='')
-            else:
-                print(f'Train_loss({(TRAIN_LOSS_GLOBAL[-1]):06.4f}) | Val MAE({VAL_MAE_LOSS_GLOBAL[-1]:.4f}) | Val MSE({VAL_MSE_LOSS_GLOBAL[-1]:.4f}) | ', end='')
+            print(f'Train_loss({(TRAIN_LOSS_GLOBAL[-1]):06.4f}) | Val MAE({VAL_MAE_LOSS_GLOBAL[-1]:.4f}) | Val MSE({VAL_MSE_LOSS_GLOBAL[-1]:.4f}) | Val SSIM({VAL_SSIM_LOSS_GLOBAL[-1]:.4f}) | ', end='')
             print(f'Time_Epoch({TIME:.2f}s)') # this part maybe dont print
                     
         if writer: 
@@ -1389,8 +1385,7 @@ def train_model_full(
             writer.add_scalar("TRAIN LOSS, EPOCH MEAN", TRAIN_LOSS_GLOBAL[-1], epoch)
             writer.add_scalar("VALIDATION MAE", VAL_MAE_LOSS_GLOBAL[-1] , epoch)
             writer.add_scalar("VALIDATION MSE",  VAL_MSE_LOSS_GLOBAL[-1], epoch)
-            if not predict_diff:
-                writer.add_scalar("VALIDATION SSIM",  VAL_SSIM_LOSS_GLOBAL[-1], epoch)
+            writer.add_scalar("VALIDATION SSIM",  VAL_SSIM_LOSS_GLOBAL[-1], epoch)
             writer.add_scalar("Learning rate", optimizer.state_dict()["param_groups"][0]["lr"], epoch)
         
         if loss_for_scheduler in ['mae', 'MAE']:
@@ -1426,7 +1421,7 @@ def train_model_full(
                 ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
                 NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
 
-                torch.save(model_dict, PATH + NAME)
+                torch.save(model_dict, os.path.join(PATH,NAME))
                 model_not_saved = False
                 
     # if training finished and best model not saved
@@ -1436,6 +1431,6 @@ def train_model_full(
         ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
         NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
 
-        torch.save(model_dict, PATH + NAME)
+        torch.save(model_dict, os.path.join(PATH,NAME))
     
     return TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL
