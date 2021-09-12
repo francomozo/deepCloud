@@ -30,7 +30,7 @@ model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='
 #model = AttU_Net(img_ch=3, output_ch=1, init_filter=32).to(device)
 #model = NestedUNet(in_ch=3, out_ch=1, init_filter=32).to(device)
 
-SAVE_IMAGES_PATH = 'graphs/30min/30min_UNet2_SSIM_relu_f64_40' 
+SAVE_IMAGES_PATH = 'graphs/30min/' + MODEL_PATH.split('/')[-1]
 SAVE_VALUES_PATH = None 
 
 CROP_SIZE = 28
@@ -40,6 +40,11 @@ PREDICT_DIFF = False
 
 try:
     os.mkdir(SAVE_IMAGES_PATH)
+except:
+    pass
+
+try:
+    os.mkdir(SAVE_VALUES_PATH)
 except:
     pass
 
@@ -332,7 +337,7 @@ if SAVE_VALUES_PATH:
         'std_PSNR': std_PSNR
         }                                                                                                                      
 
-    utils.save_pickle_dict(path='reports/eval_per_hour', name=MODEL_PATH.split('/')[-1], dict_=dict_values) 
+    utils.save_pickle_dict(path=SAVE_VALUES_PATH, name=MODEL_PATH.split('/')[-1], dict_=dict_values) 
 
 # ERROR GRAPHS
 # fig, axs = plt.subplots(4, 1, figsize=(20, 10))
