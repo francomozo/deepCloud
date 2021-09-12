@@ -130,22 +130,34 @@ def plot_graph(model_values, model, error_metric='RMSE'):
     plt.show()
 
 
-def plot_graph_multiple(models_values, models_names, error_metric='RMSE', save_file=None):
+def plot_graph_multiple(models_values, models_names, error_metric='RMSE', save_file=None, 
+                        labels=None, title=None, xlabel=None, ylabel=None):
     """Plots the errors of the predictions for multiple generated sequences
 
     Args:
         model_values (list): List containing lists with the values of the errors for each model
         models_names (list): list containing the model names
     """    
-    labels = []
+    
     colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
-    for i in range(len(models_values[0])):
-        labels.append(str(10* (i+1)))
+    if labels is None:
+        labels = []
+        for i in range(len(models_values[0])):
+            labels.append(str(10* (i+1)))
     
     for i in range(len(models_values)):
         plt.plot(labels, models_values[i], colors[i%10], label=models_names[i])
-    plt.title('Error Metric: ' + error_metric)
-    plt.xlabel('Predict horizon (min)') 
+        
+    if title:
+        plt.title(title)
+    else:
+        plt.title('Error Metric: ' + error_metric)
+    if xlabel:
+        plt.xlabel(xlabel)
+    else:
+        plt.xlabel('Predict horizon (min)') 
+    if ylabel:
+        plt.ylabel(xlabel)
     plt.legend()
     if save_file is not None:
         plt.savefig(save_file)
