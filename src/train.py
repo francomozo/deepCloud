@@ -1269,6 +1269,9 @@ def train_model_full(
         train_criterion = mse_loss
     if train_loss in ['ssim', 'SSIM']:
         train_criterion = ssim_loss
+    if train_loss in ['mae_ssim', 'MAE_SSIM']:
+        train_criterion_mae = mae_loss
+        train_criterion_ssim = ssim_loss
     
     if model_name is None:
         model_name = 'model' 
@@ -1309,6 +1312,8 @@ def train_model_full(
                     
             if train_loss in ['ssim', 'SSIM']:
                 loss = 1 - train_criterion(frames_pred, out_frames)
+            if train_loss in ['mae_ssim', 'MAE_SSIM']:
+                loss = 1 - train_criterion_ssim(frames_pred, out_frames) + train_criterion_mae(frames_pred, out_frames)
             # backward
             optimizer.zero_grad()
             loss.backward()

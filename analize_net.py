@@ -30,7 +30,12 @@ model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='s
 #model = AttU_Net(img_ch=3, output_ch=1, init_filter=32).to(device)
 #model = NestedUNet(in_ch=3, out_ch=1, init_filter=32).to(device)
 
+<<<<<<< HEAD
 SAVE_IMAGES_PATH = 'graphs/MVD/10min/10min_UNET_mvd_mae_filters64_sigmoid_diffFalse_60_07-09-2021_00:44.pt' 
+=======
+SAVE_IMAGES_PATH = 'graphs/30min/30min_UNet2_SSIM_relu_f64_40' 
+SAVE_VALUES_PATH = None 
+>>>>>>> 1e0e0b51cc424d0155a5a4c7ced82e890d716ecb
 
 CROP_SIZE = 28
 PREDICT_DIFF = False
@@ -284,6 +289,12 @@ mean_MSE = []
 mean_PSNR = []
 mean_SSIM = []
 mean_SSIM_crop = []
+std_MAE = []
+std_MAE_crop = []
+std_MSE = []
+std_PSNR = []
+std_SSIM = []
+std_SSIM_crop = []
 
 sorted_keys = sorted(MAE_per_hour.keys(), key=lambda element: (element[0], element[1]))
 hour_list = []
@@ -291,11 +302,41 @@ hour_list = []
 for key in sorted_keys:
     hour_list.append(str(key[0]).zfill(2) + ':' + str(key[1]).zfill(2))
     mean_MAE.append(np.mean(MAE_per_hour[key]))
+    std_MAE.append(np.std(MAE_per_hour[key]))
     mean_MAE_crop.append(np.mean(MAE_per_hour_crop[key]))
+    std_MAE_crop.append(np.std(MAE_per_hour_crop[key]))
     mean_MSE.append(np.mean(MSE_per_hour[key]))
+    std_MSE.append(np.std(MSE_per_hour[key]))
     mean_PSNR.append(np.mean(PSNR_per_hour[key]))
+    std_PSNR.append(np.std(PSNR_per_hour[key]))
     mean_SSIM.append(np.mean(SSIM_per_hour[key]))
+    std_SSIM.append(np.std(SSIM_per_hour[key]))
     mean_SSIM_crop.append(np.mean(SSIM_per_hour_crop[key]))
+    std_SSIM_crop.append(np.std(SSIM_per_hour_crop[key]))
+    
+if SAVE_VALUES_PATH:
+    dict_values = {
+        'model_name': MODEL_PATH.split('/')[-1],
+        'csv_path': CSV_PATH,
+        'frame_out': FRAME_OUT,
+        'predict diff': PREDICT_DIFF,
+        'crop_size': CROP_SIZE,
+        'hour_list': hour_list,
+        'mean_MAE': mean_MAE,
+        'std_MAE': std_MAE,
+        'mean_MAE_crop': mean_MAE_crop,
+        'std_MAE_crop': std_MAE_crop,
+        'mean_SSIM': mean_SSIM,
+        'std_SSIM': std_SSIM,
+        'mean_SSIM_crop': mean_SSIM_crop,
+        'std_SSIM_crop': std_SSIM_crop,
+        'mean_MSE': mean_MSE,
+        'std_MSE': std_MSE,
+        'mean_PSNR': mean_PSNR
+        'std_PSNR': std_PSNR
+        }                                                                                                                      
+
+    utils.save_pickle_dict(path='reports/eval_per_hour', name=MODEL_PATH.split('/')[-1], dict_=dict_values) 
 
 # ERROR GRAPHS
 # fig, axs = plt.subplots(4, 1, figsize=(20, 10))
