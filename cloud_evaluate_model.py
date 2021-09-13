@@ -95,7 +95,7 @@ for a_model_name in models_names:
     models.append(model.BlurredPersistence(kernel_size_list=[(33,33),(73,73),(109,109),(145,145),(181,181),(213,213),(249,249),(285,285),(321,321),(361,361),(405,405),(445,445)])) 
   if "gt_blur" == a_model_name:
     models.append("gt_blur")
-  if "unet" == a_model_name:
+  if "unet" in a_model_name:
     has_unet = True
     if params["model_path"] == None:
       raise ValueError("Use --model-path to add model location.")
@@ -130,7 +130,7 @@ for metric in metrics:
 
     errors_metric = {}
     for idx, a_model in enumerate(models):
-      if models_names[idx] == 'unet':
+      if 'unet' in models_names[idx]:
         val_loader_aux = val_loader_Unet
         device_aux = device
         use_fix = False
