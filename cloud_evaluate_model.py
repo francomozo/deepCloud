@@ -130,7 +130,7 @@ for metric in metrics:
 
     errors_metric = {}
     for idx, a_model in enumerate(models):
-      if models_names[idx] == 'unet':
+      if 'unet' in models_names[idx]:
         val_loader_aux = val_loader_Unet
         device_aux = device
         use_fix = False
