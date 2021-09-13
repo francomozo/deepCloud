@@ -7,12 +7,12 @@ import datetime
 import os
 import random
 import re
-from scipy.ndimage import rotate
 
 import cv2 as cv
 import numpy as np
 import pandas as pd
 import torch
+from scipy.ndimage import rotate
 from torch.utils.data import Dataset
 from torch.utils.data._utils.collate import default_collate
 
@@ -514,7 +514,7 @@ def load_images_from_folder(folder, crop_region=0):
     for filename in np.sort(os.listdir(folder)):
         img = np.load(os.path.join(folder, filename))
 
-        if crop_region == 1:
+        if crop_region == 1: #this is depracated
             current_imgs.append(img[300:2500, 600:2800])
         elif crop_region == 2:
             current_imgs.append(img[500:2100, 800:2400])
