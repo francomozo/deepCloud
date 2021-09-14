@@ -16,25 +16,25 @@ import scipy.stats as st
 
 ## CONFIGURATION #########
 
-PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
-FRAME_OUT = 0  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
+PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/validation/'
+FRAME_OUT = 23  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
 CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
-MODEL_PATH = 'checkpoints/MVD/10min/10min_UNET_mvd_mae_filters64_sigmoid_diffFalse_60_07-09-2021_00:44.pt'
+MODEL_PATH = 'checkpoints/R3/240min/240min_UNET2_mae_sigmoid_f32_R3_48_31-08-2021_11:34.pt'
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
 
-model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=64).to(device)
-#model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='relu', bias=False, filters=64).to(device)
+#model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=48).to(device)
+model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=32).to(device)
 #model = AttU_Net(img_ch=3, output_ch=1, init_filter=32).to(device)
 #model = NestedUNet(in_ch=3, out_ch=1, init_filter=32).to(device)
 
 
-SAVE_IMAGES_PATH = 'graphs/MVD/10min/' + MODEL_PATH.split('/')[-1]  
-SAVE_VALUES_PATH = 'reports/eval_per_hour/MVD/10min' 
+SAVE_IMAGES_PATH = 'graphs/R3/240min/' + MODEL_PATH.split('/')[-1][:-9]  
+SAVE_VALUES_PATH = 'reports/eval_per_hour/R3/240min' 
 
-CROP_SIZE = 28
+CROP_SIZE = 50
 PREDICT_DIFF = False
 
 ###########################
@@ -338,7 +338,7 @@ if SAVE_VALUES_PATH:
         'std_PSNR': std_PSNR
         }                                                                                                                      
 
-    utils.save_pickle_dict(path=SAVE_VALUES_PATH, name=MODEL_PATH.split('/')[-1][:-3], dict_=dict_values) 
+    utils.save_pickle_dict(path=SAVE_VALUES_PATH, name=MODEL_PATH.split('/')[-1][:-9], dict_=dict_values) 
 
 # ERROR GRAPHS
 # fig, axs = plt.subplots(4, 1, figsize=(20, 10))
@@ -695,15 +695,15 @@ fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence.png')
 visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
 
 # FIRST LAYER OF FILTERS OUTPUT
+if M < 1000:
+  output_list = []
 
-output_list = []
-
-with torch.no_grad():
-    for m in model.modules():
-        if isinstance(m, nn.Conv2d):
-            for filter_ in m.weight:
-                output = visualization.use_filter(in_frames.cpu().numpy(), filter_.cpu().numpy()) 
-                output_list.append(output)
-            break
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'filter_layer_output.png')
-visualization.show_image_list(output_list, rows=8, fig_name=fig_name, save_fig=True)
+  with torch.no_grad():
+      for m in model.modules():
+          if isinstance(m, nn.Conv2d):
+              for filter_ in m.weight:
+                  output = visualization.use_filter(in_frames.cpu().numpy(), filter_.cpu().numpy()) 
+                  output_list.append(output)
+              break
+  fig_name = os.path.join(SAVE_IMAGES_PATH, 'filter_layer_output.png')
+  visualization.show_image_list(output_list, rows=8, fig_name=fig_name, save_fig=True)
