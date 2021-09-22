@@ -31,7 +31,7 @@ model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='s
 #model = NestedUNet(in_ch=3, out_ch=1, init_filter=32).to(device)
 
 
-SAVE_IMAGES_PATH = 'graphs/MVD/10min/' + MODEL_PATH.split('/')[-1]  
+SAVE_IMAGES_PATH = 'graphs/MVD/10min/' + MODEL_PATH.split('/')[-1][-9]  
 SAVE_VALUES_PATH = 'reports/eval_per_hour/MVD/10min' 
 
 CROP_SIZE = 28
