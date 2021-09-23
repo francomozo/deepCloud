@@ -1272,7 +1272,8 @@ def train_model_full(
     if train_loss in ['mae_ssim', 'MAE_SSIM']:
         train_criterion_mae = mae_loss
         train_criterion_ssim = ssim_loss
-    
+    if train_loss in ['forecaster_loss', 'FORECASTER_LOSS']:
+        train_criterion = FORECASTER_LOSS()
     if model_name is None:
         model_name = 'model' 
 
@@ -1303,7 +1304,7 @@ def train_model_full(
 
             # forward
             frames_pred = model(in_frames)
-            if train_loss in ['mae', 'MAE', 'mse', 'MSE']:
+            if train_loss in ['mae', 'MAE', 'mse', 'MSE', 'forecaster_loss', 'FORECASTER_LOSS']:
                 if predict_diff:
                     diff = torch.subtract(out_frames[:,0], in_frames[:,2]).unsqueeze(1)
                     loss = train_criterion(frames_pred, diff)
@@ -1434,3 +1435,22 @@ def train_model_full(
         torch.save(model_dict, os.path.join(PATH,NAME))
     
     return TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL
+
+
+class FORECASTER_LOSS(nn.Module):
+    def __init__(self):
+        super(FORECASTER_LOSS,self).__init__()
+
+    def forward(self, output, ground):
+        output = output.view(-1)
+        ground = ground.view(-1)
+        gap = torch.abs(output-ground)
+        weight = (output+ground-gap)/2
+        weight = 1-weight/100.0
+        weight = torch.exp(weight)
+        loss = torch.mean(weight*(output-ground)*(output-ground))
+        return loss
+
+# criterion = FORECASTER_LOSS()
+# loss = criterion(output, gt)
+# loss.backward()
