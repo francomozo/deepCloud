@@ -211,7 +211,7 @@ def evaluate_pixel(predictions,gt,metric,pixel_max_value =255,pixel= (0,0)):
     return error
 
 
-def evaluate_model(model_instance, loader, predict_horizon, 
+def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
                    device=None, metric='RMSE', error_percentage=False,
                    window_pad=0, window_pad_height=0, window_pad_width=0):
     """
@@ -301,9 +301,10 @@ def evaluate_model(model_instance, loader, predict_horizon,
                 predictions = predictions[1:]
             start = time.time()
             input = inputs[-1].cpu().numpy() if metric == 'FS' else None
+            gt = targets[start_horizon].unsqueeze(0).cpu().detach().numpy() if start_horizon is not None else targets.cpu().detach().numpy()
             predict_errors = evaluate_image(
                                         predictions = predictions, 
-                                        gt = targets.cpu().detach().numpy(), 
+                                        gt = gt, 
                                         gt_ts = None,
                                         metric=metric, dynamic_window=dynamic_window,
                                         evaluate_day_pixels = False, 

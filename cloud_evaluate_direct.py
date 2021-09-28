@@ -17,8 +17,13 @@ from src.dl_models.unet import UNet, UNet2
 
 ap = argparse.ArgumentParser(description='Evaluate direct models with multiple metrics')
 
+ap.add_argument("--out-channel", default=None, type=int,
+                help="Defaults to None")
+ap.add_argument("--start-horizon", default=None, type=int,
+                help="Defaults to None")
 ap.add_argument("--predict-horizon", default=6, type=int,
                 help="Defaults to 6")
+
 ap.add_argument("--metrics", nargs="+", default=["RMSE"],
                 help="Defaults to RMSE. Add %% for percentage metric")
 ap.add_argument("--csv-path-unet", default=None,
@@ -31,10 +36,16 @@ ap.add_argument("--model-names", nargs="*", default=None,
                 help="Model names for NNs.")
 ap.add_argument("--save-errors", default=False, type=bool,
                 help="Save results in file. Defaults to False.")
+ap.add_argument("--save-name", default=None,
+                help="Add name to results file. Defaults to None.")
 ap.add_argument("--output-activation", default='sigmoid',
                 help="Output activation for unets. Defaults to sigmoid.")
 ap.add_argument("--unet-type", default=1, type=int,
                 help="Type of unet. Defaults to None.")
+ap.add_argument("--bias", default=False, type=bool,
+                help="bias of unet. Defaults to False.")
+ap.add_argument("--filters", default=64, type=int,
+                help="Amount of filters of unet. Defaults to 64.")
 
 ap.add_argument("--window-pad", default=0, type=int,
                 help="Size of padding for evaluation, eval window is [w_p//2 : M-w_p//2, w_p//2 : N-w_p//2]. Defaults to 0.")
@@ -48,12 +59,14 @@ csv_path_unet = params['csv_path_unet']
 PATH_DATA = params['data_path']
 metrics = params['metrics']
 metrics = [each_string.upper() for each_string in metrics]
+start_horizon = params['start_horizon'] if params['start_horizon'] is not None else 0
+out_channel = params['out_channel'] if params['out_channel'] is not None else params['predict_horizon']
 
 #DataLoaders
 normalize = preprocessing.normalize_pixels(mean0=False) 
 val_mvd_Unet = MontevideoFoldersDataset(path = PATH_DATA, 
                                         in_channel=3, 
-                                        out_channel=params['predict_horizon'],
+                                        out_channel=out_channel,
                                         min_time_diff=5, max_time_diff=15,
                                         transform=normalize, 
                                         csv_path=csv_path_unet)
@@ -66,9 +79,9 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 for i in range(params['predict_horizon']):
   model_path = os.path.join(params["model_path"], params["model_names"][i])
   if params['unet_type'] == 1:
-    model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"]).to(device)
+    model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
   elif params['unet_type'] == 2:
-    model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"]).to(device)
+    model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
   model_Unet.load_state_dict(torch.load(model_path)["model_state_dict"])
   model_Unet.eval()
   models.append(model_Unet)
@@ -89,6 +102,7 @@ for metric in metrics:
   time.sleep(1)
   error_array = evaluate.evaluate_model(models, val_loader_Unet, 
                                         predict_horizon=params['predict_horizon'], 
+                                        start_horizon=params['start_horizon'],
                                         device=device, 
                                         metric=metric[:end_metric], 
                                         error_percentage=error_percentage,
@@ -105,7 +119,10 @@ for metric in metrics:
 if params['save_errors']:
   PATH = "reports/errors_evaluate_model/"
   ts = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M")
-  NAME = 'errors_models_direct_' + str(ts) + '.pkl'
+  NAME = 'errors_models_direct_' + str(ts)
+  if params['save_name']:
+    NAME = NAME + "_" + params['save_name']
+  NAME = NAME + '.pkl'
   a_file = open(os.path.join(PATH, NAME), "wb")
   pickle.dump(errors_metrics, a_file)
   a_file.close()
