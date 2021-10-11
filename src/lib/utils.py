@@ -437,7 +437,7 @@ def sequence_df_generator_folders(path, in_channel,out_channel, min_time_diff, m
     for folder in folders:
         folderfiles = sorted([f for f in listdir(join(path,folder)) if isfile(join(path,folder, f))])
         len_day = len(folderfiles)
-        for i in range(len_day - (in_channel+out_channel)): #me fijo si puedo completar un conjunto de datos
+        for i in range(len_day - (in_channel+out_channel-1)): #me fijo si puedo completar un conjunto de datos
             complete_seq = True
             image_sequence = []
             for j in range(in_channel+out_channel-1): #veo si puede rellenar un dato
