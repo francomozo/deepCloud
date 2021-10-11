@@ -140,6 +140,86 @@ class MontevideoFoldersDataset(Dataset):
     def __len__(self):
         return (len(self.sequence_df))
     
+class MontevideoFoldersDataset_w_CMV(Dataset):
+    """Dataset for Montevideo Dataset separated by folders named 2020XXX. It also loads the predictions done by CMV.
+    """    
+    def __init__(self, path, cmv_path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=True, nan_value=0):
+        super(MontevideoFoldersDataset_w_CMV, self).__init__()
+
+        self.path = path
+        self.cmv_path = cmv_path
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.min_time_diff = min_time_diff
+        self.max_time_diff = max_time_diff
+        self.transform = transform
+        self.output_last = output_last
+        self.nan_value = nan_value
+        
+        if csv_path is None:
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                    in_channel=in_channel,
+                                                                    out_channel= out_channel, 
+                                                                    min_time_diff= min_time_diff, 
+                                                                    max_time_diff= max_time_diff)
+        else:
+            self.sequence_df = pd.read_csv(csv_path, header= None)
+        
+    def __getitem__(self, index):
+
+        # images loading 
+        
+        for i in range(self.in_channel + self.out_channel):
+            if i == 0:  # first image in in_frames
+                in_frames = np.load(os.path.join(
+                    self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))
+                in_frames = in_frames[np.newaxis]
+            if i > 0 and i < self.in_channel:  # next images in in_frames
+                aux = np.load(os.path.join(
+                    self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                aux = aux[np.newaxis]
+                in_frames = np.concatenate((in_frames, aux), axis=0)
+                
+            if i > 0 and i == self.in_channel:
+                # load CMV prediction
+                output_index = self.in_channel + self.out_channel -1
+                aux = np.load(os.path.join(
+                    self.cmv_path, self.sequence_df.values[index][output_index][4:11] , self.sequence_df.values[index][output_index]))
+
+                aux[np.isnan(aux)] = self.nan_value
+                
+                aux = aux[np.newaxis]
+                in_frames = np.concatenate((in_frames, aux), axis=0)
+                
+            if self.output_last:
+                if i == (self.in_channel + self.out_channel -1):  # first image in out_frames
+                    out_frames = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    out_frames = out_frames[np.newaxis]
+            else: 
+                if i == self.in_channel:  # first image in out_frames
+                    out_frames = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    out_frames = out_frames[np.newaxis]
+                if i > self.in_channel:
+                    aux = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    aux = aux[np.newaxis]
+                    out_frames = np.concatenate((out_frames, aux), axis=0)
+
+        if self.transform:
+            if type(self.transform) == list:
+                for function in self.transform:
+                    in_frames, out_frames = function(in_frames,out_frames) 
+            else:
+                in_frames, out_frames = self.transform(in_frames,out_frames) 
+        
+        return in_frames, out_frames
+
+    def __len__(self):
+        return (len(self.sequence_df))
+    
+
 class MontevideoFoldersDataset_v2(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
