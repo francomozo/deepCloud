@@ -22,24 +22,29 @@ ap.add_argument("--csv-path-base", default=None,
                 help="Csv path for baseline models (CMV, Persistence, BCMV). Defaults to None.")
 ap.add_argument("--data-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/',
                 help="Defaults to /clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/")
-ap.add_argument("--dest-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/cmv_mvd/train/',
-                help="Defaults to /clusteruy/home03/DeepCloud/deepCloud/data/cmv_mvd/train/")
+ap.add_argument("--dest-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/cmv_mvd_10min/train/',
+                help="Defaults to /clusteruy/home03/DeepCloud/deepCloud/data/cmv_mvd_10min/train/")
+
+ap.add_argument("--predict-horizon", default=1, type=int,
+                help="Defaults to 1")
 
 params = vars(ap.parse_args())
 PATH_DATA = params['data_path']
 csv_path_base = params['csv_path_base']
-destination_path = params['dest-path']
+destination_path = params['dest_path']
 
 cmv = model.Cmv2()
-val_mvd = MontevideoFoldersDataset_w_name(path = PATH_DATA, in_channel = 2, out_channel=1, output_last=True)
+val_mvd = MontevideoFoldersDataset_w_name(path = PATH_DATA, 
+                                          in_channel = 2, out_channel=params['predict_horizon'], 
+                                          output_last=True)
 val_loader = DataLoader(val_mvd)
 
 for idx, (inputs, targets, out_name) in enumerate(val_loader):
   prediction = cmv.predict(
-                          imgi=inputs[0], 
-                          imgf=inputs[1],
+                          imgi=inputs[0][0], 
+                          imgf=inputs[0][1],
                           period=10*60, delta_t=10*60, 
-                          predict_horizon=1) 
+                          predict_horizon=params['predict_horizon']) 
   
   day = re.sub("[^0-9]", "", out_name[0])[:7]
   try:
@@ -50,5 +55,5 @@ for idx, (inputs, targets, out_name) in enumerate(val_loader):
   path = os.path.join(destination_path,
                       day, os.path.splitext(out_name[0])[0] + ".npy")
   
-  np.save(path, prediction)
+  np.save(path, prediction[-1])
 
