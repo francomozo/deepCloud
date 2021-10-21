@@ -142,8 +142,8 @@ def train_model(model,
             BEST_VAL_ACC = CURRENT_VAL_ACC
             model_dict = {
                 'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
                 'train_loss_per_batch': TRAIN_LOSS_EPOCH,
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1]
             }
@@ -297,8 +297,8 @@ def train_model_2(model,
             BEST_VAL_ACC = VAL_LOSS_GLOBAL[-1]
             model_dict = {
                 'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1],
                 'val_loss_epoch_mean': VAL_LOSS_GLOBAL[-1]
             }
@@ -443,8 +443,8 @@ def train_model_SSIM(
             BEST_VAL_ACC = VAL_LOSS_GLOBAL[-1]
             model_dict = {
                 'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1],
                 'val_loss_epoch_mean': VAL_LOSS_GLOBAL[-1]
             }
@@ -588,8 +588,8 @@ def train_model_cyclicLR(   model,
             BEST_VAL_ACC = VAL_LOSS_GLOBAL[-1]
             model_dict = {
                 'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1],
                 'val_loss_epoch_mean': VAL_LOSS_GLOBAL[-1]
             }
@@ -740,8 +740,8 @@ def train_model_diff(model,
             BEST_VAL_ACC = VAL_LOSS_GLOBAL[-1]
             model_dict = {
                 'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1],
                 'val_loss_epoch_mean': VAL_LOSS_GLOBAL[-1]
             }
@@ -886,8 +886,8 @@ def train_model_SSIMandMAE(
             BEST_VAL_ACC = VAL_LOSS_GLOBAL[-1]
             model_dict = {
                 'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1],
                 'val_loss_epoch_mean': VAL_LOSS_GLOBAL[-1]
             }
@@ -1039,8 +1039,8 @@ def train_model_ssim_diff(  model,
             BEST_VAL_ACC = VAL_LOSS_GLOBAL[-1]
             model_dict = {
                 'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1],
                 'val_loss_epoch_mean': VAL_LOSS_GLOBAL[-1]
             }
@@ -1185,8 +1185,8 @@ def train_model_MSE(
             BEST_VAL_ACC = VAL_LOSS_GLOBAL[-1]
             model_dict = {
                 'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL[-1],
                 'val_loss_epoch_mean': VAL_LOSS_GLOBAL[-1]
             }
