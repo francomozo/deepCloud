@@ -4,6 +4,7 @@
 import datetime
 import time
 import os
+import copy
 
 import numpy as np
 import optuna
@@ -1405,8 +1406,8 @@ def train_model_full(
                 'train_loss': train_loss,
                 'predict diff': predict_diff,
                 'validation_loss': loss_for_scheduler,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
                 'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL,
                 'val_mae_loss': VAL_MAE_LOSS_GLOBAL,
                 'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
