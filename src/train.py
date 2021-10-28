@@ -14,6 +14,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision.transforms import CenterCrop
 
 from src.lib.utils import print_cuda_memory
+from src.lib.utils_irradianceNet import convert_to_full_res, interpolate_borders
 
 from piqa import SSIM
 
@@ -1405,6 +1406,234 @@ def train_model_full(
                 'epoch': epoch + 1,
                 'train_loss': train_loss,
                 'predict diff': predict_diff,
+                'validation_loss': loss_for_scheduler,
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
+                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL,
+                'val_mae_loss': VAL_MAE_LOSS_GLOBAL,
+                'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
+                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL
+            }
+            model_not_saved = True
+
+        if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
+            if model_not_saved:
+                if verbose: print('Saving Checkpoint')
+                    
+                PATH = 'checkpoints/'
+                ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
+                NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
+
+                torch.save(model_dict, os.path.join(PATH,NAME))
+                model_not_saved = False
+                
+    # if training finished and best model not saved
+    if model_not_saved:
+        if verbose: print('Saving Checkpoint')
+        PATH = 'checkpoints/'
+        ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
+        NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
+
+        torch.save(model_dict, os.path.join(PATH,NAME))
+    
+    return TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL
+
+
+def train_irradianceNet(
+                    model,
+                    train_loss,
+                    optimizer,
+                    device,
+                    train_loader,
+                    val_loader,
+                    epochs,
+                    img_size=512,
+                    patch_size=128,
+                    checkpoint_every=None,
+                    verbose=True,
+                    writer=None,
+                    scheduler=None,
+                    loss_for_scheduler='mae',
+                    model_name=None,
+                    save_images=True):
+    """ This train function evaluates on all the validation dataset one time per epoch
+
+    Args:
+        model (torch.model): [description]
+        train_loss (str): Train criterion to use ('mae','mse','ssim')
+        optimizer (torch.optim): [description]
+        device ([type]): [description]
+        train_loader ([type]): [description]
+        epochs (int): [description]
+        val_loader ([type]): [description]
+        checkpoint_every (int, optional): [description]. Defaults to None.
+        verbose (bool, optional): Print trainning status. Defaults to True.
+        writer (tensorboard.writer, optional): Logs loss values to tensorboard. Defaults to None.
+        scheduler ([type], optional): [description]. Defaults to None.
+        loss_for_scheduler (string): choose validation error to use for scheduler steps
+        model_name (string): Prefix Name for the checkpoint model to be saved
+        save_images (bool): If true images are saved on the tensorboard
+        
+    Returns:
+        TRAIN_LOSS_GLOBAL: Mean train loss in each epoch 
+        VAL_MAE_LOSS_GLOBAL: Lists containing the mean MAE error of each epoch in validation
+        VAL_MSE_LOSS_GLOBAL: Lists containing the mean MSE error of each epoch in validation
+        VAL_SSIM_LOSS_GLOBAL: Lists containing the mean SSIM error of each epoch in validation
+    """    
+    
+    mse_loss = nn.MSELoss()
+    mae_loss = nn.L1Loss()
+    ssim_loss = SSIM(n_channels=1).cuda()
+    
+    if train_loss in ['mae', 'MAE']:
+        train_criterion = mae_loss
+    if train_loss in ['mse', 'MSE']:
+        train_criterion = mse_loss
+    if train_loss in ['ssim', 'SSIM']:
+        train_criterion = ssim_loss
+    if train_loss in ['mae_ssim', 'MAE_SSIM']:
+        train_criterion_mae = mae_loss
+        train_criterion_ssim = ssim_loss
+    if train_loss in ['forecaster_loss', 'FORECASTER_LOSS']:
+        train_criterion = FORECASTER_LOSS()
+    if model_name is None:
+        model_name = 'model' 
+
+    TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
+    VAL_MAE_LOSS_GLOBAL = []
+    VAL_MSE_LOSS_GLOBAL = []
+    VAL_SSIM_LOSS_GLOBAL = []
+    
+    TIME = []
+
+    BEST_VAL_ACC = 1e5
+    
+    if writer:
+        in_frames, _ = next(iter(train_loader))
+        in_frames = torch.unsqueeze(in_frames, dim=2)
+        in_frames = in_frames.to(device=device)
+        writer.add_graph(model, input_to_model=in_frames, verbose=False)
+        img_size = in_frames.size(2)
+        
+    for epoch in range(epochs):
+        start_epoch = time.time()
+        TRAIN_LOSS_EPOCH = 0 #stores values inside the current epoch
+
+        for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
+            model.train()
+            
+            in_frames = torch.unsqueeze(in_frames, dim=2)
+            in_frames = in_frames.to(device=device)
+            out_frames = torch.unsqueeze(out_frames, dim=2)
+            out_frames = out_frames.to(device=device)
+
+            # forward
+            frames_pred = model(in_frames)
+            if train_loss in ['mae', 'MAE', 'mse', 'MSE', 'forecaster_loss', 'FORECASTER_LOSS']:
+                loss = train_criterion(frames_pred, out_frames)
+                    
+            if train_loss in ['ssim', 'SSIM']:
+                loss = 1 - train_criterion(frames_pred, out_frames)
+            if train_loss in ['mae_ssim', 'MAE_SSIM']:
+                loss = 1 - train_criterion_ssim(frames_pred, out_frames) + train_criterion_mae(frames_pred, out_frames)
+            # backward
+            optimizer.zero_grad()
+            loss.backward()
+
+            # gradient descent or adam step
+            optimizer.step()
+
+            TRAIN_LOSS_EPOCH += loss.detach().item()
+            
+        TRAIN_LOSS_GLOBAL.append(TRAIN_LOSS_EPOCH/len(train_loader))
+        
+        #evaluation
+        model.eval()
+
+        with torch.inference_mode():
+            mse_val_loss = 0
+            mae_val_loss = 0
+            ssim_val_loss = 0
+            
+            dim = (img_size // patch_size) 
+            
+            for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
+                
+                in_frames = in_frames.to(device=device)
+                in_frames = torch.unsqueeze(in_frames, dim=2)
+                
+                out_frames = out_frames.to(device=device)
+                out_frames = torch.unsqueeze(out_frames, dim=2)
+                
+                mae_val_loss_Q = 0
+                mse_val_loss_Q = 0
+                ssim_val_loss_Q = 0
+                
+                for i in range(dim):
+                    for j in range(dim):
+                        n = i * patch_size
+                        m = j * patch_size
+                        
+                        frames_pred_Q = model(in_frames[:,:,:, n:n+patch_size, m:m+patch_size])
+                        mae_val_loss_Q += mae_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                        mse_val_loss_Q += mse_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                        ssim_val_loss_Q += ssim_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                        
+                mae_val_loss += mae_val_loss_Q/(dim**2)
+                mse_val_loss += mse_val_loss/(dim**2)
+                ssim_val_loss += ssim_val_loss/(dim**2)
+          
+                # if writer and (val_batch_idx == 0) and save_images and epoch>35:
+                #     if img_size < 1000:
+                #         writer.add_images('groundtruth_batch', out_frames[:10], epoch)
+                #         writer.add_images('predictions_batch', frames_pred[:10], epoch)
+                #     else:
+                #         writer.add_images('groundtruth_batch', out_frames[0], epoch)
+                #         writer.add_images('predictions_batch', frames_pred[0], epoch)
+                    
+        VAL_MAE_LOSS_GLOBAL.append(mae_val_loss/len(val_loader))
+        VAL_MSE_LOSS_GLOBAL.append(mse_val_loss/len(val_loader))
+        VAL_SSIM_LOSS_GLOBAL.append(ssim_val_loss/len(val_loader))
+        
+        if scheduler:
+            if loss_for_scheduler in ['mae', 'MAE']:
+                scheduler.step(VAL_MAE_LOSS_GLOBAL[-1])
+            if loss_for_scheduler in ['mse', 'MSE']:
+                scheduler.step(VAL_MSE_LOSS_GLOBAL[-1])    
+            if loss_for_scheduler in ['ssim', 'SSIM']:
+                scheduler.step(1 - VAL_SSIM_LOSS_GLOBAL[-1])
+                     
+        end_epoch = time.time()
+        TIME = end_epoch - start_epoch
+        
+        if verbose:
+            # print statistics
+            print(f'Epoch({epoch + 1}/{epochs}) | ', end='')
+            print(f'Train_loss({(TRAIN_LOSS_GLOBAL[-1]):06.4f}) | Val MAE({VAL_MAE_LOSS_GLOBAL[-1]:.4f}) | Val MSE({VAL_MSE_LOSS_GLOBAL[-1]:.4f}) | Val SSIM({VAL_SSIM_LOSS_GLOBAL[-1]:.4f}) | ', end='')
+            print(f'Time_Epoch({TIME:.2f}s)') # this part maybe dont print
+                    
+        if writer: 
+            #add values to tensorboard 
+            writer.add_scalar("TRAIN LOSS, EPOCH MEAN", TRAIN_LOSS_GLOBAL[-1], epoch)
+            writer.add_scalar("VALIDATION MAE", VAL_MAE_LOSS_GLOBAL[-1] , epoch)
+            writer.add_scalar("VALIDATION MSE",  VAL_MSE_LOSS_GLOBAL[-1], epoch)
+            writer.add_scalar("VALIDATION SSIM",  VAL_SSIM_LOSS_GLOBAL[-1], epoch)
+            writer.add_scalar("Learning rate", optimizer.state_dict()["param_groups"][0]["lr"], epoch)
+        
+        if loss_for_scheduler in ['mae', 'MAE']:
+            actual_loss = VAL_MAE_LOSS_GLOBAL[-1]
+        if loss_for_scheduler in ['mse', 'MSE']:
+            actual_loss = VAL_MSE_LOSS_GLOBAL[-1]
+        if loss_for_scheduler in ['ssim', 'SSIM']:
+            actual_loss = 1 - VAL_SSIM_LOSS_GLOBAL[-1]
+                                
+        if actual_loss < BEST_VAL_ACC:
+            BEST_VAL_ACC = actual_loss
+            
+            if verbose: print('New Best Model')    
+            model_dict = {
+                'epoch': epoch + 1,
+                'train_loss': train_loss,
                 'validation_loss': loss_for_scheduler,
                 'model_state_dict': copy.deepcopy(model.state_dict()),
                 'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),

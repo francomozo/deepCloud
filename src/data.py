@@ -958,7 +958,10 @@ class MontevideoFoldersDataset_w_name(Dataset):
 class PatchesFoldersDataset(Dataset):
     """Dataset for patches in R3 Dataset, separated by folders named 2020XXX
     """    
-    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=False):
+    def __init__(self, path, in_channel=3, out_channel=1, 
+                 min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=False,
+                 img_size=512, patch_size=128, train=True):
+        
         super(PatchesFoldersDataset, self).__init__()
 
         self.path = path
@@ -977,40 +980,69 @@ class PatchesFoldersDataset(Dataset):
         else:
             self.sequence_df = pd.read_csv(csv_path, header= None)
             
-        self.img_size = 1024
-        self.pred_size = 256
+        self.img_size = img_size
+        self.pred_size = patch_size
+        self.train = train
 
     def __getitem__(self, index):
 
         # images loading
-        top = np.random.randint(0, self.img_size-self.pred_size) # 256: size of prediction, 1024: size of R3 image 
-        left = np.random.randint(0, self.img_size-self.pred_size) # 256: size of prediction, 1024: size of R3 image 
-         
-        for i in range(self.in_channel + self.out_channel):
-            if i == 0:  # first image in in_frames
-                in_frames = np.load(os.path.join(
-                    self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
-                in_frames = in_frames[np.newaxis]
-            if i > 0 and i < self.in_channel:  # next images in in_frames
-                aux = np.load(os.path.join(
-                    self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
-                aux = aux[np.newaxis]
-                in_frames = np.concatenate((in_frames, aux), axis=0)
-            if self.output_last:
-                if i == (self.in_channel + self.out_channel -1):  # first image in out_frames
-                    out_frames = np.load(os.path.join(
-                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
-                    out_frames = out_frames[np.newaxis]
-            else: 
-                if i == self.in_channel:  # first image in out_frames
-                    out_frames = np.load(os.path.join(
-                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
-                    out_frames = out_frames[np.newaxis]
-                if i > self.in_channel:
+        if self.train:
+            top = np.random.randint(0, self.img_size-self.pred_size)  
+            left = np.random.randint(0, self.img_size-self.pred_size) 
+            
+            for i in range(self.in_channel + self.out_channel):
+                if i == 0:  # first image in in_frames
+                    in_frames = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
+                    in_frames = in_frames[np.newaxis]
+                if i > 0 and i < self.in_channel:  # next images in in_frames
                     aux = np.load(os.path.join(
                         self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
                     aux = aux[np.newaxis]
-                    out_frames = np.concatenate((out_frames, aux), axis=0)
+                    in_frames = np.concatenate((in_frames, aux), axis=0)
+                if self.output_last:
+                    if i == (self.in_channel + self.out_channel -1):  # first image in out_frames
+                        out_frames = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
+                        out_frames = out_frames[np.newaxis]
+                else: 
+                    if i == self.in_channel:  # first image in out_frames
+                        out_frames = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
+                        out_frames = out_frames[np.newaxis]
+                    if i > self.in_channel:
+                        aux = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
+                        aux = aux[np.newaxis]
+                        out_frames = np.concatenate((out_frames, aux), axis=0)
+
+        else:
+            for i in range(self.in_channel + self.out_channel):
+                if i == 0:  # first image in in_frames
+                    in_frames = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))
+                    in_frames = in_frames[np.newaxis]
+                if i > 0 and i < self.in_channel:  # next images in in_frames
+                    aux = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    aux = aux[np.newaxis]
+                    in_frames = np.concatenate((in_frames, aux), axis=0)
+                if self.output_last:
+                    if i == (self.in_channel + self.out_channel -1):  # first image in out_frames
+                        out_frames = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                        out_frames = out_frames[np.newaxis]
+                else: 
+                    if i == self.in_channel:  # first image in out_frames
+                        out_frames = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                        out_frames = out_frames[np.newaxis]
+                    if i > self.in_channel:
+                        aux = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                        aux = aux[np.newaxis]
+                        out_frames = np.concatenate((out_frames, aux), axis=0)            
 
         if self.transform:
             if type(self.transform) == list:
