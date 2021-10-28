@@ -240,8 +240,8 @@ def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
     
     with tqdm(loader, desc=f'Status', unit='sequences') as loader_pbar:
         for idx, (inputs, targets) in enumerate(loader_pbar):
-            inputs = inputs.squeeze()
-            targets = targets.squeeze()
+            inputs = inputs.squeeze(0)
+            targets = targets.squeeze(0)
             
             # predict depending on model
             if (isinstance(model_instance, list)):
