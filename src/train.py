@@ -1550,7 +1550,7 @@ def train_irradianceNet(
         #evaluation
         model.eval()
 
-        with torch.inference_mode():
+        with torch.no_grad():
             mse_val_loss = 0
             mae_val_loss = 0
             ssim_val_loss = 0

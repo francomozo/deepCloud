@@ -55,7 +55,7 @@ train_mvd = PatchesFoldersDataset(
         patch_size=patch_size,
         train=True
         )
-
+                             
 val_mvd = PatchesFoldersDataset(
         path='/clusteruy/home03/DeepCloud/deepCloud/data/uru/validation/',                          	
         in_channel=input_seq_len,
@@ -111,14 +111,17 @@ lr = 1e-4
 optimizer = optim.Adam(model.parameters(), lr=lr , betas=(0.9,0.999), eps=1e-08, weight_decay=0 ,amsgrad=False)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=5, min_lr=1e-9)
 
-comment = f' batch_size:{batch_size} lr:{lr} weight_decay:{0} '
-writer = SummaryWriter(log_dir='runs/predict_10min' ,comment=comment)
+train_loss = 'mae'  # ['mae', 'mse', 'ssim']
+loss_for_scheduler = 'mse'
+model_name = f'Xmin_IrradianceNet_uru_{train_loss}'
+comment = f' batch_size:{batch_size} lr:{lr} model:{mdl} train_loss:{train_loss}'
+writer = SumaryWriter(log_dir='runs/predict_20min' ,comment=comment)
 
 # TRAIN LOOP
 
-TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL = train.train_irradianceNet(
+TRAIN_LOSS, VAL_MAE_LOSS, VAL_MSE_LOSS, VAL_SSIM_LOSS = train.train_irradianceNet(
     model=model,
-    train_loss='mae',
+    train_loss=train_loss,
     optimizer=optimizer,
     device=device,
     train_loader=train_loader,
@@ -130,10 +133,23 @@ TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBA
     verbose=True,
     writer=writer,
     scheduler=scheduler,
-    loss_for_scheduler='mae',
-    model_name='IrradianceNet',
+    loss_for_scheduler=loss_for_scheduler,
+    model_name=model_name,
     save_images=True
     )
 
 if writer:
   writer.close()
+  
+if save_dict:
+    learning_values = {
+        'model_name': model_name,
+        'train_loss': train_loss,
+        'validation_loss': loss_for_scheduler,
+        'train_loss_epoch_mean': TRAIN_LOSS,
+        'val_mae_loss': VAL_MAE_LOSS,
+        'val_mse_loss': VAL_MSE_LOSS,
+        'val_ssim_loss': VAL_SSIM_LOSS
+        }                                         
+    utils.save_pickle_dict(name=model_name, dict_=learning_values)   
+
