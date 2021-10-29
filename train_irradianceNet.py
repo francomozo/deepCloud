@@ -25,7 +25,7 @@ from src.lib.utils_irradianceNet import convert_to_full_res, interpolate_borders
 # DeepCloud
 from src import data, evaluate, model, preprocessing, visualization, train
 from src.lib import utils
-from src.data import MontevideoFoldersDataset
+from src.data import MontevideoFoldersDataset, PatchesFoldersDataset
 
 print('finis import')
 
@@ -38,9 +38,9 @@ torch.manual_seed(50)
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
 
 in_channel = 1 # 1 if only image, higher if more metadata in training
-n_future_frames = 4
+n_future_frames = 1
 input_seq_len = 3
-img_size = 256
+img_size = 512
 patch_size = 128
 
 train_mvd = PatchesFoldersDataset(
@@ -55,8 +55,8 @@ train_mvd = PatchesFoldersDataset(
         patch_size=patch_size,
         train=True
         )
-                                        
-    val_mvd = PatchesFoldersDataset(
+
+val_mvd = PatchesFoldersDataset(
         path='/clusteruy/home03/DeepCloud/deepCloud/data/uru/validation/',                          	
         in_channel=input_seq_len,
         out_channel=n_future_frames,
@@ -70,8 +70,8 @@ train_mvd = PatchesFoldersDataset(
         )
 
 
-batch_size = 20
-epochs = 120
+batch_size = 15
+epochs = 1
 
 
 train_loader = DataLoader(train_mvd, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
@@ -112,17 +112,17 @@ optimizer = optim.Adam(model.parameters(), lr=lr , betas=(0.9,0.999), eps=1e-08,
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=5, min_lr=1e-9)
 
 comment = f' batch_size:{batch_size} lr:{lr} weight_decay:{0} '
-writer = SummaryWriter(log_dir='runs/predict_20min' ,comment=comment)
+writer = SummaryWriter(log_dir='runs/predict_10min' ,comment=comment)
 
 # TRAIN LOOP
 
-TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL = train_irradianceNet(
+TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL = train.train_irradianceNet(
     model=model,
     train_loss='mae',
     optimizer=optimizer,
     device=device,
     train_loader=train_loader,
-    val_loader=val+loader,
+    val_loader=val_loader,
     epochs=epochs,
     img_size=512,
     patch_size=128,
