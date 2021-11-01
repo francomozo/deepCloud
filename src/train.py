@@ -1481,6 +1481,8 @@ def train_irradianceNet(
         VAL_SSIM_LOSS_GLOBAL: Lists containing the mean SSIM error of each epoch in validation
     """    
     
+    dim = img_size // patch_size
+    
     mse_loss = nn.MSELoss()
     mae_loss = nn.L1Loss()
     ssim_loss = SSIM(n_channels=1).cuda()
@@ -1555,8 +1557,6 @@ def train_irradianceNet(
             mae_val_loss = 0
             ssim_val_loss = 0
             
-            dim = (img_size // patch_size) 
-            
             for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
                 
                 in_frames = in_frames.to(device=device)
@@ -1579,9 +1579,9 @@ def train_irradianceNet(
                         mse_val_loss_Q += mse_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
                         ssim_val_loss_Q += ssim_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
                         
-                mae_val_loss += mae_val_loss_Q/(dim**2)
-                mse_val_loss += mse_val_loss/(dim**2)
-                ssim_val_loss += ssim_val_loss/(dim**2)
+                mae_val_loss += (mae_val_loss_Q / (dim*dim))
+                mse_val_loss += (mse_val_loss_Q / (dim**2))
+                ssim_val_loss += (ssim_val_loss_Q / (dim**2))
           
                 # if writer and (val_batch_idx == 0) and save_images and epoch>35:
                 #     if img_size < 1000:
