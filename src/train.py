@@ -1455,7 +1455,8 @@ def train_irradianceNet(
                     scheduler=None,
                     loss_for_scheduler='mae',
                     model_name=None,
-                    save_images=True):
+                    save_images=True,
+                    testing_loop=False):
     """ This train function evaluates on all the validation dataset one time per epoch
 
     Args:
@@ -1524,6 +1525,9 @@ def train_irradianceNet(
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
             model.train()
             
+            if testing_loop and batch_idx==30:
+                break
+            
             in_frames = torch.unsqueeze(in_frames, dim=2)
             in_frames = in_frames.to(device=device)
             out_frames = torch.unsqueeze(out_frames, dim=2)
@@ -1558,6 +1562,9 @@ def train_irradianceNet(
             ssim_val_loss = 0
             
             for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
+                
+                if testing_loop and val_batch_idx==10:
+                    break
                 
                 in_frames = in_frames.to(device=device)
                 in_frames = torch.unsqueeze(in_frames, dim=2)
