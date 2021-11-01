@@ -1584,7 +1584,9 @@ def train_irradianceNet(
                         frames_pred_Q = model(in_frames[:,:,:, n:n+patch_size, m:m+patch_size])
                         mae_val_loss_Q += mae_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
                         mse_val_loss_Q += mse_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
-                        ssim_val_loss_Q += ssim_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                        #ssim_val_loss_Q += ssim_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                        ssim_val_loss_Q = 0
+                        
                         
                 mae_val_loss += (mae_val_loss_Q / (dim*dim))
                 mse_val_loss += (mse_val_loss_Q / (dim**2))
