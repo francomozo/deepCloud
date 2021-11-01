@@ -1520,10 +1520,14 @@ def train_irradianceNet(
     for epoch in range(epochs):
         start_epoch = time.time()
         TRAIN_LOSS_EPOCH = 0 #stores values inside the current epoch
-
+        
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
             model.train()
             
+	    if batch_idx == 30:
+		
+	        break
+
             in_frames = torch.unsqueeze(in_frames, dim=2)
             in_frames = in_frames.to(device=device)
             out_frames = torch.unsqueeze(out_frames, dim=2)
@@ -1558,7 +1562,8 @@ def train_irradianceNet(
             ssim_val_loss = 0
             
             for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
-                
+                if val_batch_idx == 10:
+			break
                 in_frames = in_frames.to(device=device)
                 in_frames = torch.unsqueeze(in_frames, dim=2)
                 
