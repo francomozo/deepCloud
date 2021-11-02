@@ -1510,13 +1510,6 @@ def train_irradianceNet(
     TIME = []
 
     BEST_VAL_ACC = 1e5
-    
-    if writer:
-        in_frames, _ = next(iter(train_loader))
-        in_frames = torch.unsqueeze(in_frames, dim=2)
-        in_frames = in_frames.to(device=device)
-        writer.add_graph(model, input_to_model=in_frames, verbose=False)
-        img_size = in_frames.size(2)
         
     for epoch in range(epochs):
         start_epoch = time.time()
