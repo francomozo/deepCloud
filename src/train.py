@@ -1456,6 +1456,7 @@ def train_irradianceNet(
                     loss_for_scheduler='mae',
                     model_name=None,
                     save_images=True,
+                    direct=False,
                     testing_loop=False):
     """ This train function evaluates on all the validation dataset one time per epoch
 
@@ -1577,8 +1578,12 @@ def train_irradianceNet(
                         frames_pred_Q = model(in_frames[:,:,:, n:n+patch_size, m:m+patch_size])
                         mae_val_loss_Q += mae_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
                         mse_val_loss_Q += mse_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
-                        #ssim_val_loss_Q += ssim_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
-                        ssim_val_loss_Q = 0
+                        if direct:
+                            frames_pred_Q = torch.squeeze(frames_pred_Q, dim=1)
+                            ssim_val_loss_Q += ssim_loss(frames_pred_Q,
+                                                         torch.squeeze(out_frames[:,:,:, n:n+patch_size, m:m+patch_size], dim=1)).detach().item()
+                        else:    
+                            ssim_val_loss_Q = 0
                         
                         
                 mae_val_loss += (mae_val_loss_Q / (dim*dim))
