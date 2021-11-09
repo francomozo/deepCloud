@@ -330,7 +330,7 @@ def evaluate_gan_val(model_instance, loader, predict_horizon,
                    window_pad=0, window_pad_height=0, window_pad_width=0):
     """
         This function is the same as evaluate_model but without tqdm
-        for sbatch porpuses
+        for sbatch purposes
     """
     error_list =[]
 
@@ -419,4 +419,5 @@ def make_val_grid(model,
     
     grid = torch.cat(grid)
     return torchvision.utils.make_grid(grid, nrow=5, normalize=True)
+
 
