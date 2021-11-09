@@ -397,16 +397,18 @@ def evaluate_gan_val(model_instance, loader, predict_horizon,
 def make_val_grid(model, 
                   sequences=1,
                   device='cuda',
+                  val_mvd=None,
                   data_path_val='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',
                   csv_path_val='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/val_cosangs_in3_out6.csv'):
 
     model.eval()
     normalize = preprocessing.normalize_pixels()
-    val_mvd = MontevideoFoldersDataset(path=data_path_val,
-                                            in_channel=3, out_channel=1,
-                                            min_time_diff=5, max_time_diff=15,
-                                            transform=normalize,
-                                            csv_path=csv_path_val)
+    if val_mvd is None:
+        val_mvd = MontevideoFoldersDataset(path=data_path_val,
+                                                in_channel=3, out_channel=1,
+                                                min_time_diff=5, max_time_diff=15,
+                                                transform=normalize,
+                                                csv_path=csv_path_val)
     val_loader = DataLoader(val_mvd)
     grid = []
     flag = 0
