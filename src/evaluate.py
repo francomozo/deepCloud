@@ -2,21 +2,22 @@
 #   Model predictions evaluation functions
 #
 
+import math
+import time
+
+import cv2 as cv
 import numpy as np
 import skimage.metrics
-import math
 import torch
-import time
-from tqdm import tqdm
-import cv2 as cv
+import torchvision
 from piqa import SSIM
 from torch.utils.data import DataLoader
-import torchvision
+from tqdm import tqdm
 
 import src.lib.utils as utils
-from src import model
-from src import preprocessing
+from src import model, preprocessing
 from src.data import MontevideoFoldersDataset
+
 
 def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100, 
                    window_pad=0, window_pad_height=0, window_pad_width=0,
@@ -339,8 +340,12 @@ def evaluate_gan_val(model_instance, loader, predict_horizon,
     cmv_predict_time = []
     
     for idx, (inputs, targets) in enumerate(loader):
+        print('Before', inputs.size(), targets.size())
+        
         inputs = inputs.squeeze()
         targets = targets.squeeze()
+        
+        print('After', inputs.size(), targets.size())
         
         # predict depending on model
         if (isinstance(model_instance, list)):
