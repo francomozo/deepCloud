@@ -1457,6 +1457,8 @@ def train_irradianceNet(
                     model_name=None,
                     save_images=True,
                     direct=False,
+                    retrain=False,
+                    trained_model_dict=None,
                     testing_loop=False):
     """ This train function evaluates on all the validation dataset one time per epoch
 
@@ -1483,6 +1485,9 @@ def train_irradianceNet(
         VAL_SSIM_LOSS_GLOBAL: Lists containing the mean SSIM error of each epoch in validation
     """    
     
+    if  retrain and not trained_model_dict:
+        raise ValueError('To retrain the model dict is needed')
+    
     dim = img_size // patch_size
     
     mse_loss = nn.MSELoss()
@@ -1503,16 +1508,36 @@ def train_irradianceNet(
     if model_name is None:
         model_name = 'model' 
 
-    TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
-    VAL_MAE_LOSS_GLOBAL = []
-    VAL_MSE_LOSS_GLOBAL = []
-    VAL_SSIM_LOSS_GLOBAL = []
     
     TIME = []
 
-    BEST_VAL_ACC = 1e5
+    if retrain:
+        TRAIN_LOSS_GLOBAL = trained_model_dict['train_loss_epoch_mean']
+        VAL_MAE_LOSS_GLOBAL = trained_model_dict['val_mae_loss']
+        VAL_MSE_LOSS_GLOBAL = trained_model_dict['val_mse_loss']
+        VAL_SSIM_LOSS_GLOBAL = trained_model_dict['val_ssim_loss']
         
-    for epoch in range(epochs):
+        if trained_model_dict['validation_loss'] in ['mae', 'MAE']:
+            BEST_VAL_ACC = VAL_MAE_LOSS_GLOBAL[-1]
+        if trained_model_dict['validation_loss'] in ['mse', 'MSE']:
+            BEST_VAL_ACC = VAL_MSE_LOSS_GLOBAL[-1]
+        if trained_model_dict['validation_loss'] in ['ssim', 'SSIM']:
+            BEST_VAL_ACC = VAL_SSIM_LOSS_GLOBAL[-1]
+        
+        first_epoch = trained_model_dict['epoch']
+        print(f'Start from pre trained model, epoch: {first_epoch}, last train loss: {TRAIN_LOSS_GLOBAL[-1]}, best val loss: {BEST_VAL_ACC}')
+        
+    else:
+        TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
+        VAL_MAE_LOSS_GLOBAL = []
+        VAL_MSE_LOSS_GLOBAL = []
+        VAL_SSIM_LOSS_GLOBAL = []
+        
+        BEST_VAL_ACC = 1e5
+        
+        first_epoch = 0
+        
+    for epoch in range(first_epoch, epochs):
         start_epoch = time.time()
         TRAIN_LOSS_EPOCH = 0 #stores values inside the current epoch
 
