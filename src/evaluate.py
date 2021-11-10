@@ -2,21 +2,22 @@
 #   Model predictions evaluation functions
 #
 
+import math
+import time
+
+import cv2 as cv
 import numpy as np
 import skimage.metrics
-import math
 import torch
-import time
-from tqdm import tqdm
-import cv2 as cv
+import torchvision
 from piqa import SSIM
 from torch.utils.data import DataLoader
-import torchvision
+from tqdm import tqdm
 
 import src.lib.utils as utils
-from src import model
-from src import preprocessing
+from src import model, preprocessing
 from src.data import MontevideoFoldersDataset
+
 
 def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100, 
                    window_pad=0, window_pad_height=0, window_pad_width=0,
@@ -330,7 +331,7 @@ def evaluate_gan_val(model_instance, loader, predict_horizon,
                    window_pad=0, window_pad_height=0, window_pad_width=0):
     """
         This function is the same as evaluate_model but without tqdm
-        for sbatch porpuses
+        for sbatch purposes
     """
     error_list =[]
 
@@ -339,8 +340,12 @@ def evaluate_gan_val(model_instance, loader, predict_horizon,
     cmv_predict_time = []
     
     for idx, (inputs, targets) in enumerate(loader):
+        print('Before', inputs.size(), targets.size())
+        
         inputs = inputs.squeeze()
         targets = targets.squeeze()
+        
+        print('After', inputs.size(), targets.size())
         
         # predict depending on model
         if (isinstance(model_instance, list)):
@@ -392,16 +397,18 @@ def evaluate_gan_val(model_instance, loader, predict_horizon,
 def make_val_grid(model, 
                   sequences=1,
                   device='cuda',
+                  val_mvd=None,
                   data_path_val='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',
                   csv_path_val='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/val_cosangs_in3_out6.csv'):
 
     model.eval()
     normalize = preprocessing.normalize_pixels()
-    val_mvd = MontevideoFoldersDataset(path=data_path_val,
-                                            in_channel=3, out_channel=1,
-                                            min_time_diff=5, max_time_diff=15,
-                                            transform=normalize,
-                                            csv_path=csv_path_val)
+    if val_mvd is None:
+        val_mvd = MontevideoFoldersDataset(path=data_path_val,
+                                                in_channel=3, out_channel=1,
+                                                min_time_diff=5, max_time_diff=15,
+                                                transform=normalize,
+                                                csv_path=csv_path_val)
     val_loader = DataLoader(val_mvd)
     grid = []
     flag = 0
@@ -419,4 +426,5 @@ def make_val_grid(model,
     
     grid = torch.cat(grid)
     return torchvision.utils.make_grid(grid, nrow=5, normalize=True)
+
 

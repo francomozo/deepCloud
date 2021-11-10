@@ -17,7 +17,6 @@ from src.dl_models.unet import UNet2
 from src.lib.utils import gradient_penalty, save_checkpoint
 
 expId = # global experiment Id. string
-objective_loss = 0.05803579
 
 # Params =======================
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
