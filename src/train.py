@@ -1457,6 +1457,7 @@ def train_irradianceNet(
                     model_name=None,
                     save_images=True,
                     direct=False,
+                    train_w_last=False,
                     retrain=False,
                     trained_model_dict=None,
                     testing_loop=False):
@@ -1487,6 +1488,9 @@ def train_irradianceNet(
     
     if  retrain and not trained_model_dict:
         raise ValueError('To retrain the model dict is needed')
+    if train_w_last and direct:
+        raise ValueError('To train with only last predict horizon the model shouldnt be direct')
+        
     
     dim = img_size // patch_size
     
@@ -1554,14 +1558,25 @@ def train_irradianceNet(
 
             # forward
             frames_pred = model(in_frames)
-            if train_loss in ['mae', 'MAE', 'mse', 'MSE', 'forecaster_loss', 'FORECASTER_LOSS']:
-                loss = train_criterion(frames_pred, out_frames)
-                    
-            if train_loss in ['ssim', 'SSIM']:
-                loss = 1 - train_criterion(frames_pred, out_frames)
-            if train_loss in ['mae_ssim', 'MAE_SSIM']:
-                loss = 1 - train_criterion_ssim(frames_pred, out_frames) + train_criterion_mae(frames_pred, out_frames)
-            # backward
+            if not train_w_last:
+                if train_loss in ['mae', 'MAE', 'mse', 'MSE', 'forecaster_loss', 'FORECASTER_LOSS']:
+                    loss = train_criterion(frames_pred, out_frames)
+                        
+                if train_loss in ['ssim', 'SSIM']:
+                    loss = 1 - train_criterion(frames_pred, out_frames)
+                if train_loss in ['mae_ssim', 'MAE_SSIM']:
+                    loss = 1 - train_criterion_ssim(frames_pred, out_frames) + train_criterion_mae(frames_pred, out_frames)
+            
+            else:
+                if train_loss in ['mae', 'MAE', 'mse', 'MSE', 'forecaster_loss', 'FORECASTER_LOSS']:
+                    loss = train_criterion(frames_pred[:, -1, :,:,:], out_frames[:, -1, :,:,:])
+                if train_loss in ['ssim', 'SSIM']:
+                    loss = 1 - train_criterion(frames_pred[:, -1, :,:,:], out_frames[:, -1, :,:,:])
+                if train_loss in ['mae_ssim', 'MAE_SSIM']:
+                    loss = 1 - train_criterion_ssim(frames_pred[:, -1, :,:,:], out_frames[:, -1, :,:,:]) + train_criterion_mae(frames_pred[:, -1, :,:,:], out_frames[:, -1, :,:,:])
+            
+                
+                # backward
             optimizer.zero_grad()
             loss.backward()
 
@@ -1601,16 +1616,26 @@ def train_irradianceNet(
                         m = j * patch_size
                         
                         frames_pred_Q = model(in_frames[:,:,:, n:n+patch_size, m:m+patch_size])
-                        mae_val_loss_Q += mae_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
-                        mse_val_loss_Q += mse_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
-                        if direct:
-                            frames_pred_Q = torch.clamp(torch.squeeze(frames_pred_Q, dim=1), min=0, max=1)
+                        if not train_w_last:
+                            mae_val_loss_Q += mae_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                            mse_val_loss_Q += mse_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                            if direct:
+                                frames_pred_Q = torch.clamp(torch.squeeze(frames_pred_Q, dim=1), min=0, max=1)
+                                
+                                ssim_val_loss_Q += ssim_loss(frames_pred_Q,
+                                                            torch.squeeze(out_frames[:,:,:, n:n+patch_size, m:m+patch_size], dim=1)).detach().item()
+                            else:    
+                                ssim_val_loss_Q = 0
+                        else:
+                            mae_val_loss_Q += mae_loss(frames_pred_Q[:,-1,:,:,:],
+                                                       out_frames[:,-1,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                            mse_val_loss_Q += mse_loss(frames_pred_Q[:,-1,:,:,:],
+                                                       out_frames[:,-1,:, n:n+patch_size, m:m+patch_size]).detach().item()
+
+                            frames_pred_Q = torch.clamp(frames_pred_Q[:,-1,:,:,:], min=0, max=1)
                             
                             ssim_val_loss_Q += ssim_loss(frames_pred_Q,
-                                                         torch.squeeze(out_frames[:,:,:, n:n+patch_size, m:m+patch_size], dim=1)).detach().item()
-                        else:    
-                            ssim_val_loss_Q = 0
-                        
+                                                        out_frames[:,-1,:, n:n+patch_size, m:m+patch_size]).detach().item()
                         
                 mae_val_loss += (mae_val_loss_Q / (dim*dim))
                 mse_val_loss += (mse_val_loss_Q / (dim**2))
