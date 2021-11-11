@@ -1604,7 +1604,8 @@ def train_irradianceNet(
                 in_frames = torch.unsqueeze(in_frames, dim=2)
                 
                 out_frames = out_frames.to(device=device)
-                out_frames = torch.unsqueeze(out_frames, dim=2)
+                if not train_w_last:
+                    out_frames = torch.unsqueeze(out_frames, dim=2)
                 
                 mae_val_loss_Q = 0
                 mse_val_loss_Q = 0
