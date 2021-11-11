@@ -1548,7 +1548,7 @@ def train_irradianceNet(
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
             model.train()
             
-            if testing_loop and batch_idx==30:
+            if testing_loop and batch_idx==1:
                 break
             
             in_frames = torch.unsqueeze(in_frames, dim=2)
@@ -1597,7 +1597,7 @@ def train_irradianceNet(
             
             for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
                 
-                if testing_loop and val_batch_idx==10:
+                if testing_loop and val_batch_idx==1:
                     break
                 
                 in_frames = in_frames.to(device=device)
