@@ -1569,11 +1569,11 @@ def train_irradianceNet(
             
             else:
                 if train_loss in ['mae', 'MAE', 'mse', 'MSE', 'forecaster_loss', 'FORECASTER_LOSS']:
-                    loss = train_criterion(frames_pred[:, -1, :,:,:], out_frames[:, -1, :,:,:])
+                    loss = train_criterion(frames_pred[:, -1, :,:,:], out_frames)
                 if train_loss in ['ssim', 'SSIM']:
-                    loss = 1 - train_criterion(frames_pred[:, -1, :,:,:], out_frames[:, -1, :,:,:])
+                    loss = 1 - train_criterion(frames_pred[:, -1, :,:,:], out_frames)
                 if train_loss in ['mae_ssim', 'MAE_SSIM']:
-                    loss = 1 - train_criterion_ssim(frames_pred[:, -1, :,:,:], out_frames[:, -1, :,:,:]) + train_criterion_mae(frames_pred[:, -1, :,:,:], out_frames[:, -1, :,:,:])
+                    loss = 1 - train_criterion_ssim(frames_pred[:, -1, :,:,:], out_frames) + train_criterion_mae(frames_pred[:, -1, :,:,:], out_frames)
             
                 
                 # backward
@@ -1628,14 +1628,14 @@ def train_irradianceNet(
                                 ssim_val_loss_Q = 0
                         else:
                             mae_val_loss_Q += mae_loss(frames_pred_Q[:,-1,:,:,:],
-                                                       out_frames[:,-1,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                                                       out_frames[:,:, n:n+patch_size, m:m+patch_size]).detach().item()
                             mse_val_loss_Q += mse_loss(frames_pred_Q[:,-1,:,:,:],
-                                                       out_frames[:,-1,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                                                       out_frames[:,:, n:n+patch_size, m:m+patch_size]).detach().item()
 
                             frames_pred_Q = torch.clamp(frames_pred_Q[:,-1,:,:,:], min=0, max=1)
                             
                             ssim_val_loss_Q += ssim_loss(frames_pred_Q,
-                                                        out_frames[:,-1,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                                                        out_frames[:,:, n:n+patch_size, m:m+patch_size]).detach().item()
                         
                 mae_val_loss += (mae_val_loss_Q / (dim*dim))
                 mse_val_loss += (mse_val_loss_Q / (dim**2))
