@@ -1182,7 +1182,7 @@ class PatchesFoldersDataset_w_geodata(Dataset):
                     in_frames = in_frames/100
                     
                     in_frames = in_frames[np.newaxis]  # 1, H, W
-                    in_frames = np.concatenate((in_frames, patch_lats_lons, patch_elevation), axis=0)
+                    in_frames = np.concatenate((in_frames, self.lats_lons_array, self.elevation), axis=0)
                     in_frames = in_frames[np.newaxis]  # 1, 4, H, W
                     
                 if i > 0 and i < self.in_channel:  # next images in in_frames
@@ -1190,7 +1190,7 @@ class PatchesFoldersDataset_w_geodata(Dataset):
                         self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
                     aux = aux/100
                     aux = aux[np.newaxis]  # 1, H, W
-                    aux = np.concatenate((aux, patch_lats_lons, patch_elevation), axis=0)
+                    aux = np.concatenate((aux, self.lats_lons_array, self.elevation), axis=0)
                     aux = aux[np.newaxis]  # 1, 4, H, W
                     
                     in_frames = np.concatenate((in_frames, aux), axis=0)
