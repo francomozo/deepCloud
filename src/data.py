@@ -955,6 +955,7 @@ class MontevideoFoldersDataset_w_name(Dataset):
     def __len__(self):
         return (len(self.sequence_df))
 
+
 class PatchesFoldersDataset(Dataset):
     """Dataset for patches in R3 Dataset, separated by folders named 2020XXX
     """    
@@ -1056,6 +1057,169 @@ class PatchesFoldersDataset(Dataset):
     def __len__(self):
         return (len(self.sequence_df))
 
+
+class PatchesFoldersDataset_w_geodata(Dataset):
+    """Dataset for patches in R3 Dataset, separated by folders named 2020XXX
+    """    
+    def __init__(self, path, in_channel=3, out_channel=1, 
+                 min_time_diff=5, max_time_diff=15, csv_path=None, output_last=False,
+                 img_size=512, patch_size=128, geo_data_path=None, train=True):
+        
+        super(PatchesFoldersDataset_w_geodata, self).__init__()
+
+        self.path = path
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.min_time_diff = min_time_diff
+        self.max_time_diff = max_time_diff
+
+        self.output_last = output_last
+        if csv_path is None:
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                    in_channel=in_channel,
+                                                                    out_channel= out_channel, 
+                                                                    min_time_diff= min_time_diff, 
+                                                                    max_time_diff= max_time_diff)
+        else:
+            self.sequence_df = pd.read_csv(csv_path, header= None)
+            
+        self.img_size = img_size
+        self.pred_size = patch_size
+        
+        if not geo_data_path:
+            raise ValueError('GEO data path needed.')
+        
+        self.elevation = np.load(os.path.join(geo_data_path, 'elevation.npy'))
+        self.lats_lons_array = np.load(os.path.join(geo_data_path, 'lats_lons_array.npy'))
+        
+        self.lats_lons_array = abs(self.lats_lons_array)
+        
+        if img_size == 256:
+            self.elevation = self.elevation[1550:1550+256, 1600:1600+256]
+            self.elevation = self.elevation / np.max(abs(self.elevation))
+            self.elevation = self.elevation[np.newaxis]
+            
+            self.lats_lons_array = self.lats_lons_array[:, 1550:1550+256, 1600:1600+256]
+            self.lats_lons_array[0] = (self.lats_lons_array[0] - np.min(self.lats_lons_array[0]))/(np.max(self.lats_lons_array[0]) - np.min(self.lats_lons_array[0]))
+            self.lats_lons_array[1] = (self.lats_lons_array[1] - np.min(self.lats_lons_array[1]))/(np.max(self.lats_lons_array[1]) - np.min(self.lats_lons_array[1]))
+            
+        elif img_size == 512:
+            self.elevation = self.elevation[1205:1205+512, 1450:1450+512]
+            self.elevation = self.elevation / np.max(abs(self.elevation))
+            self.elevation = self.elevation[np.newaxis]
+            
+            self.lats_lons_array = self.lats_lons_array[:, 1205:1205+512, 1450:1450+512]
+            self.lats_lons_array[0] = (self.lats_lons_array[0] - np.min(self.lats_lons_array[0]))/(np.max(self.lats_lons_array[0]) - np.min(self.lats_lons_array[0]))
+            self.lats_lons_array[1] = (self.lats_lons_array[1] - np.min(self.lats_lons_array[1]))/(np.max(self.lats_lons_array[1]) - np.min(self.lats_lons_array[1]))
+            
+        elif img_size == 1024:
+            self.elevation = self.elevation[800:800+1024, 1250:1250+1024]
+            self.elevation = self.elevation / np.max(abs(self.elevation))
+            self.elevation = self.elevation[np.newaxis]
+            
+            self.lats_lons_array = self.lats_lons_array[:, 800:800+1024, 1250:1250+1024]
+            self.lats_lons_array[0] = (self.lats_lons_array[0] - np.min(self.lats_lons_array[0]))/(np.max(self.lats_lons_array[0]) - np.min(self.lats_lons_array[0]))
+            self.lats_lons_array[1] = (self.lats_lons_array[1] - np.min(self.lats_lons_array[1]))/(np.max(self.lats_lons_array[1]) - np.min(self.lats_lons_array[1]))
+                            
+        else:
+            raise ValueError('Img size must correspond to MVD, URU or R3.')
+                
+        self.train = train
+
+    def __getitem__(self, index):
+
+        # images loading
+        if self.train:
+            top = np.random.randint(0, self.img_size-self.pred_size)  
+            left = np.random.randint(0, self.img_size-self.pred_size)
+            
+            patch_elevation = self.elevation[:, top:top+self.pred_size, left:left+self.pred_size]  # 1,H,W
+            patch_lats_lons = self.lats_lons_array[:, top:top+self.pred_size, left:left+self.pred_size]  # 2,H,W
+            
+            for i in range(self.in_channel + self.out_channel):
+                if i == 0:  # first image in in_frames
+                    in_frames = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
+                    in_frames = in_frames/100
+                    in_frames = in_frames[np.newaxis]  # 1, H, W
+                    in_frames = np.concatenate((in_frames, patch_lats_lons, patch_elevation), axis=0)
+                    in_frames = in_frames[np.newaxis]  # 1, 4, H, W
+                    
+                if i > 0 and i < self.in_channel:  # next images in in_frames
+                    aux = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
+                    aux = aux/100
+                    aux = aux[np.newaxis]  # 1, H, W
+                    aux = np.concatenate((aux, patch_lats_lons, patch_elevation), axis=0)
+                    aux = aux[np.newaxis]  # 1, 4, H, W
+                    
+                    in_frames = np.concatenate((in_frames, aux), axis=0)
+                    
+                if self.output_last:
+                    if i == (self.in_channel + self.out_channel -1):  # first image in out_frames
+                        out_frames = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
+                        out_frames = out_frames/100
+                        out_frames = out_frames[np.newaxis]
+                else: 
+                    if i == self.in_channel:  # first image in out_frames
+                        out_frames = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
+                        out_frames = out_frames/100
+                        out_frames = out_frames[np.newaxis]
+                    if i > self.in_channel:
+                        aux = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))[top:top+self.pred_size, left:left+self.pred_size]
+                        aux = aux/100
+                        aux = aux[np.newaxis]
+                        out_frames = np.concatenate((out_frames, aux), axis=0)
+        
+        else:
+            for i in range(self.in_channel + self.out_channel):
+                if i == 0:  # first image in in_frames
+                    in_frames = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))
+                    in_frames = in_frames/100
+                    
+                    in_frames = in_frames[np.newaxis]  # 1, H, W
+                    in_frames = np.concatenate((in_frames, patch_lats_lons, patch_elevation), axis=0)
+                    in_frames = in_frames[np.newaxis]  # 1, 4, H, W
+                    
+                if i > 0 and i < self.in_channel:  # next images in in_frames
+                    aux = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    aux = aux/100
+                    aux = aux[np.newaxis]  # 1, H, W
+                    aux = np.concatenate((aux, patch_lats_lons, patch_elevation), axis=0)
+                    aux = aux[np.newaxis]  # 1, 4, H, W
+                    
+                    in_frames = np.concatenate((in_frames, aux), axis=0)
+                    
+                if self.output_last:
+                    if i == (self.in_channel + self.out_channel -1):  # first image in out_frames
+                        out_frames = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                        out_frames = out_frames/100
+                        out_frames = out_frames[np.newaxis]
+                else: 
+                    if i == self.in_channel:  # first image in out_frames
+                        out_frames = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                        out_frames = out_frames/100
+                        out_frames = out_frames[np.newaxis]
+                    if i > self.in_channel:
+                        aux = np.load(os.path.join(
+                            self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                        aux=aux/100
+                        aux = aux[np.newaxis]
+                        out_frames = np.concatenate((out_frames, aux), axis=0)
+        
+        return in_frames, out_frames
+
+    def __len__(self):
+        return (len(self.sequence_df))
+
+
 class MontevideoFoldersDataset_input_time(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
@@ -1089,22 +1253,99 @@ class MontevideoFoldersDataset_input_time(Dataset):
                     self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))
                 in_frames = in_frames[np.newaxis]
                 shape = in_frames.shape
-                in_frames_times = np.full(shape, self.sequence_df.values[index][i][8:11], dtype=np.float32)
-                in_frames_times = np.concatenate((in_frames_times, np.full(shape, self.sequence_df.values[index][i][12:14], dtype=np.float32)))
-                in_frames_times = np.concatenate((in_frames_times, np.full(shape, self.sequence_df.values[index][i][14:16], dtype=np.float32)))
+                in_frames_times = np.full(shape, int(self.sequence_df.values[index][i][14:16])/60, dtype=np.float32)
+                in_frames_times = np.concatenate((in_frames_times, np.full(shape, int(self.sequence_df.values[index][i][12:14])/24, dtype=np.float32)))
+                in_frames_times = np.concatenate((in_frames_times, np.full(shape, int(self.sequence_df.values[index][i][8:11])/356, dtype=np.float32)))#8:11
             if i > 0 and i < self.in_channel:  # next images in in_frames
                 aux = np.load(os.path.join(
                     self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
                 aux = aux[np.newaxis]
                 in_frames = np.concatenate((in_frames, aux), axis=0)
-                in_frames_times = np.concatenate((in_frames_times, np.full(shape, self.sequence_df.values[index][i][8:11], dtype=np.float32)))
-                in_frames_times = np.concatenate((in_frames_times, np.full(shape, self.sequence_df.values[index][i][12:14], dtype=np.float32)))
-                in_frames_times = np.concatenate((in_frames_times, np.full(shape, self.sequence_df.values[index][i][14:16], dtype=np.float32)))
+                in_frames_times = np.concatenate((in_frames_times, np.full(shape, int(self.sequence_df.values[index][i][14:16])/60, dtype=np.float32)))
+                in_frames_times = np.concatenate((in_frames_times, np.full(shape, int(self.sequence_df.values[index][i][12:14])/24, dtype=np.float32)))
+                in_frames_times = np.concatenate((in_frames_times, np.full(shape, int(self.sequence_df.values[index][i][8:11])/356, dtype=np.float32)))
             if self.output_last:
                 if i == (self.in_channel + self.out_channel -1):  # first image in out_frames
                     out_frames = np.load(os.path.join(
                         self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
                     out_frames = out_frames[np.newaxis]
+            else: 
+                if i == self.in_channel:  # first image in out_frames
+                    out_frames = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    out_frames = out_frames[np.newaxis]
+                if i > self.in_channel:
+                    aux = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    aux = aux[np.newaxis]
+                    out_frames = np.concatenate((out_frames, aux), axis=0)
+
+        #in_frames = np.concatenate((in_frames[0:1], in_frames_times[0:3], in_frames[1:2], in_frames_times[3:6], in_frames[2:3], in_frames_times[6:9]), axis=0)
+        if self.transform:
+            if type(self.transform) == list:
+                for function in self.transform:
+                    in_frames, out_frames = function(in_frames,out_frames) 
+            else:
+                in_frames, out_frames = self.transform(in_frames,out_frames) 
+        
+        if self.data_aug:
+            rot_angle = np.random.randint(0,4) * 90
+            in_frames = rotate(in_frames, angle=rot_angle, axes=(1,2))
+            out_frames = rotate(out_frames, angle=rot_angle, axes=(1,2))
+            
+        in_frames = np.concatenate((in_frames[0:1], in_frames_times[0:3], in_frames[1:2], in_frames_times[3:6], in_frames[2:3], in_frames_times[6:9]), axis=0)
+        return in_frames, out_frames
+
+    def __len__(self):
+        return (len(self.sequence_df))
+
+class MontevideoFoldersDataset_output_time(Dataset):
+    """Dataset for Montevideo Dataset separated by folders named 2020XXX
+    """    
+    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=True, data_aug=False):
+        super(MontevideoFoldersDataset_output_time, self).__init__()
+
+        self.path = path
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.min_time_diff = min_time_diff
+        self.max_time_diff = max_time_diff
+        self.transform = transform
+        self.output_last = output_last
+        if csv_path is None:
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                    in_channel=in_channel,
+                                                                    out_channel= out_channel, 
+                                                                    min_time_diff= min_time_diff, 
+                                                                    max_time_diff= max_time_diff)
+        else:
+            self.sequence_df = pd.read_csv(csv_path, header= None)
+        
+        self.data_aug = data_aug
+    def __getitem__(self, index):
+
+        # images loading 
+        
+        for i in range(self.in_channel + self.out_channel):
+            if i == 0:  # first image in in_frames
+                in_frames = np.load(os.path.join(
+                    self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))
+                in_frames = in_frames[np.newaxis]
+            if i > 0 and i < self.in_channel:  # next images in in_frames
+                aux = np.load(os.path.join(
+                    self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                aux = aux[np.newaxis]
+                in_frames = np.concatenate((in_frames, aux), axis=0)
+            if self.output_last:
+                if i == (self.in_channel + self.out_channel -1):  # first image in out_frames
+                    out_frames = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    out_frames = out_frames[np.newaxis]
+                    shape = out_frames.shape
+                    #out_frames_times = np.full(shape, int(self.sequence_df.values[index][i][14:16])/60, dtype=np.float32)
+                    #out_frames_times = np.concatenate((out_frames_times, np.full(shape, int(self.sequence_df.values[index][i][12:14])/24, dtype=np.float32)))
+                    out_frames_times = np.full(shape, int(self.sequence_df.values[index][i][12:14])/24, dtype=np.float32)
+                    out_frames_times = np.concatenate((out_frames_times, np.full(shape, int(self.sequence_df.values[index][i][8:11])/356, dtype=np.float32)))
             else: 
                 if i == self.in_channel:  # first image in out_frames
                     out_frames = np.load(os.path.join(
@@ -1127,8 +1368,8 @@ class MontevideoFoldersDataset_input_time(Dataset):
             rot_angle = np.random.randint(0,4) * 90
             in_frames = rotate(in_frames, angle=rot_angle, axes=(1,2))
             out_frames = rotate(out_frames, angle=rot_angle, axes=(1,2))
-            
-        in_frames = np.concatenate((in_frames[0:1], in_frames_times[0:3], in_frames[1:2], in_frames_times[3:6], in_frames[2:3], in_frames_times[6:9]), axis=0)
+
+        in_frames = np.concatenate((in_frames, out_frames_times), axis=0)
         return in_frames, out_frames
 
     def __len__(self):
