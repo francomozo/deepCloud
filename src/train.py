@@ -1231,7 +1231,8 @@ def train_model_full(
                     loss_for_scheduler='mae',
                     model_name=None,
                     save_images=True,
-                    predict_diff=False):
+                    predict_diff=False,
+                    testing_loop=False):
     """ This train function evaluates on all the validation dataset one time per epoch
 
     Args:
@@ -1288,17 +1289,21 @@ def train_model_full(
 
     BEST_VAL_ACC = 1e5
     
-    # if writer:
-    #     in_frames, _ = next(iter(train_loader))
-    #     in_frames = in_frames.to(device=device)
-    #     writer.add_graph(model, input_to_model=in_frames, verbose=False)
-    #     img_size = in_frames.size(2)
+    if writer:
+        in_frames, _ = next(iter(train_loader))
+        in_frames = in_frames.to(device=device)
+        # writer.add_graph(model, input_to_model=in_frames, verbose=False)
+        img_size = in_frames.size(2)
         
     for epoch in range(epochs):
         start_epoch = time.time()
         TRAIN_LOSS_EPOCH = 0 #stores values inside the current epoch
 
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
+            
+            if testing_loop and batch_idx == 1:
+                break
+            
             model.train()
 
             in_frames = in_frames.to(device=device)
@@ -1337,6 +1342,10 @@ def train_model_full(
             ssim_val_loss = 0
             
             for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
+                
+                if testing_loop and val_batch_idx == 1:
+                    break
+                
                 in_frames = in_frames.to(device=device)
                 out_frames = out_frames.to(device=device)
 
@@ -1352,6 +1361,7 @@ def train_model_full(
                 if not predict_diff:
                     mae_val_loss += mae_loss(frames_pred, out_frames).detach().item()
                     mse_val_loss += mse_loss(frames_pred, out_frames).detach().item()
+                    frames_pred = torch.clamp(frames_pred, min=0, max=1)
                     ssim_val_loss += ssim_loss(frames_pred, out_frames).detach().item()
           
                 if writer and (val_batch_idx == 0) and save_images and epoch>35:
