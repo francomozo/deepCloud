@@ -683,8 +683,10 @@ with torch.no_grad():
     if not PREDICT_DIFF:
         frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
     if PREDICT_DIFF:
-        diff_pred = model(in_frames.type(torch.cuda.FloatTensor))        
-        frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1) 
+        diff_pred = model(in_frames.type(torch.cuda.FloatTensor))
+        img_diff_pred = diff_pred[0, 0, :, :].cpu().numpy()
+        frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1)
+        
     
 frames_array = np.ones((5, M, N))
 frames_array[0:3] = in_frames[0].cpu().numpy()
@@ -693,6 +695,10 @@ frames_array[4] = frames_pred[0,0].cpu().numpy()
     
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence.png')
 visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
+
+if PREDICT_DIFF:
+    fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence_diff_pred.png')
+    visualization.show_image_w_colorbar(img_diff_pred, fig_name=fig_name, save_fig=True)
 
 # FIRST LAYER OF FILTERS OUTPUT
 if M < 1000:
