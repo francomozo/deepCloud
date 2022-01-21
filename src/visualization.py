@@ -313,7 +313,7 @@ def show_image_w_colorbar(image, fig_name=None, save_fig=False):
     plt.show()
     
     
-def show_images_diff(img1,img2):
+def show_images_diff(img1, img2):
     """
     Shows the difference between two images with a colorbar 
 
@@ -322,7 +322,7 @@ def show_images_diff(img1,img2):
         img2(array): Array containing the values of the image 2
     """    
     if (img1.shape != img2.shape):
-        raise ValueError('Images must have the same shape, img1:',img1.shape,'img2:',img2.shape)
+        raise ValueError('Images must have the same shape, img1:', img1.shape,'img2:', img2.shape)
     diff = abs(img1-img2)
     fig, (ax1) = plt.subplots(figsize=(14, 4), ncols=1)
     image_ = ax1.imshow(diff, interpolation='none')
@@ -339,7 +339,7 @@ def use_filter(in_frames, filter_):
     r1 = (Mf-1)//2
     r2 = (Nf-1)//2
     
-    in_frames_padded = np.zeros((C,M+r1*2, N+r2*2))
+    in_frames_padded = np.zeros((C, M+r1*2, N+r2*2))
     in_frames_padded[:, 1:-1, 1:-1] = in_frames[0]
     output = np.zeros((M,N))
 
