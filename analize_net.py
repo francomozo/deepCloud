@@ -400,7 +400,7 @@ if SAVE_IMAGES_PATH:
                             SAVE_IMAGES_PATH, 'MSE_p_hour.png')
                 )
 plt.show()
-
+plt.close()
 
 plt.figure(figsize=(12, 6))
 plt.plot(mean_SSIM, '-o', label='Full Window')
@@ -417,7 +417,7 @@ if SAVE_IMAGES_PATH:
                             SAVE_IMAGES_PATH, 'SSIM_p_hour.png')
                 )
 plt.show()
-
+plt.close()
 
 plt.figure(figsize=(12, 6))
 plt.plot(mean_PSNR, '-o')
@@ -470,6 +470,7 @@ if SAVE_IMAGES_PATH:
                             SAVE_IMAGES_PATH, 'scatterplot_std.png')
                 )
 plt.show()
+plt.close()
 
 #MEANS DENSITY DISTRIBUTION
 xmin, xmax = np.min(gt_mean)-0.01, np.max(gt_mean)+0.01
@@ -495,6 +496,7 @@ if SAVE_IMAGES_PATH:
                             SAVE_IMAGES_PATH, 'mean_distribution.png')
                 )
 plt.show()
+plt.close()
 
 #STD DENSITY DISTRIBUTION
 xmin, xmax = np.min(gt_std)-0.01, np.max(gt_std)+0.01
@@ -521,6 +523,7 @@ if SAVE_IMAGES_PATH:
                             SAVE_IMAGES_PATH, 'std_distribution.png')
                 )
 plt.show()
+plt.close()
 
 # IMG MEANS HISTOGRAM
 plt.figure(figsize=(8,6))
@@ -537,6 +540,7 @@ if SAVE_IMAGES_PATH:
                             SAVE_IMAGES_PATH, 'means_histogram.png')
                 )
 plt.show()
+plt.close()
 
 # IMG STD DEV HISTOGRAM
 plt.figure(figsize=(8,6))
@@ -553,33 +557,49 @@ if SAVE_IMAGES_PATH:
                             SAVE_IMAGES_PATH, 'stds_histogram.png')
                 )
 plt.show()
+plt.close()
 
 #BEST AND WORST PREDICTIONS
 
 # print('MAE best prediction, day:', int(best_MAE_time[0].numpy()),'hour:', int(best_MAE_time[1].numpy()))
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE best prediction, day:'+str(int(best_MAE_time[0].numpy()))+'hour:'+ str(int(best_MAE_time[1].numpy())).zfill(2)+str(int(best_MAE_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(best_MAE_images, fig_name=fig_name, save_fig=True)
+plt.close()
+
 # print('MAE worst prediction, day:', int(worst_MAE_time[0].numpy()),'hour:', int(worst_MAE_time[1].numpy())) 
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE worst prediction, day:'+str(int(worst_MAE_time[0].numpy()))+'hour:'+ str(int(worst_MAE_time[1].numpy())).zfill(2) + str(int(worst_MAE_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(worst_MAE_images, fig_name=fig_name, save_fig=True)
+plt.close()
+
 # print('MSE best prediction, day:', int(best_MSE_time[0].numpy()),'hour:', int(best_MSE_time[1].numpy()))
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'MSE best prediction, day:'+str(int(best_MSE_time[0].numpy()))+'hour:'+ str(int(best_MSE_time[1].numpy())).zfill(2) + str(int(best_MSE_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(best_MSE_images, fig_name=fig_name, save_fig=True)
+plt.close()
+
 # print('MSE worst prediction, day:', int(worst_MSE_time[0].numpy()),'hour:', int(worst_MSE_time[1].numpy()))
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'MSE worst prediction, day:'+str(int(worst_MSE_time[0].numpy()))+'hour:'+ str(int(worst_MSE_time[1].numpy())).zfill(2) + str(int(worst_MSE_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(worst_MSE_images, fig_name=fig_name, save_fig=True)
+plt.close()
+
 # print('PSNR best prediction, day:', int(best_PSNR_time[0].numpy()),'hour:', int(best_PSNR_time[1].numpy()))
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'PSNR best prediction, day:'+str(int(best_PSNR_time[0].numpy()))+'hour:'+ str(int(best_PSNR_time[1].numpy())).zfill(2) + str(int(best_PSNR_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(best_PSNR_images, fig_name=fig_name, save_fig=True)
+plt.close()
+
 # print('PSNR worst prediction, day:', int(worst_PSNR_time[0].numpy()),'hour:', int(worst_PSNR_time[1].numpy()))
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'PSNR worst prediction, day:'+str(int(worst_PSNR_time[0].numpy()))+'hour:'+ str(int(worst_PSNR_time[1].numpy())).zfill(2) + str(int(worst_PSNR_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(worst_PSNR_images, fig_name=fig_name, save_fig=True)
+plt.close()
+
 # print('SSIM best prediction, day:', int(best_SSIM_time[0].numpy()),'hour:', int(best_SSIM_time[1].numpy()))
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'SSIM best prediction, day:'+str(int(best_SSIM_time[0].numpy()))+'hour:'+ str(int(best_SSIM_time[1].numpy())).zfill(2) + str(int(best_SSIM_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(best_SSIM_images, fig_name=fig_name, save_fig=True)
+plt.close()
+
 # print('SSIM worst prediction, day:', int(worst_SSIM_time[0].numpy()),'hour:', int(worst_SSIM_time[1].numpy()))
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'SSIM worst prediction, day:'+str(int(worst_SSIM_time[0].numpy()))+'hour:'+ str(int(worst_SSIM_time[1].numpy())).zfill(2) + str(int(worst_SSIM_time[2].numpy())).zfill(2))
 visualization.show_seq_and_pred(worst_SSIM_images, fig_name=fig_name, save_fig=True)
+plt.close()
 
 
 # PRECITIONS WITH INPUT ALL ONES OR ZEROS
@@ -592,8 +612,12 @@ with torch.no_grad():
 
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'prediction_from_ones.png')
 visualization.show_image_w_colorbar(ones_pred[0,0].cpu().numpy(), fig_name=fig_name, save_fig=True)
+plt.close()
+
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'prediction_from_zeros.png')
 visualization.show_image_w_colorbar(zeros_pred[0,0].cpu().numpy(), fig_name=fig_name, save_fig=True)
+plt.close()
+
 
                
 # OUTPUT WITH MOST NANS SEQUENCE
@@ -702,14 +726,16 @@ if PREDICT_DIFF:
 
 # FIRST LAYER OF FILTERS OUTPUT
 if M < 1000:
-  output_list = []
+    output_list = []
 
-  with torch.no_grad():
-      for m in model.modules():
-          if isinstance(m, nn.Conv2d):
-              for filter_ in m.weight:
-                  output = visualization.use_filter(in_frames.cpu().numpy(), filter_.cpu().numpy()) 
-                  output_list.append(output)
-              break
-  fig_name = os.path.join(SAVE_IMAGES_PATH, 'filter_layer_output.png')
-  visualization.show_image_list(output_list, rows=8, fig_name=fig_name, save_fig=True)
+    with torch.no_grad():
+        for m in model.modules():
+            if isinstance(m, nn.Conv2d):
+                for filter_ in m.weight:
+                    output = visualization.use_filter(in_frames.cpu().numpy(), filter_.cpu().numpy()) 
+                    output_list.append(output)
+                break
+    fig_name = os.path.join(SAVE_IMAGES_PATH, 'filter_layer_output.png')
+    visualization.show_image_list(output_list, rows=8, fig_name=fig_name, save_fig=True)
+    plt.close()
+    
