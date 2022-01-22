@@ -4,9 +4,9 @@ import re
 
 from src import data
 
-fr_folder_path = '/clusteruy/home03/DeepCloud/deepCloud/data/raw_test/C02-FR'
-mk_folder_path = '/clusteruy/home03/DeepCloud/deepCloud/data/raw_test/C02-MK'
-meta_path = '/clusteruy/home03/DeepCloud/deepCloud/data/raw_test/meta'
+fr_folder_path = '/clusteruy/home03/DeepCloud/deepCloud/data/raw-test/C02-FR'
+mk_folder_path = '/clusteruy/home03/DeepCloud/deepCloud/data/raw-test/C02-MK'
+meta_path = '/clusteruy/home03/DeepCloud/deepCloud/data/raw-test/meta'
 
 def raw_test_2_datasets(imgs_list=[],
                         meta_path='data/meta',
