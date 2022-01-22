@@ -771,6 +771,7 @@ def save_imgs_list_2npy(imgs_list=[],
         img_folder_path (str, optional): Defaults to 'data/C02-FR/2020'.
         destintation_path (str, optional): Defaults to 'data/images'.
         split_days_into_folders (bool, optional): Defaults to False.
+        region (str, optional): Select cropping region. 
     """
 
     for filename in imgs_list:
@@ -780,14 +781,13 @@ def save_imgs_list_2npy(imgs_list=[],
             mk_folder_path=mk_folder_path,
             img_folder_path=img_folder_path,
         )
-
         
-        if region is None:
-            # cut montevideo
-            img = img[1550:1550+256, 1600:1600+256]
+        if region == 'mvd':
+            img = img[1550: 1550 + 256, 1600: 1600 + 256]
         elif region == 'uru':
-            img = img[1205:1205+512, 1450:1450+512]
-            
+            img = img[1205: 1205 + 512, 1450: 1450 + 512]
+        elif region == 'region3':           
+            img = img[800: 800 + 1024, 1250: 1250 + 1024]
 
         # image clipping
         if (True):  # sets pixel over 100 to 100
