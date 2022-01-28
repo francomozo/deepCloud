@@ -1232,6 +1232,8 @@ def train_model_full(
                     model_name=None,
                     save_images=True,
                     predict_diff=False,
+                    retain=False,
+                    trained_model_dict=None,
                     testing_loop=False):
     """ This train function evaluates on all the validation dataset one time per epoch
 
@@ -1258,7 +1260,9 @@ def train_model_full(
         VAL_MSE_LOSS_GLOBAL: Lists containing the mean MSE error of each epoch in validation
         VAL_SSIM_LOSS_GLOBAL: Lists containing the mean SSIM error of each epoch in validation
     """    
-    
+    if  retrain and not trained_model_dict:
+        raise ValueError('To retrain the model dict is needed')
+
     if  predict_diff and (train_loss in ['ssim', 'SSIM']):
         raise ValueError('Cannot use ssim as train function and predict diff. (Yet)')
     
@@ -1279,23 +1283,42 @@ def train_model_full(
         train_criterion = FORECASTER_LOSS()
     if model_name is None:
         model_name = 'model' 
-
-    TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
-    VAL_MAE_LOSS_GLOBAL = []
-    VAL_MSE_LOSS_GLOBAL = []
-    VAL_SSIM_LOSS_GLOBAL = []
     
     TIME = []
 
-    BEST_VAL_ACC = 1e5
-    
+    if retrain:
+        TRAIN_LOSS_GLOBAL = trained_model_dict['train_loss_epoch_mean']
+        VAL_MAE_LOSS_GLOBAL = trained_model_dict['val_mae_loss']
+        VAL_MSE_LOSS_GLOBAL = trained_model_dict['val_mse_loss']
+        VAL_SSIM_LOSS_GLOBAL = trained_model_dict['val_ssim_loss']
+        
+        if trained_model_dict['validation_loss'] in ['mae', 'MAE']:
+            BEST_VAL_ACC = VAL_MAE_LOSS_GLOBAL[-1]
+        if trained_model_dict['validation_loss'] in ['mse', 'MSE']:
+            BEST_VAL_ACC = VAL_MSE_LOSS_GLOBAL[-1]
+        if trained_model_dict['validation_loss'] in ['ssim', 'SSIM']:
+            BEST_VAL_ACC = VAL_SSIM_LOSS_GLOBAL[-1]
+        
+        first_epoch = trained_model_dict['epoch']
+        print(f'Start from pre trained model, epoch: {first_epoch}, last train loss: {TRAIN_LOSS_GLOBAL[-1]}, best val loss: {BEST_VAL_ACC}')
+        
+    else:
+        TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
+        VAL_MAE_LOSS_GLOBAL = []
+        VAL_MSE_LOSS_GLOBAL = []
+        VAL_SSIM_LOSS_GLOBAL = []
+        
+        BEST_VAL_ACC = 1e5
+        
+        first_epoch = 0
+
     if writer:
         in_frames, _ = next(iter(train_loader))
         in_frames = in_frames.to(device=device)
         # writer.add_graph(model, input_to_model=in_frames, verbose=False)
         img_size = in_frames.size(2)
         
-    for epoch in range(epochs):
+    for epoch in range(first_epoch, epochs):
         start_epoch = time.time()
         TRAIN_LOSS_EPOCH = 0 #stores values inside the current epoch
 
@@ -1363,15 +1386,7 @@ def train_model_full(
                     mse_val_loss += mse_loss(frames_pred, out_frames).detach().item()
                     frames_pred = torch.clamp(frames_pred, min=0, max=1)
                     ssim_val_loss += ssim_loss(frames_pred, out_frames).detach().item()
-          
-                if writer and (val_batch_idx == 0) and save_images and epoch>35:
-                    if img_size < 1000:
-                        writer.add_images('groundtruth_batch', out_frames[:10], epoch)
-                        writer.add_images('predictions_batch', frames_pred[:10], epoch)
-                    else:
-                        writer.add_images('groundtruth_batch', out_frames[0], epoch)
-                        writer.add_images('predictions_batch', frames_pred[0], epoch)
-                    
+
         VAL_MAE_LOSS_GLOBAL.append(mae_val_loss/len(val_loader))
         VAL_MSE_LOSS_GLOBAL.append(mse_val_loss/len(val_loader))
         VAL_SSIM_LOSS_GLOBAL.append(ssim_val_loss/len(val_loader))
@@ -1740,6 +1755,183 @@ def train_irradianceNet(
         torch.save(model_dict, os.path.join(PATH,NAME))
     
     return TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL
+
+
+def train_model_double_val(
+                    model,
+                    train_loss,
+                    optimizer,
+                    device,
+                    train_loader,
+                    val_loader_w_csv,
+                    val_loader_wo_csv,
+                    epochs,
+                    verbose=True,
+                    writer=None,
+                    testing_loop=False):
+    """ This train function evaluates on two validation datasets per epoch. 
+
+    Args:
+        model (torch.model): [description]
+        train_loss (str): Train criterion to use ('mae','mse','ssim')
+        optimizer (torch.optim): [description]
+        device ([type]): [description]
+        train_loader ([type]): [description]
+        epochs (int): [description]
+        val_loader_w_csv ([type]): [description]
+        val_loader_wo_csv ([type]): [description]
+        verbose (bool, optional): Print trainning status. Defaults to True.
+        writer (tensorboard.writer, optional): Logs loss values to tensorboard. Defaults to None.
+        
+    Returns:
+        TRAIN_LOSS_GLOBAL: Mean train loss in each epoch 
+        VAL_MAE_LOSS_GLOBAL: Lists containing the mean MAE error of each epoch in validation
+        VAL_MSE_LOSS_GLOBAL: Lists containing the mean MSE error of each epoch in validation
+        VAL_SSIM_LOSS_GLOBAL: Lists containing the mean SSIM error of each epoch in validation
+    """
+    mse_loss = nn.MSELoss()
+    mae_loss = nn.L1Loss()
+    ssim_loss = SSIM(n_channels=1).cuda()
+    
+    if train_loss in ['mae', 'MAE']:
+        train_criterion = mae_loss
+    if train_loss in ['mse', 'MSE']:
+        train_criterion = mse_loss
+    if train_loss in ['ssim', 'SSIM']:
+        train_criterion = ssim_loss
+    if train_loss in ['mae_ssim', 'MAE_SSIM']:
+        train_criterion_mae = mae_loss
+        train_criterion_ssim = ssim_loss
+    if train_loss in ['forecaster_loss', 'FORECASTER_LOSS']:
+        train_criterion = FORECASTER_LOSS()
+    
+    TIME = []
+
+    TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
+    VAL_MAE_LOSS_GLOBAL_W_CSV = []
+    VAL_MSE_LOSS_GLOBAL_W_CSV = []
+    VAL_SSIM_LOSS_GLOBAL_W_CSV = []
+    
+    VAL_MAE_LOSS_GLOBAL_WO_CSV = []
+    VAL_MSE_LOSS_GLOBAL_WO_CSV = []
+    VAL_SSIM_LOSS_GLOBAL_WO_CSV = []
+        
+    for epoch in range(epochs):
+        start_epoch = time.time()
+        TRAIN_LOSS_EPOCH = 0 #stores values inside the current epoch
+
+        for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
+            
+            if testing_loop and batch_idx == 1:
+                break
+            
+            model.train()
+
+            in_frames = in_frames.to(device=device)
+            out_frames = out_frames.to(device=device)
+
+            # forward
+            frames_pred = model(in_frames)
+            if train_loss in ['mae', 'MAE', 'mse', 'MSE', 'forecaster_loss', 'FORECASTER_LOSS']:
+                loss = train_criterion(frames_pred, out_frames)
+            if train_loss in ['ssim', 'SSIM']:
+                loss = 1 - train_criterion(frames_pred, out_frames)
+            if train_loss in ['mae_ssim', 'MAE_SSIM']:
+                loss = 1 - train_criterion_ssim(frames_pred, out_frames) + train_criterion_mae(frames_pred, out_frames)
+            # backward
+            optimizer.zero_grad()
+            loss.backward()
+
+            # gradient descent or adam step
+            optimizer.step()
+
+            TRAIN_LOSS_EPOCH += loss.detach().item()
+            
+        TRAIN_LOSS_GLOBAL.append(TRAIN_LOSS_EPOCH / len(train_loader))
+        
+        #evaluation
+        model.eval()
+
+        with torch.no_grad():
+            mse_val_loss_w_csv = 0
+            mae_val_loss_w_csv = 0
+            ssim_val_loss_w_csv = 0
+            
+            for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader_w_csv):
+                
+                if testing_loop and val_batch_idx == 1:
+                    break
+                
+                in_frames = in_frames.to(device=device)
+                out_frames = out_frames.to(device=device)
+
+                frames_pred = model(in_frames)
+
+                mae_val_loss_w_csv += mae_loss(frames_pred, out_frames).detach().item()
+                mse_val_loss_w_csv += mse_loss(frames_pred, out_frames).detach().item()
+                frames_pred = torch.clamp(frames_pred, min=0, max=1)
+                ssim_val_loss_w_csv += ssim_loss(frames_pred, out_frames).detach().item()
+            
+            mse_val_loss_wo_csv = 0
+            mae_val_loss_wo_csv = 0
+            ssim_val_loss_wo_csv = 0
+                  
+            for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader_wo_csv):
+                
+                if testing_loop and val_batch_idx == 1:
+                    break
+                
+                in_frames = in_frames.to(device=device)
+                out_frames = out_frames.to(device=device)
+
+                frames_pred = model(in_frames)
+                
+                mae_val_loss_wo_csv += mae_loss(frames_pred, out_frames).detach().item()
+                mse_val_loss_wo_csv += mse_loss(frames_pred, out_frames).detach().item()
+                frames_pred = torch.clamp(frames_pred, min=0, max=1)
+                ssim_val_loss_wo_csv += ssim_loss(frames_pred, out_frames).detach().item()
+
+        VAL_MAE_LOSS_GLOBAL_W_CSV.append(mae_val_loss_w_csv / len(val_loader_w_csv))
+        VAL_MSE_LOSS_GLOBAL_W_CSV.append(mse_val_loss_w_csv / len(val_loader_w_csv))
+        VAL_SSIM_LOSS_GLOBAL_W_CSV.append(ssim_val_loss_w_csv / len(val_loader_w_csv))
+        
+        VAL_MAE_LOSS_GLOBAL_WO_CSV.append(mae_val_loss_wo_csv / len(val_loader_wo_csv))
+        VAL_MSE_LOSS_GLOBAL_WO_CSV.append(mse_val_loss_wo_csv / len(val_loader_wo_csv))
+        VAL_SSIM_LOSS_GLOBAL_WO_CSV.append(ssim_val_loss_wo_csv / len(val_loader_wo_csv))
+                     
+        end_epoch = time.time()
+        TIME = end_epoch - start_epoch
+        
+        if verbose:
+            # print statistics
+            print(f'Epoch({epoch + 1}/{epochs}) | ', end='')
+            print(f'Train_loss({(TRAIN_LOSS_GLOBAL[-1]):06.4f})')
+            print(f'WITH CSV: Val MAE({VAL_MAE_LOSS_GLOBAL_W_CSV[-1]:.4f}) | Val MSE({VAL_MSE_LOSS_GLOBAL_W_CSV[-1]:.4f}) | Val SSIM({VAL_SSIM_LOSS_GLOBAL_W_CSV[-1]:.4f}) |')
+            print(f'WITHOUT CSV: Val MAE({VAL_MAE_LOSS_GLOBAL_WO_CSV[-1]:.4f}) | Val MSE({VAL_MSE_LOSS_GLOBAL_WO_CSV[-1]:.4f}) | Val SSIM({VAL_SSIM_LOSS_GLOBAL_WO_CSV[-1]:.4f}) |')
+            print(f'Time_Epoch({TIME:.2f}s)') # this part maybe dont print
+                    
+        if writer: 
+            #add values to tensorboard 
+            writer.add_scalar("TRAIN LOSS, EPOCH MEAN", TRAIN_LOSS_GLOBAL[-1], epoch)
+            writer.add_scalar("VALIDATION MAE W CSV", VAL_MAE_LOSS_GLOBAL_W_CSV[-1] , epoch)
+            writer.add_scalar("VALIDATION MSE W CSV",  VAL_MSE_LOSS_GLOBAL_W_CSV[-1], epoch)
+            writer.add_scalar("VALIDATION SSIM W CSV",  VAL_SSIM_LOSS_GLOBAL_W_CSV[-1], epoch)
+            writer.add_scalar("VALIDATION MAE WO CSV", VAL_MAE_LOSS_GLOBAL_WO_CSV[-1] , epoch)
+            writer.add_scalar("VALIDATION MSE WO CSV",  VAL_MSE_LOSS_GLOBAL_WO_CSV[-1], epoch)
+            writer.add_scalar("VALIDATION SSIM WO CSV",  VAL_SSIM_LOSS_GLOBAL_WO_CSV[-1], epoch)
+
+    results_dict = {
+        "TRAIN LOSS, EPOCH MEAN": TRAIN_LOSS_GLOBAL,
+        "VALIDATION MAE W CSV": VAL_MAE_LOSS_GLOBAL_W_CSV,
+        "VALIDATION MSE W CSV": VAL_MSE_LOSS_GLOBAL_W_CSV,
+        "VALIDATION SSIM W CSV": VAL_SSIM_LOSS_GLOBAL_W_CSV,
+        "VALIDATION MAE WO CSV": VAL_MAE_LOSS_GLOBAL_WO_CSV,
+        "VALIDATION MSE WO CSV": VAL_MSE_LOSS_GLOBAL_WO_CSV,
+        "VALIDATION SSIM WO CSV": VAL_SSIM_LOSS_GLOBAL_WO_CSV
+        
+    }
+    
+    return results_dict
 
 
 class FORECASTER_LOSS(nn.Module):
