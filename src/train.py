@@ -1232,7 +1232,7 @@ def train_model_full(
                     model_name=None,
                     save_images=True,
                     predict_diff=False,
-                    retain=False,
+                    retrain=False,
                     trained_model_dict=None,
                     testing_loop=False):
     """ This train function evaluates on all the validation dataset one time per epoch
