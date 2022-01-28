@@ -17,7 +17,7 @@ nb-andres.ipynb
 checkpoints/
 exp_gan_a[a-z]*.py
 pytorch_modelsize
-nb-unet-study.ipynb
+nb-models-study.ipynb
 nb-cloud-cast.ipynb
 CloudCast/
 
