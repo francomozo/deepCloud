@@ -1324,7 +1324,7 @@ def train_model_full(
 
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
             
-            if testing_loop and batch_idx == 1:
+            if testing_loop and batch_idx == 10:
                 break
             
             model.train()
@@ -1366,7 +1366,7 @@ def train_model_full(
             
             for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
                 
-                if testing_loop and val_batch_idx == 1:
+                if testing_loop and val_batch_idx == 10:
                     break
                 
                 in_frames = in_frames.to(device=device)
