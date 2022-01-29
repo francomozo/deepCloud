@@ -84,7 +84,8 @@ for lr, mdl in grid_search:
               key, value = checkpoint['model_state_dict'].popitem(False)
               checkpoint['model_state_dict'][key[7:] if key[:7] == 'module.' else key] = value
       model.load_state_dict(checkpoint['model_state_dict']) 
-
+  else:
+      checkpoint = None
  
   model.to(device)
   
