@@ -25,7 +25,7 @@ from src.lib.utils_irradianceNet import convert_to_full_res, interpolate_borders
 # DeepCloud
 from src import data, evaluate, model, preprocessing, visualization, train
 from src.lib import utils
-from src.data import MontevideoFoldersDataset
+from src.data import PatchesFoldersDataset_w_geodata, PatchesFoldersDataset
 
 print('finis import')
 
