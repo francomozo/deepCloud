@@ -113,6 +113,7 @@ mse_loss = nn.MSELoss()
 mae_loss = nn.L1Loss()
 ssim_loss = SSIM(n_channels=1).cuda()
 
+print('Starting Evaluation')
 model.eval()
 
 with torch.no_grad():
@@ -127,6 +128,8 @@ with torch.no_grad():
         ssim_val_loss = np.zeros((n_future_frames))
     
     for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
+        if val_batch_idx % 200 == 0:
+            print(val_batch_idx + 1, '/', len(val_loader))
 
         if not geo_data:
             in_frames = torch.unsqueeze(in_frames, dim=2)
@@ -196,6 +199,6 @@ with torch.no_grad():
                 mse_val_loss[x] += (mse_val_loss_Q[x] / (dim**2))
                 ssim_val_loss[x] += (ssim_val_loss_Q[x] / (dim**2))
 
-print('MAE:', mae_val_loss)
-print('MSE:', mse_val_loss)
-print('SSIM:', ssim_val_loss)
+print('MAE:', mae_val_loss / len(val_loader))
+print('MSE:', mse_val_loss / len(val_loader))
+print('SSIM:', ssim_val_loss / len(val_loader))
