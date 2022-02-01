@@ -1537,7 +1537,6 @@ def train_irradianceNet(
         train_criterion = FORECASTER_LOSS()
     if model_name is None:
         model_name = 'model' 
-
     
     TIME = []
 
@@ -1655,7 +1654,9 @@ def train_irradianceNet(
                                 frames_pred_Q = torch.clamp(torch.squeeze(frames_pred_Q, dim=1), min=0, max=1)
                                 
                                 ssim_val_loss_Q += ssim_loss(frames_pred_Q,
-                                                            torch.squeeze(out_frames[:,:,:, n:n+patch_size, m:m+patch_size], dim=1)).detach().item()
+                                                            torch.squeeze(out_frames[:,:,:, n:n+patch_size, m:m+patch_size],
+                                                                          dim=1)
+                                                            ).detach().item()
                             else:    
                                 ssim_val_loss_Q = 0
                         else:
@@ -1672,14 +1673,6 @@ def train_irradianceNet(
                 mae_val_loss += (mae_val_loss_Q / (dim*dim))
                 mse_val_loss += (mse_val_loss_Q / (dim**2))
                 ssim_val_loss += (ssim_val_loss_Q / (dim**2))
-          
-                # if writer and (val_batch_idx == 0) and save_images and epoch>35:
-                #     if img_size < 1000:
-                #         writer.add_images('groundtruth_batch', out_frames[:10], epoch)
-                #         writer.add_images('predictions_batch', frames_pred[:10], epoch)
-                #     else:
-                #         writer.add_images('groundtruth_batch', out_frames[0], epoch)
-                #         writer.add_images('predictions_batch', frames_pred[0], epoch)
                     
         VAL_MAE_LOSS_GLOBAL.append(mae_val_loss/len(val_loader))
         VAL_MSE_LOSS_GLOBAL.append(mse_val_loss/len(val_loader))
