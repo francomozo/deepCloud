@@ -63,6 +63,7 @@ elif dataset == 'uru':
 elif dataset == 'region3':
     img_size = 1024
 
+dim = img_size // patch_size
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
 if geo_data:
     val_mvd = PatchesFoldersDataset_w_geodata(
