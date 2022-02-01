@@ -81,7 +81,13 @@ if patch_model:
         in_chan=in_channel,
         image_size=patch_size).cuda()
 
-model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu'))["model_state_dict"])  
+checkpoint = torch.load(MODEL_PATH, map_location=device)
+if torch.cuda.device_count() == 1:
+    for _ in range(len(checkpoint['model_state_dict'])):
+        key, value = checkpoint['model_state_dict'].popitem(False)
+        checkpoint['model_state_dict'][key[7:] if key[:7] == 'module.' else key] = value
+model.load_state_dict(checkpoint['model_state_dict'])
+
 model.eval()
 
 with torch.no_grad():
