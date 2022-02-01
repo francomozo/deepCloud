@@ -35,10 +35,10 @@ print('using device:', device)
 torch.manual_seed(50)
 
 patch_model = True
-MODEL_PATH = 'checkpoints/R3/240min/240min_UNET2_mae_sigmoid_f32_R3_48_31-08-2021_11:34.pt'
+MODEL_PATH = 'checkpoints/10min_IrradianceNet_uru_mae_60_04-11-2021_05:40.pt'
 
 in_channel = 1  # 1 if only image, higher if more metadata in training
-n_future_frames = 4
+n_future_frames = 6
 input_seq_len = 3
 patch_size = 128
 dataset = 'uru'
@@ -165,6 +165,6 @@ with torch.no_grad():
                 mse_val_loss[x] += (mse_val_loss_Q[x] / (dim**2))
                 ssim_val_loss[x] += (ssim_val_loss_Q[x] / (dim**2))
 
-print('MAE:' mse_val_loss)
-print('MSE:' mse_val_loss)
-print('SSIM:' mse_val_loss)
+print('MAE:', mse_val_loss)
+print('MSE:', mse_val_loss)
+print('SSIM:', mse_val_loss)
