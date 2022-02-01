@@ -37,12 +37,12 @@ torch.manual_seed(50)
 patch_model = True
 MODEL_PATH = 'checkpoints/R3/240min/240min_UNET2_mae_sigmoid_f32_R3_48_31-08-2021_11:34.pt'
 
-in_channel = 1  # 1 if only image, higher if more metadata in training
 n_future_frames = 4
 input_seq_len = 3
 patch_size = 128
 dataset = 'uru'
 
+geo_data = False
 direct = False
 train_w_last = False
 
@@ -50,6 +50,11 @@ if train_w_last and direct:
     raise ValueError('To train with only last predict horizon the model shouldnt be direct')
 if direct and n_future_frames > 1:
     raise ValueError('When direct the output is only on of 1 image')
+
+if geo_data:
+    in_channel = 4  # 1 if only image, higher if more metadata in training
+else:
+    in_channel = 1  # 1 if only image, higher if more metadata in training
 
 if dataset == 'mvd':
     img_size = 256
@@ -59,18 +64,32 @@ elif dataset == 'region3':
     img_size = 1024
 
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
-val_mvd = PatchesFoldersDataset(
-        path='/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/',                          	
+if geo_data:
+    val_mvd = PatchesFoldersDataset_w_geodata(
+        path='/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/',
         in_channel=input_seq_len,
         out_channel=n_future_frames,
         min_time_diff=5,
         max_time_diff=15,
-        transform=normalize,
-        output_last=direct,
+        output_last=True,
         img_size=img_size,
         patch_size=patch_size,
-        train=False
-        )
+        geo_data_path='reports/',
+        train=False)
+
+else:
+    val_mvd = PatchesFoldersDataset(
+            path='/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/',                          	
+            in_channel=input_seq_len,
+            out_channel=n_future_frames,
+            min_time_diff=5,
+            max_time_diff=15,
+            transform=normalize,
+            output_last=direct,
+            img_size=img_size,
+            patch_size=patch_size,
+            train=False
+            )
 
 val_loader = DataLoader(val_mvd, batch_size=1, shuffle=True, num_workers=2, pin_memory=True)
 
