@@ -126,10 +126,13 @@ with torch.no_grad():
         mse_val_loss = np.zeros((n_future_frames))
         mae_val_loss = np.zeros((n_future_frames))
         ssim_val_loss = np.zeros((n_future_frames))
-    
+        
+    start = time.time()
     for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
         if val_batch_idx % 200 == 0:
-            print(val_batch_idx + 1, '/', len(val_loader))
+            
+            print(val_batch_idx + 1, '/', len(val_loader), '| TIME:',  time.time() - start)
+            start = time.time()
 
         if not geo_data:
             in_frames = torch.unsqueeze(in_frames, dim=2)
@@ -159,9 +162,9 @@ with torch.no_grad():
                 
                 if direct:
                     mae_val_loss_Q += mae_loss(frames_pred_Q,
-                                        out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                                               out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
                     mse_val_loss_Q += mse_loss(frames_pred_Q,
-                                            out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                                               out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
                     
                     frames_pred_Q = torch.clamp(torch.squeeze(frames_pred_Q, dim=1), min=0, max=1)   
                     ssim_val_loss_Q += ssim_loss(frames_pred_Q,
@@ -190,7 +193,7 @@ with torch.no_grad():
                                                             out_frames[:, x, :, n:n + patch_size, m:m + patch_size]).detach().item()
                 
         if direct or train_w_last:
-            mae_val_loss += (mae_val_loss_Q / (dim*dim))
+            mae_val_loss += (mae_val_loss_Q / (dim**2))
             mse_val_loss += (mse_val_loss_Q / (dim**2))
             ssim_val_loss += (ssim_val_loss_Q / (dim**2))
         else:
