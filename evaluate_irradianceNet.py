@@ -25,7 +25,7 @@ from src.lib.utils_irradianceNet import convert_to_full_res, interpolate_borders
 # DeepCloud
 from src import data, evaluate, model, preprocessing, visualization, train
 from src.lib import utils
-from src.data import MontevideoFoldersDataset
+from src.data import PatchesFoldersDataset_w_geodata, PatchesFoldersDataset
 
 print('finis import')
 
@@ -165,6 +165,6 @@ with torch.no_grad():
                 mse_val_loss[x] += (mse_val_loss_Q[x] / (dim**2))
                 ssim_val_loss[x] += (ssim_val_loss_Q[x] / (dim**2))
 
-print('MAE:' mse_val_loss)
-print('MSE:' mse_val_loss)
-print('SSIM:' mse_val_loss)
+print('MAE:', mse_val_loss)
+print('MSE:', mse_val_loss)
+print('SSIM:', mse_val_loss)
