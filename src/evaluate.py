@@ -340,12 +340,8 @@ def evaluate_gan_val(model_instance, loader, predict_horizon,
     cmv_predict_time = []
     
     for idx, (inputs, targets) in enumerate(loader):
-        print('Before', inputs.size(), targets.size())
-        
-        inputs = inputs.squeeze()
-        targets = targets.squeeze()
-        
-        print('After', inputs.size(), targets.size())
+        inputs = inputs.squeeze(0)
+        targets = targets.squeeze(0)
         
         # predict depending on model
         if (isinstance(model_instance, list)):
