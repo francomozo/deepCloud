@@ -183,7 +183,7 @@ with torch.no_grad():
                                                           out_frames[:,:,x, n:n+patch_size, m:m+patch_size]).detach().item()
                             mse_val_loss_Q[x] += mse_loss(frames_pred_Q[:, :, x, :, :],
                                                           out_frames[:,:,x, n:n+patch_size, m:m+patch_size]).detach().item()
-                            ssim_val_loss_Q[x] += ssim_loss(torch.clamp(frames_pred_Q[:, x, :, : , :], min=0, max=1),
+                            ssim_val_loss_Q[x] += ssim_loss(torch.clamp(frames_pred_Q[:, :, x, : , :], min=0, max=1),
                                                             out_frames[:,:, n:n+patch_size, m:m+patch_size]).detach().item()
                 
         if direct or train_w_last:
