@@ -63,6 +63,7 @@ elif dataset == 'uru':
 elif dataset == 'region3':
     img_size = 1024
 
+dim = img_size // patch_size
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
 if geo_data:
     val_mvd = PatchesFoldersDataset_w_geodata(
@@ -190,6 +191,6 @@ with torch.no_grad():
                 mse_val_loss[x] += (mse_val_loss_Q[x] / (dim**2))
                 ssim_val_loss[x] += (ssim_val_loss_Q[x] / (dim**2))
 
-print('MAE:', mse_val_loss)
+print('MAE:', mae_val_loss)
 print('MSE:', mse_val_loss)
-print('SSIM:', mse_val_loss)
+print('SSIM:', ssim_val_loss)
