@@ -32,6 +32,7 @@ print('finis import')
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
 
+
 torch.manual_seed(50)
 
 patch_model = True
@@ -107,6 +108,10 @@ if torch.cuda.device_count() == 1:
         key, value = checkpoint['model_state_dict'].popitem(False)
         checkpoint['model_state_dict'][key[7:] if key[:7] == 'module.' else key] = value
 model.load_state_dict(checkpoint['model_state_dict'])
+
+mse_loss = nn.MSELoss()
+mae_loss = nn.L1Loss()
+ssim_loss = SSIM(n_channels=1).cuda()
 
 model.eval()
 
