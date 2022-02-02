@@ -1266,6 +1266,8 @@ def train_model_full(
     if  predict_diff and (train_loss in ['ssim', 'SSIM']):
         raise ValueError('Cannot use ssim as train function and predict diff. (Yet)')
     
+    PREVIOUS_CHECKPOINT_NAME = None
+    
     mse_loss = nn.MSELoss()
     mae_loss = nn.L1Loss()
     ssim_loss = SSIM(n_channels=1).cuda()
@@ -1427,10 +1429,9 @@ def train_model_full(
             BEST_VAL_ACC = actual_loss
             
             if verbose: print('New Best Model')    
-            model_dict = {
+            best_model_dict = {
                 'epoch': epoch + 1,
                 'train_loss': train_loss,
-                'predict diff': predict_diff,
                 'validation_loss': loss_for_scheduler,
                 'model_state_dict': copy.deepcopy(model.state_dict()),
                 'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
@@ -1439,18 +1440,41 @@ def train_model_full(
                 'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
                 'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL
             }
-            model_not_saved = True
+            best_model_not_saved = True
+            best_model_epoch = epoch + 1
 
         if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
-            if model_not_saved:
-                if verbose: print('Saving Checkpoint')
-                    
+            if verbose: print('Saving Checkpoint')
+            
+            actual_model_dict = {
+                'epoch': epoch + 1,
+                'train_loss': train_loss,
+                'validation_loss': loss_for_scheduler,
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
+                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL,
+                'val_mae_loss': VAL_MAE_LOSS_GLOBAL,
+                'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
+                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL
+            }
+            
+            ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
+            NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
+            torch.save(actual_model_dict, os.path.join(PATH, NAME))
+            # delete previous checkpoint saved
+            if PREVIOUS_CHECKPOINT_NAME:
+                try:
+                    os.remove(os.path.join(PATH, PREVIOUS_CHECKPOINT_NAME))
+                except OSError as e:  ## if failed, report it back to the user ##
+                    print ("Error: Couldnt delete checkpoint")
+            PREVIOUS_CHECKPOINT_NAME = NAME
+            
+            if best_model_not_saved:
                 PATH = 'checkpoints/'
                 ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
-                NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
-
-                torch.save(model_dict, os.path.join(PATH,NAME))
-                model_not_saved = False
+                NAME =  'BEST_' + model_name + '_' + str(best_model_epoch) + '_' + str(ts) + '.pt'
+                torch.save(best_model_dict, os.path.join(PATH, NAME))
+                best_model_not_saved = False
                 
     # if training finished and best model not saved
     if model_not_saved:
@@ -1510,14 +1534,15 @@ def train_irradianceNet(
         VAL_MAE_LOSS_GLOBAL: Lists containing the mean MAE error of each epoch in validation
         VAL_MSE_LOSS_GLOBAL: Lists containing the mean MSE error of each epoch in validation
         VAL_SSIM_LOSS_GLOBAL: Lists containing the mean SSIM error of each epoch in validation
-    """    
+    """
     
     if  retrain and not trained_model_dict:
         raise ValueError('To retrain the model dict is needed')
     if train_w_last and direct:
         raise ValueError('To train with only last predict horizon the model shouldnt be direct')
         
-    
+    PREVIOUS_CHECKPOINT_NAME = None
+
     dim = img_size // patch_size
     
     mse_loss = nn.MSELoss()
@@ -1714,7 +1739,7 @@ def train_irradianceNet(
             BEST_VAL_ACC = actual_loss
             
             if verbose: print('New Best Model')    
-            model_dict = {
+            best_model_dict = {
                 'epoch': epoch + 1,
                 'train_loss': train_loss,
                 'validation_loss': loss_for_scheduler,
@@ -1725,27 +1750,49 @@ def train_irradianceNet(
                 'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
                 'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL
             }
-            model_not_saved = True
+            best_model_not_saved = True
+            best_model_epoch = epoch + 1
 
         if checkpoint_every is not None and (epoch + 1) % checkpoint_every == 0:
-            if model_not_saved:
-                if verbose: print('Saving Checkpoint')
-                    
+            if verbose: print('Saving Checkpoint')
+            
+            actual_model_dict = {
+                'epoch': epoch + 1,
+                'train_loss': train_loss,
+                'validation_loss': loss_for_scheduler,
+                'model_state_dict': copy.deepcopy(model.state_dict()),
+                'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
+                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL,
+                'val_mae_loss': VAL_MAE_LOSS_GLOBAL,
+                'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
+                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL
+            }
+            
+            ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
+            NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
+            torch.save(actual_model_dict, os.path.join(PATH, NAME))
+            # delete previous checkpoint saved
+            if PREVIOUS_CHECKPOINT_NAME:
+                try:
+                    os.remove(os.path.join(PATH, PREVIOUS_CHECKPOINT_NAME))
+                except OSError as e:  ## if failed, report it back to the user ##
+                    print ("Error: Couldnt delete checkpoint")
+            PREVIOUS_CHECKPOINT_NAME = NAME
+            
+            if best_model_not_saved:
                 PATH = 'checkpoints/'
                 ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
-                NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
-
-                torch.save(model_dict, os.path.join(PATH,NAME))
-                model_not_saved = False
+                NAME =  'BEST_' + model_name + '_' + str(best_model_epoch) + '_' + str(ts) + '.pt'
+                torch.save(best_model_dict, os.path.join(PATH, NAME))
+                best_model_not_saved = False
                 
     # if training finished and best model not saved
-    if model_not_saved:
+    if best_model_not_saved:
         if verbose: print('Saving Checkpoint')
         PATH = 'checkpoints/'
         ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
-        NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
-
-        torch.save(model_dict, os.path.join(PATH,NAME))
+        NAME =  model_name + '_' + str(best_model_epoch) + '_' + str(ts) + '.pt'
+        torch.save(best_model_dict, os.path.join(PATH, NAME))
     
     return TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL
 
