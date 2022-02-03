@@ -1478,7 +1478,7 @@ def train_model_full(
                 best_model_not_saved = False
                 
     # if training finished and best model not saved
-    if model_not_saved:
+    if best_model_not_saved:
         if verbose: print('Saving Checkpoint')
         PATH = 'checkpoints/'
         ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
