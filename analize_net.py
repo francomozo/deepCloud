@@ -16,30 +16,40 @@ import scipy.stats as st
 
 ## CONFIGURATION #########
 
-
-
-PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/validation/'
+REGION = 'R3' # [MVD, URU, R3]
+PREDICT_HORIZON = '60min'
 FRAME_OUT = 5  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
 CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
-MODEL_PATH = 'checkpoints/R3/60min/60min_UNET__region3_mae_filters16_sigmoid_diffFalse_retrainTrue_80_01-02-2022_15:18.pt'
+MODEL_PATH = 'checkpoints/'+REGION+'/'+PREDICT_HORIZON+'/60min_UNET__region3_mae_filters16_sigmoid_diffFalse_retrainTrue_80_01-02-2022_15:18.pt'
+OUTPUT_ACTIVATION = 'sigmoid'
+CROP_SIZE = 50
+
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
 
 model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=16).to(device)
 #model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=32).to(device)
-#model = AttU_Net(img_ch=3, output_ch=1, init_filter=32).to(device)
-#model = NestedUNet(in_ch=3, out_ch=1, init_filter=32).to(device)
 
 
-SAVE_IMAGES_PATH = 'graphs/R3/60min/' + MODEL_PATH.split('/')[-1][:-9]  
-SAVE_VALUES_PATH = 'reports/eval_per_hour/R3/60min' 
+SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
+SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON 
 
-CROP_SIZE = 50
-PREDICT_DIFF = True
 
 ###########################
+if REGION == 'MVD':
+    dataset = 'mvd'
+elif REGION == 'URU':
+    dataset = 'uru'
+elif REGION == 'R3':
+    dataset = 'region3'
+PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
+
+if OUTPUT_ACTIVATION == 'tanh':
+    PREDICT_DIFF = True
+else:
+    PREDICT_DIFF = False
 
 try:
     os.mkdir(SAVE_IMAGES_PATH)
@@ -342,6 +352,8 @@ if SAVE_VALUES_PATH:
 
     utils.save_pickle_dict(path=SAVE_VALUES_PATH, name=MODEL_PATH.split('/')[-1][:-9], dict_=dict_values) 
 
+print('Dict with error values saved.')
+
 # ERROR GRAPHS
 # fig, axs = plt.subplots(4, 1, figsize=(20, 10))
 # axs[0].plot(mean_MAE, 'r-o', label='Full window')
@@ -437,6 +449,7 @@ plt.show()
 
 
 #SCATTER PLOT
+print('Scatter Plot')
 m, b = np.polyfit(gt_mean, pred_mean, 1)
 plt.figure(figsize=(5,5))
 plt.scatter(x=gt_mean, y=pred_mean)
@@ -623,7 +636,7 @@ plt.close()
 
                
 # OUTPUT WITH MOST NANS SEQUENCE
-               
+print('OUTPUT WITH MOST NANS SEQUENCE')
 img0 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_115017.npy'))
 img1 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_120017.npy'))
 img2 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_121017.npy'))
@@ -740,4 +753,5 @@ if M < 1000:
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'filter_layer_output.png')
     visualization.show_image_list(output_list, rows=8, fig_name=fig_name, save_fig=True)
     plt.close()
-    
+print('Done.')
+
