@@ -1784,7 +1784,7 @@ def train_irradianceNet(
             if best_model_not_saved:
                 PATH = 'checkpoints/'
                 ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
-                NAME =  'BEST_' + model_name + '_' + str(best_model_epoch) + '_' + str(ts) + '.pt'
+                NAME =  model_name + '_' + str(best_model_epoch) + '_' + str(ts) + '_BEST.pt'
                 torch.save(best_model_dict, os.path.join(PATH, NAME))
                 best_model_not_saved = False
                 
