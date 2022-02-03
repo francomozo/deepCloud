@@ -1267,7 +1267,8 @@ def train_model_full(
         raise ValueError('Cannot use ssim as train function and predict diff. (Yet)')
     
     PREVIOUS_CHECKPOINT_NAME = None
-    
+    PATH = 'checkpoints/'
+
     mse_loss = nn.MSELoss()
     mae_loss = nn.L1Loss()
     ssim_loss = SSIM(n_channels=1).cuda()
@@ -1483,7 +1484,7 @@ def train_model_full(
         ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
         NAME =  model_name + '_' + str(epoch + 1) + '_' + str(ts) + '.pt'
 
-        torch.save(model_dict, os.path.join(PATH,NAME))
+        torch.save(model_dict, os.path.join(PATH, NAME))
     
     return TRAIN_LOSS_GLOBAL, VAL_MAE_LOSS_GLOBAL, VAL_MSE_LOSS_GLOBAL, VAL_SSIM_LOSS_GLOBAL
 
@@ -1542,6 +1543,7 @@ def train_irradianceNet(
         raise ValueError('To train with only last predict horizon the model shouldnt be direct')
         
     PREVIOUS_CHECKPOINT_NAME = None
+    PATH = 'checkpoints/'
 
     dim = img_size // patch_size
     
