@@ -1,22 +1,27 @@
 import os
-import numpy as np
-import pandas as pd
 import time
+
 import cv2 as cv
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
 print('import basic')
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-print('import torch')
-from src import data, evaluate, model, preprocessing, visualization, train
-from src.lib import utils
 
-from src.data import MontevideoFoldersDataset
-from src.dl_models.unet import UNet, UNet2
-from src.dl_models.unet_advanced import R2U_Net, AttU_Net, R2AttU_Net, NestedUNet
+print('import torch')
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
+
+from src import data, evaluate, model, preprocessing, train, visualization
+from src.data import MontevideoFoldersDataset
+from src.dl_models.unet import UNet, UNet2
+from src.dl_models.unet_advanced import (AttU_Net, NestedUNet, R2AttU_Net,
+                                         R2U_Net)
+from src.lib import utils
+
 print('finis import')
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -71,13 +76,13 @@ for lr, mdl in grid_search:
     print('Model Paralleling')
     model = nn.DataParallel(model)
 
-    if retrain:
-      checkpoint = torch.load(MODEL_PATH, map_location=device)
-      if torch.cuda.device_count() == 1:
-          for _ in range(len(checkpoint['model_state_dict'])):
-              key, value = checkpoint['model_state_dict'].popitem(False)
-              checkpoint['model_state_dict'][key[7:] if key[:7] == 'module.' else key] = value
-      model.load_state_dict(checkpoint['model_state_dict']) 
+  if retrain:
+    checkpoint = torch.load(MODEL_PATH, map_location=device)
+    if torch.cuda.device_count() == 1:
+        for _ in range(len(checkpoint['model_state_dict'])):
+            key, value = checkpoint['model_state_dict'].popitem(False)
+            checkpoint['model_state_dict'][key[7:] if key[:7] == 'module.' else key] = value
+    model.load_state_dict(checkpoint['model_state_dict']) 
 
  
   model.to(device)
