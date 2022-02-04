@@ -21,15 +21,18 @@ print('finis import')
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
-if torch.cuda.is_available():   
-    print(torch.cuda.get_device_name(0))
 #TRAINNING WITH TRAIN.PY
 
 torch.manual_seed(50)
 
+batch_size = 3
+init_filters = 32
+MODEL_PATH = 'checkpoints/R3/60min/60min_UNET__region3_mae_filters32_sigmoid_diffFalse_retrainFalse_40_01-02-2022_20:43.pt' # AGREGAR NOMBRE COMPLETO DEL MODELO
+
+
+
 dataset = 'region3'  # 'mvd', 'uru', 'region3'
 epochs = 100
-batch_size = 1
 
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
 
@@ -52,42 +55,30 @@ val_mvd = MontevideoFoldersDataset(path='/clusteruy/home03/DeepCloud/deepCloud/d
 train_loader = DataLoader(train_mvd, batch_size=batch_size, shuffle=True, num_workers=2)
 val_loader = DataLoader(val_mvd, batch_size=batch_size, shuffle=True, num_workers=2)
 
-retrain = False
+retrain = True
+
 
 learning_rates = [1e-3]
 arquitecture = ['']  # ['R2', 'Att', 'R2Att', 'Nested']
 
-init_filters = 64
 
-grid_search = [(lr, mdl) for lr in learning_rates for mdl in arquitecture]
+grid_search = [ (lr, mdl) for lr in learning_rates for mdl in arquitecture]
 
 for lr, mdl in grid_search:
   if mdl == '':
     model = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation='sigmoid', filters=init_filters).to(device)
-  if mdl == 'R2':
-    model = R2U_Net(img_ch=3, output_ch=1, t=2)
-  if mdl == 'Att':
-    model = AttU_Net(img_ch=3, output_ch=1, output_activation='sigmoid', init_filter=64)
-  if mdl == 'R2Att':
-    model = R2AttU_Net(in_ch=3, out_ch=1, t=2)
-  if mdl == 'Nested':
-    model = NestedUNet(in_ch=3, out_ch=1, output_activation='sigmoid', init_filter=64)
-       
   if torch.cuda.device_count() > 1:
     print('Model Paralleling')
     model = nn.DataParallel(model)
 
-  MODEL_PATH = 'checkpoints/R3/60min/'
-
-  if retrain:
+    if retrain:
       checkpoint = torch.load(MODEL_PATH, map_location=device)
       if torch.cuda.device_count() == 1:
           for _ in range(len(checkpoint['model_state_dict'])):
               key, value = checkpoint['model_state_dict'].popitem(False)
               checkpoint['model_state_dict'][key[7:] if key[:7] == 'module.' else key] = value
       model.load_state_dict(checkpoint['model_state_dict']) 
-  else:
-      checkpoint = None
+
  
   model.to(device)
   
@@ -95,7 +86,11 @@ for lr, mdl in grid_search:
       model.apply(train.weights_init)  
   
   optimizer = optim.Adam(model.parameters(), lr=lr ,betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
-  
+ 
+  if retrain:
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    print('actual learning rate', checkpoint['optimizer_state_dict']['param_groups'][0]['lr'])
+ 
   scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=15, min_lr=1e-7) 
 
   save_dict = True
@@ -119,7 +114,7 @@ for lr, mdl in grid_search:
                                                  	        train_loader=train_loader,
                                                   	 	val_loader=val_loader,
 								epochs=epochs,		
-                                                 	 	checkpoint_every=20,
+                                                 	 	checkpoint_every=1,
                                                  	 	verbose=True,
                                                 	 	writer=writer,
                                                                 scheduler=scheduler,
