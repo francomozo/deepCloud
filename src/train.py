@@ -1268,6 +1268,7 @@ def train_model_full(
     
     PREVIOUS_CHECKPOINT_NAME = None
     PATH = 'checkpoints/'
+    best_model_not_saved = False
 
     mse_loss = nn.MSELoss()
     mae_loss = nn.L1Loss()
@@ -1544,6 +1545,7 @@ def train_irradianceNet(
         
     PREVIOUS_CHECKPOINT_NAME = None
     PATH = 'checkpoints/'
+    best_model_not_saved = False
 
     dim = img_size // patch_size
     
