@@ -1021,14 +1021,14 @@ class PatchesFoldersDataset(Dataset):
                             out_frames = out_frames[np.newaxis]
                             
                     elif self.output_30min:
-                        if (i - self.in_frames + 1) % 3 == 0 and (i - self.in_frames + 1) == 3:  # only 30min period images
+                        if (i - self.in_channel + 1) % 3 == 0 and (i - self.in_channel + 1) == 3:  # only 30min period images
                             out_frames = np.load(os.path.join(self.path,
                                                               self.sequence_df.values[index][i][4:11],
                                                               self.sequence_df.values[index][i]
                                                               )
                                                  )[top:top+self.pred_size, left:left+self.pred_size]
                             out_frames = out_frames[np.newaxis]
-                        if (i - self.in_frames + 1) % 3 == 0 and (i - self.in_frames + 1) > 3:  # only 30min period images
+                        if (i - self.in_channel + 1) % 3 == 0 and (i - self.in_channel + 1) > 3:  # only 30min period images
                             aux = np.load(os.path.join(self.path,
                                                        self.sequence_df.values[index][i][4:11],
                                                        self.sequence_df.values[index][i]
@@ -1081,14 +1081,14 @@ class PatchesFoldersDataset(Dataset):
                                                  )
                             out_frames = out_frames[np.newaxis]
                     elif self.output_30min:
-                        if (i - self.in_frames + 1) % 3 == 0 and (i - self.in_frames + 1) == 3:  # only 30min period images
+                        if (i - self.in_channel + 1) % 3 == 0 and (i - self.in_channel + 1) == 3:  # only 30min period images
                             out_frames = np.load(os.path.join(self.path,
                                                               self.sequence_df.values[index][i][4:11],
                                                               self.sequence_df.values[index][i]
                                                               )
                                                  )
                             out_frames = out_frames[np.newaxis]
-                        if (i - self.in_frames + 1) % 3 == 0 and (i - self.in_frames + 1) > 3:  # only 30min period images
+                        if (i - self.in_channel + 1) % 3 == 0 and (i - self.in_channel + 1) > 3:  # only 30min period images
                             aux = np.load(os.path.join(self.path,
                                                        self.sequence_df.values[index][i][4:11],
                                                        self.sequence_df.values[index][i]
