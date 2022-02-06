@@ -1699,7 +1699,7 @@ def train_irradianceNet(
                                                        out_frames[:, -1, :, n:n+patch_size, m:m+patch_size]
                                                        ).detach().item()
                             mse_val_loss_Q += mse_loss(frames_pred_Q[:, -1, :, :, :],
-                                                       out_frames[:, -1, :, n:n+patch_size, m:m+patch_size].
+                                                       out_frames[:, -1, :, n:n+patch_size, m:m+patch_size]
                                                        ).detach().item()
 
                             frames_pred_Q = torch.clamp(frames_pred_Q[:, -1, :, :, :], min=0, max=1)
