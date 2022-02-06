@@ -1609,9 +1609,9 @@ def train_irradianceNet(
                 in_frames = torch.unsqueeze(in_frames, dim=2)
                 
             in_frames = in_frames.to(device=device)
-            if not train_w_last:
-                out_frames = torch.unsqueeze(out_frames, dim=2)
-                
+
+            out_frames = torch.unsqueeze(out_frames, dim=2)
+    
             out_frames = out_frames.to(device=device)
 
             # forward
@@ -1627,13 +1627,13 @@ def train_irradianceNet(
             
             else:
                 if train_loss in ['mae', 'MAE', 'mse', 'MSE', 'forecaster_loss', 'FORECASTER_LOSS']:
-                    loss = train_criterion(frames_pred[:, -1, :,:,:], out_frames)
+                    loss = train_criterion(frames_pred[:, -1, :,:,:], out_frames[:, -1, :, :, :])
                 if train_loss in ['ssim', 'SSIM']:
-                    loss = 1 - train_criterion(frames_pred[:, -1, :,:,:], out_frames)
+                    loss = 1 - train_criterion(frames_pred[:, -1, :,:,:], out_frames[:, -1, :, :, :])
                 if train_loss in ['mae_ssim', 'MAE_SSIM']:
-                    loss = 1 - train_criterion_ssim(frames_pred[:, -1, :,:,:], out_frames) + train_criterion_mae(frames_pred[:, -1, :,:,:], out_frames)
-            
-                
+                    loss = 1 - train_criterion_ssim(frames_pred[:, -1, :, :, :], out_frames[:, -1, :, :, :]) + \
+                           train_criterion_mae(frames_pred[:, -1, :, :, :], out_frames[:, -1, :, :, :])
+
                 # backward
             optimizer.zero_grad()
             loss.backward()
@@ -1690,11 +1690,6 @@ def train_irradianceNet(
                             else:    
                                 ssim_val_loss_Q = 0
                         else:
-                            print('frames_pred model output shape:', frames_pred_Q.shape)
-                            print('frames_pred slice shape:', frames_pred_Q[:, -1, :, :, :].shape)
-                            print('out_frames shape:', out_frames.shape)
-                            print('out_frames sliced shape:', out_frames[:, -1, :, n:n+patch_size, m:m+patch_size].shape)
-
                             mae_val_loss_Q += mae_loss(frames_pred_Q[:, -1, :, :, :],  # B, 1, H, W
                                                        out_frames[:, -1, :, n:n+patch_size, m:m+patch_size]
                                                        ).detach().item()
@@ -1703,8 +1698,7 @@ def train_irradianceNet(
                                                        ).detach().item()
 
                             frames_pred_Q = torch.clamp(frames_pred_Q[:, -1, :, :, :], min=0, max=1)
-                            print('frames_pred clamp shape:', frames_pred_Q.shape)
-                            
+  
                             ssim_val_loss_Q += ssim_loss(frames_pred_Q,
                                                         out_frames[:, -1, :, n:n+patch_size, m:m+patch_size]
                                                         ).detach().item()
