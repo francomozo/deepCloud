@@ -89,8 +89,8 @@ class MontevideoFoldersDataset(Dataset):
         self.day_pct = day_pct
 
         if csv_path:
-            self.cosangs_df = pd.read_csv(csv_path, header=None)
-            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            cosangs_df = pd.read_csv(csv_path, header=None)
+            cosangs_df = cosangs_df.loc[cosangs_df[1] >= self.day_pct]
             self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
                                                                              in_channel=in_channel,
                                                                              out_channel=out_channel, 
@@ -172,8 +172,8 @@ class MontevideoFoldersDataset_w_CMV(Dataset):
         self.day_pct = day_pct
         
         if csv_path:
-            self.cosangs_df = pd.read_csv(csv_path, header=None)
-            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            cosangs_df = pd.read_csv(csv_path, header=None)
+            cosangs_df = cosangs_df.loc[cosangs_df[1] >= self.day_pct]
             self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
                                                                              in_channel=in_channel,
                                                                              out_channel=out_channel, 
@@ -860,8 +860,8 @@ class MontevideoFoldersDataset_w_time(Dataset):
         self.day_pct = day_pct
 
         if csv_path:
-            self.cosangs_df = pd.read_csv(csv_path, header=None)
-            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            cosangs_df = pd.read_csv(csv_path, header=None)
+            cosangs_df = cosangs_df.loc[cosangs_df[1] >= self.day_pct]
             self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
                                                                              in_channel=in_channel,
                                                                              out_channel=out_channel, 
@@ -951,8 +951,8 @@ class MontevideoFoldersDataset_w_name(Dataset):
         self.day_pct = day_pct
 
         if csv_path:
-            self.cosangs_df = pd.read_csv(csv_path, header=None)
-            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            cosangs_df = pd.read_csv(csv_path, header=None)
+            cosangs_df = cosangs_df.loc[cosangs_df[1] >= self.day_pct]
             self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
                                                                              in_channel=in_channel,
                                                                              out_channel=out_channel, 
@@ -1022,8 +1022,8 @@ class PatchesFoldersDataset(Dataset):
         self.day_pct = day_pct
 
         if csv_path:
-            self.cosangs_df = pd.read_csv(csv_path, header=None)
-            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            cosangs_df = pd.read_csv(csv_path, header=None)
+            cosangs_df = cosangs_df.loc[cosangs_df[1] >= self.day_pct]
             self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
                                                                              in_channel=in_channel,
                                                                              out_channel=out_channel, 
@@ -1199,8 +1199,8 @@ class PatchesFoldersDataset_w_geodata(Dataset):
         self.day_pct = day_pct
 
         if csv_path:
-            self.cosangs_df = pd.read_csv(csv_path, header=None)
-            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            cosangs_df = pd.read_csv(csv_path, header=None)
+            cosangs_df = cosangs_df.loc[cosangs_df[1] >= self.day_pct]
             self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
                                                                              in_channel=in_channel,
                                                                              out_channel=out_channel, 
@@ -1369,8 +1369,8 @@ class MontevideoFoldersDataset_input_time(Dataset):
         self.day_pct = day_pct
 
         if csv_path:
-            self.cosangs_df = pd.read_csv(csv_path, header=None)
-            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            cosangs_df = pd.read_csv(csv_path, header=None)
+            cosangs_df = cosangs_df.loc[cosangs_df[1] >= self.day_pct]
             self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
                                                                              in_channel=in_channel,
                                                                              out_channel=out_channel, 
@@ -1460,8 +1460,8 @@ class MontevideoFoldersDataset_output_time(Dataset):
         self.day_pct = day_pct
 
         if csv_path:
-            self.cosangs_df = pd.read_csv(csv_path, header=None)
-            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            cosangs_df = pd.read_csv(csv_path, header=None)
+            cosangs_df = cosangs_df.loc[cosangs_df[1] >= self.day_pct]
             self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
                                                                              in_channel=in_channel,
                                                                              out_channel=out_channel, 
