@@ -1691,14 +1691,18 @@ def train_irradianceNet(
                             else:    
                                 ssim_val_loss_Q = 0
                         else:
-                            print('frames_pred shape:', frames_pred_Q.shape)
+                            print('frames_pred model output shape:', frames_pred_Q.shape)
+                            print('frames_pred slice shape:', frames_pred_Q[:, -1, :, :, :].shape)
                             print('out_frames shape:', out_frames[:, :, n:n+patch_size, m:m+patch_size].shape)
+                            print('out_frames sliced shape:', out_frames[:, -1, n:n+patch_size, m:m+patch_size].shape)
+
                             mae_val_loss_Q += mae_loss(frames_pred_Q[:, -1, :, :, :],
-                                                       out_frames[:, :, n:n+patch_size, m:m+patch_size]).detach().item()
+                                                       out_frames[:, -1, n:n+patch_size, m:m+patch_size]).detach().item()
                             mse_val_loss_Q += mse_loss(frames_pred_Q[:, -1, :, :, :],
-                                                       out_frames[:, :, n:n+patch_size, m:m+patch_size]).detach().item()
+                                                       out_frames[:, -1, n:n+patch_size, m:m+patch_size]).detach().item()
 
                             frames_pred_Q = torch.clamp(frames_pred_Q[:, -1, :, :, :], min=0, max=1)
+                            print('frames_pred clamp shape:', frames_pred_Q.shape)
                             
                             ssim_val_loss_Q += ssim_loss(frames_pred_Q,
                                                         out_frames[:, :, n:n+patch_size, m:m+patch_size]).detach().item()
