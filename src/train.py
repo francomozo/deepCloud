@@ -1657,28 +1657,30 @@ def train_irradianceNet(
                 
                 if testing_loop and val_batch_idx==1:
                     break
-                
+
                 if not geo_data:
-                    in_frames = torch.unsqueeze(in_frames, dim=2)
+                    in_frames = torch.unsqueeze(in_frames, dim=2)  # B, Si, C(=1), H, W
                 in_frames = in_frames.to(device=device)
-                
+
                 if not train_w_last:
-                    out_frames = torch.unsqueeze(out_frames, dim=2)
+                    out_frames = torch.unsqueeze(out_frames, dim=2)  # B, So, C(=1), H, W
                 out_frames = out_frames.to(device=device)
-                
+
                 mae_val_loss_Q = 0
                 mse_val_loss_Q = 0
                 ssim_val_loss_Q = 0
-                
+
                 for i in range(dim):
                     for j in range(dim):
                         n = i * patch_size
                         m = j * patch_size
                         
-                        frames_pred_Q = model(in_frames[:,:,:, n:n+patch_size, m:m+patch_size])
+                        frames_pred_Q = model(in_frames[:, :, :, n:n+patch_size, m:m+patch_size])
                         if not train_w_last:
-                            mae_val_loss_Q += mae_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
-                            mse_val_loss_Q += mse_loss(frames_pred_Q, out_frames[:,:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                            mae_val_loss_Q += mae_loss(frames_pred_Q,
+                                                       out_frames[:, :, :, n:n+patch_size, m:m+patch_size]).detach().item()
+                            mse_val_loss_Q += mse_loss(frames_pred_Q,
+                                                       out_frames[:, :, :, n:n+patch_size, m:m+patch_size]).detach().item()
                             if direct:
                                 frames_pred_Q = torch.clamp(torch.squeeze(frames_pred_Q, dim=1), min=0, max=1)
                                 
@@ -1689,17 +1691,19 @@ def train_irradianceNet(
                             else:    
                                 ssim_val_loss_Q = 0
                         else:
-                            mae_val_loss_Q += mae_loss(frames_pred_Q[:,-1,:,:,:],
-                                                       out_frames[:,:, n:n+patch_size, m:m+patch_size]).detach().item()
-                            mse_val_loss_Q += mse_loss(frames_pred_Q[:,-1,:,:,:],
-                                                       out_frames[:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                            print('frames_pred shape:', frames_pred_Q.shape)
+                            print('out_frames shape:', out_frames[:, :, n:n+patch_size, m:m+patch_size])
+                            mae_val_loss_Q += mae_loss(frames_pred_Q[:, -1, :, :, :],
+                                                       out_frames[:, :, n:n+patch_size, m:m+patch_size]).detach().item()
+                            mse_val_loss_Q += mse_loss(frames_pred_Q[:, -1, :, :, :],
+                                                       out_frames[:, :, n:n+patch_size, m:m+patch_size]).detach().item()
 
-                            frames_pred_Q = torch.clamp(frames_pred_Q[:,-1,:,:,:], min=0, max=1)
+                            frames_pred_Q = torch.clamp(frames_pred_Q[:, -1, :, :, :], min=0, max=1)
                             
                             ssim_val_loss_Q += ssim_loss(frames_pred_Q,
-                                                        out_frames[:,:, n:n+patch_size, m:m+patch_size]).detach().item()
+                                                        out_frames[:, :, n:n+patch_size, m:m+patch_size]).detach().item()
                         
-                mae_val_loss += (mae_val_loss_Q / (dim*dim))
+                mae_val_loss += (mae_val_loss_Q / (dim**2))
                 mse_val_loss += (mse_val_loss_Q / (dim**2))
                 ssim_val_loss += (ssim_val_loss_Q / (dim**2))
                     
