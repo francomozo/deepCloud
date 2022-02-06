@@ -21,7 +21,8 @@ import src.lib.utils as utils
 
 
 class MontevideoDataset(Dataset):
-    def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15,csv_path = None):
+    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
+                 csv_path=None):
         super(MontevideoDataset, self).__init__()
 
         self.path = path
@@ -70,10 +71,12 @@ class MontevideoDataset(Dataset):
     def __len__(self):
         return (len(self.sequence_df))
 
+
 class MontevideoFoldersDataset(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
-    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=False, data_aug=False):
+    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
+                 csv_path=None, transform=None, output_last=False, data_aug=False, day_pct=0.75):
         super(MontevideoFoldersDataset, self).__init__()
 
         self.path = path
@@ -83,20 +86,29 @@ class MontevideoFoldersDataset(Dataset):
         self.max_time_diff = max_time_diff
         self.transform = transform
         self.output_last = output_last
-        if csv_path is None:
-            self.sequence_df = utils.sequence_df_generator_folders(path=path,
-                                                                    in_channel=in_channel,
-                                                                    out_channel= out_channel, 
-                                                                    min_time_diff= min_time_diff, 
-                                                                    max_time_diff= max_time_diff)
+        self.day_pct = day_pct
+
+        if csv_path:
+            self.cosangs_df = pd.read(csv_path, header=None)
+            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
+                                                                             in_channel=in_channel,
+                                                                             out_channel=out_channel, 
+                                                                             min_time_diff=min_time_diff, 
+                                                                             max_time_diff=max_time_diff,
+                                                                             cosangs_df=cosangs_df
+                                                                             )
         else:
-            self.sequence_df = pd.read_csv(csv_path, header= None)
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                   in_channel=in_channel,
+                                                                   out_channel=out_channel, 
+                                                                   min_time_diff=min_time_diff, 
+                                                                   max_time_diff=max_time_diff)
         
         self.data_aug = data_aug
     def __getitem__(self, index):
-
         # images loading 
-        
+
         for i in range(self.in_channel + self.out_channel):
             if i == 0:  # first image in in_frames
                 in_frames = np.load(os.path.join(
@@ -139,11 +151,13 @@ class MontevideoFoldersDataset(Dataset):
 
     def __len__(self):
         return (len(self.sequence_df))
-    
+
+
 class MontevideoFoldersDataset_w_CMV(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX. It also loads the predictions done by CMV.
     """    
-    def __init__(self, path, cmv_path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=True, nan_value=0):
+    def __init__(self, path, cmv_path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
+                 csv_path=None, transform=None, output_last=True, nan_value=0, day_pct=0.75):
         super(MontevideoFoldersDataset_w_CMV, self).__init__()
 
         self.path = path
@@ -155,15 +169,24 @@ class MontevideoFoldersDataset_w_CMV(Dataset):
         self.transform = transform
         self.output_last = output_last
         self.nan_value = nan_value
+        self.day_pct = day_pct
         
-        if csv_path is None:
-            self.sequence_df = utils.sequence_df_generator_folders(path=path,
-                                                                    in_channel=in_channel,
-                                                                    out_channel= out_channel, 
-                                                                    min_time_diff= min_time_diff, 
-                                                                    max_time_diff= max_time_diff)
+        if csv_path:
+            self.cosangs_df = pd.read(csv_path, header=None)
+            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
+                                                                             in_channel=in_channel,
+                                                                             out_channel=out_channel, 
+                                                                             min_time_diff=min_time_diff, 
+                                                                             max_time_diff=max_time_diff,
+                                                                             cosangs_df=cosangs_df
+                                                                             )
         else:
-            self.sequence_df = pd.read_csv(csv_path, header= None)
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                   in_channel=in_channel,
+                                                                   out_channel=out_channel, 
+                                                                   min_time_diff=min_time_diff, 
+                                                                   max_time_diff=max_time_diff)
         
     def __getitem__(self, index):
 
@@ -823,7 +846,8 @@ def save_imgs_list_2npy(imgs_list=[],
 class MontevideoFoldersDataset_w_time(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
-    def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15, csv_path=None, transform=None, output_last=False):
+    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
+                 csv_path=None, transform=None, output_last=False, day_pct=0.75):
         super(MontevideoFoldersDataset_w_time, self).__init__()
 
         self.path = path
@@ -833,17 +857,26 @@ class MontevideoFoldersDataset_w_time(Dataset):
         self.max_time_diff = max_time_diff
         self.transform = transform
         self.output_last = output_last
-        if csv_path is None:
-            self.sequence_df = utils.sequence_df_generator_folders(path=path,
-                                                                    in_channel=in_channel,
-                                                                    out_channel= out_channel, 
-                                                                    min_time_diff= min_time_diff, 
-                                                                    max_time_diff= max_time_diff)
+        self.day_pct = day_pct
+
+        if csv_path:
+            self.cosangs_df = pd.read(csv_path, header=None)
+            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
+                                                                             in_channel=in_channel,
+                                                                             out_channel=out_channel, 
+                                                                             min_time_diff=min_time_diff, 
+                                                                             max_time_diff=max_time_diff,
+                                                                             cosangs_df=cosangs_df
+                                                                             )
         else:
-            self.sequence_df = pd.read_csv(csv_path, header= None)
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                   in_channel=in_channel,
+                                                                   out_channel=out_channel, 
+                                                                   min_time_diff=min_time_diff, 
+                                                                   max_time_diff=max_time_diff)
 
     def __getitem__(self, index):
-
         # images loading
         for i in range(self.in_channel + self.out_channel):
             if i == 0:  # first image in in_frames
@@ -900,10 +933,12 @@ class MontevideoFoldersDataset_w_time(Dataset):
     def __len__(self):
         return (len(self.sequence_df))
 
+
 class MontevideoFoldersDataset_w_name(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX and returns output name
     """    
-    def __init__(self, path, in_channel=3, out_channel=1,min_time_diff=5,max_time_diff=15, csv_path=None, transform=None, output_last=False):
+    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
+                 csv_path=None, transform=None, output_last=False, day_pct=0.75):
         super(MontevideoFoldersDataset_w_name, self).__init__()
 
         self.path = path
@@ -913,14 +948,24 @@ class MontevideoFoldersDataset_w_name(Dataset):
         self.max_time_diff = max_time_diff
         self.transform = transform
         self.output_last = output_last
-        if csv_path is None:
-            self.sequence_df = utils.sequence_df_generator_folders(path=path,
-                                                                    in_channel=in_channel,
-                                                                    out_channel= out_channel, 
-                                                                    min_time_diff= min_time_diff, 
-                                                                    max_time_diff= max_time_diff)
+        self.day_pct = day_pct
+
+        if csv_path:
+            self.cosangs_df = pd.read(csv_path, header=None)
+            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
+                                                                             in_channel=in_channel,
+                                                                             out_channel=out_channel, 
+                                                                             min_time_diff=min_time_diff, 
+                                                                             max_time_diff=max_time_diff,
+                                                                             cosangs_df=cosangs_df
+                                                                             )
         else:
-            self.sequence_df = pd.read_csv(csv_path, header= None)
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                   in_channel=in_channel,
+                                                                   out_channel=out_channel, 
+                                                                   min_time_diff=min_time_diff, 
+                                                                   max_time_diff=max_time_diff)
 
     def __getitem__(self, index):
 
@@ -962,7 +1007,7 @@ class PatchesFoldersDataset(Dataset):
     def __init__(self, path, in_channel=3, out_channel=1, 
                  min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=False,
                  output_30min=False,
-                 img_size=512, patch_size=128, train=True):
+                 img_size=512, patch_size=128, day_pct=0.75, train=True):
         
         super(PatchesFoldersDataset, self).__init__()
 
@@ -974,15 +1019,24 @@ class PatchesFoldersDataset(Dataset):
         self.transform = transform
         self.output_last = output_last
         self.output_30min = output_30min
-        if csv_path is None:
-            self.sequence_df = utils.sequence_df_generator_folders(path=path,
-                                                                    in_channel=in_channel,
-                                                                    out_channel= out_channel, 
-                                                                    min_time_diff= min_time_diff, 
-                                                                    max_time_diff= max_time_diff)
+        self.day_pct = day_pct
+
+        if csv_path:
+            self.cosangs_df = pd.read(csv_path, header=None)
+            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
+                                                                             in_channel=in_channel,
+                                                                             out_channel=out_channel, 
+                                                                             min_time_diff=min_time_diff, 
+                                                                             max_time_diff=max_time_diff,
+                                                                             cosangs_df=cosangs_df
+                                                                             )
         else:
-            self.sequence_df = pd.read_csv(csv_path, header= None)
-            
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                   in_channel=in_channel,
+                                                                   out_channel=out_channel, 
+                                                                   min_time_diff=min_time_diff, 
+                                                                   max_time_diff=max_time_diff)
         self.img_size = img_size
         self.pred_size = patch_size
         self.train = train
@@ -1131,7 +1185,7 @@ class PatchesFoldersDataset_w_geodata(Dataset):
     """    
     def __init__(self, path, in_channel=3, out_channel=1, 
                  min_time_diff=5, max_time_diff=15, csv_path=None, output_last=False,
-                 img_size=512, patch_size=128, geo_data_path=None, train=True):
+                 img_size=512, patch_size=128, geo_data_path=None, day_pct=0.75, train=True):
         
         super(PatchesFoldersDataset_w_geodata, self).__init__()
 
@@ -1142,14 +1196,24 @@ class PatchesFoldersDataset_w_geodata(Dataset):
         self.max_time_diff = max_time_diff
 
         self.output_last = output_last
-        if csv_path is None:
-            self.sequence_df = utils.sequence_df_generator_folders(path=path,
-                                                                    in_channel=in_channel,
-                                                                    out_channel= out_channel, 
-                                                                    min_time_diff= min_time_diff, 
-                                                                    max_time_diff= max_time_diff)
+        self.day_pct = day_pct
+
+        if csv_path:
+            self.cosangs_df = pd.read(csv_path, header=None)
+            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
+                                                                             in_channel=in_channel,
+                                                                             out_channel=out_channel, 
+                                                                             min_time_diff=min_time_diff, 
+                                                                             max_time_diff=max_time_diff,
+                                                                             cosangs_df=cosangs_df
+                                                                             )
         else:
-            self.sequence_df = pd.read_csv(csv_path, header= None)
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                   in_channel=in_channel,
+                                                                   out_channel=out_channel, 
+                                                                   min_time_diff=min_time_diff, 
+                                                                   max_time_diff=max_time_diff)
             
         self.img_size = img_size
         self.pred_size = patch_size
@@ -1291,7 +1355,8 @@ class PatchesFoldersDataset_w_geodata(Dataset):
 class MontevideoFoldersDataset_input_time(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
-    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=False, data_aug=False):
+    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
+                 csv_path=None, transform=None, output_last=False, data_aug=False, day_pct=0.75):
         super(MontevideoFoldersDataset_input_time, self).__init__()
 
         self.path = path
@@ -1301,14 +1366,24 @@ class MontevideoFoldersDataset_input_time(Dataset):
         self.max_time_diff = max_time_diff
         self.transform = transform
         self.output_last = output_last
-        if csv_path is None:
-            self.sequence_df = utils.sequence_df_generator_folders(path=path,
-                                                                    in_channel=in_channel,
-                                                                    out_channel= out_channel, 
-                                                                    min_time_diff= min_time_diff, 
-                                                                    max_time_diff= max_time_diff)
+        self.day_pct = day_pct
+
+        if csv_path:
+            self.cosangs_df = pd.read(csv_path, header=None)
+            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
+                                                                             in_channel=in_channel,
+                                                                             out_channel=out_channel, 
+                                                                             min_time_diff=min_time_diff, 
+                                                                             max_time_diff=max_time_diff,
+                                                                             cosangs_df=cosangs_df
+                                                                             )
         else:
-            self.sequence_df = pd.read_csv(csv_path, header= None)
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                   in_channel=in_channel,
+                                                                   out_channel=out_channel, 
+                                                                   min_time_diff=min_time_diff, 
+                                                                   max_time_diff=max_time_diff)
         
         self.data_aug = data_aug
     def __getitem__(self, index):
@@ -1367,10 +1442,12 @@ class MontevideoFoldersDataset_input_time(Dataset):
     def __len__(self):
         return (len(self.sequence_df))
 
+
 class MontevideoFoldersDataset_output_time(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
-    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=True, data_aug=False):
+    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
+                 csv_path=None, transform=None, output_last=True, data_aug=False, day_pct=0.75):
         super(MontevideoFoldersDataset_output_time, self).__init__()
 
         self.path = path
@@ -1380,14 +1457,24 @@ class MontevideoFoldersDataset_output_time(Dataset):
         self.max_time_diff = max_time_diff
         self.transform = transform
         self.output_last = output_last
-        if csv_path is None:
-            self.sequence_df = utils.sequence_df_generator_folders(path=path,
-                                                                    in_channel=in_channel,
-                                                                    out_channel= out_channel, 
-                                                                    min_time_diff= min_time_diff, 
-                                                                    max_time_diff= max_time_diff)
+        self.day_pct = day_pct
+
+        if csv_path:
+            self.cosangs_df = pd.read(csv_path, header=None)
+            self.cosangs_df = self.cosangs_df.loc[self.cosangs_df[1] >= self.day_pct]
+            self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
+                                                                             in_channel=in_channel,
+                                                                             out_channel=out_channel, 
+                                                                             min_time_diff=min_time_diff, 
+                                                                             max_time_diff=max_time_diff,
+                                                                             cosangs_df=cosangs_df
+                                                                             )
         else:
-            self.sequence_df = pd.read_csv(csv_path, header= None)
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                   in_channel=in_channel,
+                                                                   out_channel=out_channel, 
+                                                                   min_time_diff=min_time_diff, 
+                                                                   max_time_diff=max_time_diff)
         
         self.data_aug = data_aug
     def __getitem__(self, index):

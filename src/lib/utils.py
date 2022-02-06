@@ -413,6 +413,7 @@ def image_sequence_generator_folders_cosangs(path, in_channel, out_channel, min_
                 if complete_seq: 
                     writer.writerow(image_sequence)
 
+
 def sequence_df_generator_folders(path, in_channel,out_channel, min_time_diff, max_time_diff):
     """Generates DataFrame that contains all possible sequences for images separated by day
 
@@ -466,6 +467,7 @@ def sequence_df_generator_folders(path, in_channel,out_channel, min_time_diff, m
     sequences_df = pd.DataFrame(sequences_df)
     return sequences_df
 
+
 def sequence_df_generator(path, in_channel,out_channel, min_time_diff, max_time_diff, csv_path):
     onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
     days_list = []
@@ -511,6 +513,7 @@ def sequence_df_generator(path, in_channel,out_channel, min_time_diff, max_time_
     sequences_df = pd.DataFrame(sequences_df)
     return sequences_df
 
+
 def data_separator_by_folder(data_path):
     """Takes a folder with images ART_2020XXX_hhmmss.npy and it separates it in folders named 2020XXX
 
@@ -546,15 +549,78 @@ def data_separator_by_folder(data_path):
                 first = False
             shutil.move(data_path + filename, data_path+ filename[4:11]+ '/')
 
+
 def clear_lines(num_lines):
     for _ in range(num_lines):
         sys.stdout.write("\033[F") #back to previous line 
         sys.stdout.write("\033[K") #clear line 
 
+
 def save_pickle_dict(path='reports/model_training', name='', dict_=None):
     with open(os.path.join(path, name + '.pkl'), 'wb') as f:
         pickle.dump(dict_, f, pickle.HIGHEST_PROTOCOL) 
 
+
 def load_pickle_dict(path='reports/model_training', name=''):
     with open(os.path.join(path, name + '.pkl'), 'rb') as f:
         return pickle.load(f)
+
+
+def sequence_df_generator_w_cosangs_folders(path,
+                                            in_channel, out_channel,
+                                            min_time_diff, max_time_diff,
+                                            cosangs_df):
+    """Generates DataFrame that contains all possible sequences for images separated by day.
+    Only uses images with a day percetnage higher than day_pct
+
+    Args:
+        path (str): path to folder containing images '/train'
+        in_channel (int): Quantity of input images in sequence
+        out_channel (int): Quantity of output images in sequence
+        min_time_diff (int): Images separated by less than this time cannot be a sequence
+        max_time_diff (int): Images separated by more than this time cannot be a sequence
+        cosangs_df (pd.DataFrame):
+    Returns:
+        [pd.DataFrame]: Rows contain all sequences
+    """    
+    #folder names
+    folders = os.listdir(path)
+
+    cosangs_files = cosangs_df[0].tolist()
+    dt_min =timedelta(minutes = min_time_diff)
+    dt_max =timedelta(minutes = max_time_diff)
+
+    sequences_df = []
+
+    for folder in folders:
+        folderfiles = sorted([f for f in listdir(join(path, folder)) if isfile(join(path, folder, f))])
+        folderfiles_w_cosangs = sorted([f for f in folderfiles if f in cosangs_files])
+        len_day = len(folderfiles_w_cosangs)
+        for i in range(len_day - (in_channel + out_channel - 1)):  # me fijo si puedo completar un conjunto de datos
+            complete_seq = True
+            image_sequence = []
+            for j in range(in_channel + out_channel - 1):  # veo si puede rellenar un dato
+                if complete_seq:
+                    dt_i = datetime(1997, 5, 28, hour = int(folderfiles_w_cosangs[i+j][12:14]), 
+                                    minute = int(folderfiles_w_cosangs[i+j][14:16]), 
+                                    second = int(folderfiles_w_cosangs[i+j][16:18]))
+                    dt_f = datetime(1997, 5, 28, hour = int(folderfiles_w_cosangs[i+j+1][12:14]), 
+                                    minute = int(folderfiles_w_cosangs[i+j+1][14:16]), 
+                                    second = int(folderfiles_w_cosangs[i+j+1][16:18]))
+                    
+                    time_diff = dt_f - dt_i
+                    
+                    if  dt_min < time_diff < dt_max:  # las imagenes estan bien espaciadas en el tiempo
+                        if j == 0:
+                            image_sequence.append(folderfiles_w_cosangs[i+j])
+                            image_sequence.append(folderfiles_w_cosangs[i+j+1])
+                        if j > 0:
+                            image_sequence.append(folderfiles_w_cosangs[i+j+1])          
+                    else:
+                        complete_seq = False
+
+            if complete_seq: 
+                sequences_df.append(image_sequence)
+
+    sequences_df = pd.DataFrame(sequences_df)
+    return sequences_df
