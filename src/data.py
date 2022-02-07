@@ -76,7 +76,7 @@ class MontevideoFoldersDataset(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
     def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
-                 csv_path=None, transform=None, output_last=False, data_aug=False, day_pct=0.75):
+                 csv_path=None, transform=None, output_last=False, data_aug=False, day_pct=1):
         super(MontevideoFoldersDataset, self).__init__()
 
         self.path = path
@@ -157,7 +157,7 @@ class MontevideoFoldersDataset_w_CMV(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX. It also loads the predictions done by CMV.
     """    
     def __init__(self, path, cmv_path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
-                 csv_path=None, transform=None, output_last=True, nan_value=0, day_pct=0.75):
+                 csv_path=None, transform=None, output_last=True, nan_value=0, day_pct=1):
         super(MontevideoFoldersDataset_w_CMV, self).__init__()
 
         self.path = path
@@ -847,7 +847,7 @@ class MontevideoFoldersDataset_w_time(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
     def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
-                 csv_path=None, transform=None, output_last=False, day_pct=0.75):
+                 csv_path=None, transform=None, output_last=False, day_pct=1):
         super(MontevideoFoldersDataset_w_time, self).__init__()
 
         self.path = path
@@ -938,7 +938,7 @@ class MontevideoFoldersDataset_w_name(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX and returns output name
     """    
     def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
-                 csv_path=None, transform=None, output_last=False, day_pct=0.75):
+                 csv_path=None, transform=None, output_last=False, day_pct=1):
         super(MontevideoFoldersDataset_w_name, self).__init__()
 
         self.path = path
@@ -1007,7 +1007,7 @@ class PatchesFoldersDataset(Dataset):
     def __init__(self, path, in_channel=3, out_channel=1, 
                  min_time_diff=5, max_time_diff=15, csv_path=None, transform=None, output_last=False,
                  output_30min=False,
-                 img_size=512, patch_size=128, day_pct=0.75, train=True):
+                 img_size=512, patch_size=128, day_pct=1, train=True):
         
         super(PatchesFoldersDataset, self).__init__()
 
@@ -1185,7 +1185,7 @@ class PatchesFoldersDataset_w_geodata(Dataset):
     """    
     def __init__(self, path, in_channel=3, out_channel=1, 
                  min_time_diff=5, max_time_diff=15, csv_path=None, output_last=False,
-                 img_size=512, patch_size=128, geo_data_path=None, day_pct=0.75, train=True):
+                 img_size=512, patch_size=128, geo_data_path=None, day_pct=1, train=True):
         
         super(PatchesFoldersDataset_w_geodata, self).__init__()
 
@@ -1356,7 +1356,7 @@ class MontevideoFoldersDataset_input_time(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
     def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
-                 csv_path=None, transform=None, output_last=False, data_aug=False, day_pct=0.75):
+                 csv_path=None, transform=None, output_last=False, data_aug=False, day_pct=1):
         super(MontevideoFoldersDataset_input_time, self).__init__()
 
         self.path = path
@@ -1447,7 +1447,7 @@ class MontevideoFoldersDataset_output_time(Dataset):
     """Dataset for Montevideo Dataset separated by folders named 2020XXX
     """    
     def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
-                 csv_path=None, transform=None, output_last=True, data_aug=False, day_pct=0.75):
+                 csv_path=None, transform=None, output_last=True, data_aug=False, day_pct=1):
         super(MontevideoFoldersDataset_output_time, self).__init__()
 
         self.path = path
