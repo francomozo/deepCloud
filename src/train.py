@@ -1297,17 +1297,17 @@ def train_model_full(
         VAL_SSIM_LOSS_GLOBAL = trained_model_dict['val_ssim_loss']
         
         if trained_model_dict['validation_loss'] in ['mae', 'MAE']:
-            BEST_VAL_ACC = VAL_MAE_LOSS_GLOBAL[-1]
+            BEST_VAL_ACC = np.min(VAL_MAE_LOSS_GLOBAL)
         if trained_model_dict['validation_loss'] in ['mse', 'MSE']:
-            BEST_VAL_ACC = VAL_MSE_LOSS_GLOBAL[-1]
+            BEST_VAL_ACC = np.min(VAL_MSE_LOSS_GLOBAL)
         if trained_model_dict['validation_loss'] in ['ssim', 'SSIM']:
-            BEST_VAL_ACC = VAL_SSIM_LOSS_GLOBAL[-1]
+            BEST_VAL_ACC = 1 - np.max(VAL_SSIM_LOSS_GLOBAL)
         
         first_epoch = trained_model_dict['epoch']
         print(f'Start from pre trained model, epoch: {first_epoch}, last train loss: {TRAIN_LOSS_GLOBAL[-1]}, best val loss: {BEST_VAL_ACC}')
         
     else:
-        TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
+        TRAIN_LOSS_GLOBAL = []  # perists through epochs, stores the mean of each epoch
         VAL_MAE_LOSS_GLOBAL = []
         VAL_MSE_LOSS_GLOBAL = []
         VAL_SSIM_LOSS_GLOBAL = []
@@ -1324,7 +1324,7 @@ def train_model_full(
         
     for epoch in range(first_epoch, epochs):
         start_epoch = time.time()
-        TRAIN_LOSS_EPOCH = 0 #stores values inside the current epoch
+        TRAIN_LOSS_EPOCH = 0  # stores values inside the current epoch
 
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
             
@@ -1437,10 +1437,10 @@ def train_model_full(
                 'validation_loss': loss_for_scheduler,
                 'model_state_dict': copy.deepcopy(model.state_dict()),
                 'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
-                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL,
-                'val_mae_loss': VAL_MAE_LOSS_GLOBAL,
-                'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
-                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL
+                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL.copy(),
+                'val_mae_loss': VAL_MAE_LOSS_GLOBAL.copy(),
+                'val_mse_loss': VAL_MSE_LOSS_GLOBAL.copy(),
+                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL.copy()
             }
             best_model_not_saved = True
             best_model_epoch = epoch + 1
@@ -1454,10 +1454,10 @@ def train_model_full(
                 'validation_loss': loss_for_scheduler,
                 'model_state_dict': copy.deepcopy(model.state_dict()),
                 'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
-                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL,
-                'val_mae_loss': VAL_MAE_LOSS_GLOBAL,
-                'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
-                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL
+                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL.copy(),
+                'val_mae_loss': VAL_MAE_LOSS_GLOBAL.copy(),
+                'val_mse_loss': VAL_MSE_LOSS_GLOBAL.copy(),
+                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL.copy()
             }
             
             ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
@@ -1471,7 +1471,7 @@ def train_model_full(
                     print ("Error: Couldnt delete checkpoint")
             PREVIOUS_CHECKPOINT_NAME = NAME
             
-            if best_model_not_saved:
+            if best_model_not_saved and epoch > 0:
                 PATH = 'checkpoints/'
                 ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
                 NAME = model_name + '_' + str(best_model_epoch) + '_' + str(ts) + '_BEST.pt'
@@ -1479,7 +1479,7 @@ def train_model_full(
                 best_model_not_saved = False
                 
     # if training finished and best model not saved
-    if best_model_not_saved:
+    if best_model_not_saved and epoch > 0:
         if verbose: print('Saving Checkpoint')
         PATH = 'checkpoints/'
         ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
@@ -1576,11 +1576,11 @@ def train_irradianceNet(
         VAL_SSIM_LOSS_GLOBAL = trained_model_dict['val_ssim_loss']
         
         if trained_model_dict['validation_loss'] in ['mae', 'MAE']:
-            BEST_VAL_ACC = VAL_MAE_LOSS_GLOBAL[-1]
+            BEST_VAL_ACC = np.min(VAL_MAE_LOSS_GLOBAL)
         if trained_model_dict['validation_loss'] in ['mse', 'MSE']:
-            BEST_VAL_ACC = VAL_MSE_LOSS_GLOBAL[-1]
+            BEST_VAL_ACC = np.min(VAL_MSE_LOSS_GLOBAL)
         if trained_model_dict['validation_loss'] in ['ssim', 'SSIM']:
-            BEST_VAL_ACC = VAL_SSIM_LOSS_GLOBAL[-1]
+            BEST_VAL_ACC = 1 - np.max(VAL_SSIM_LOSS_GLOBAL)
         
         first_epoch = trained_model_dict['epoch']
         print(f'Start from pre trained model, epoch: {first_epoch}, last train loss: {TRAIN_LOSS_GLOBAL[-1]}, best val loss: {BEST_VAL_ACC}')
@@ -1756,10 +1756,10 @@ def train_irradianceNet(
                 'validation_loss': loss_for_scheduler,
                 'model_state_dict': copy.deepcopy(model.state_dict()),
                 'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
-                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL,
-                'val_mae_loss': VAL_MAE_LOSS_GLOBAL,
-                'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
-                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL
+                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL.copy(),
+                'val_mae_loss': VAL_MAE_LOSS_GLOBAL.copy(),
+                'val_mse_loss': VAL_MSE_LOSS_GLOBAL.copy(),
+                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL.copy()
             }
             best_model_not_saved = True
             best_model_epoch = epoch + 1
@@ -1773,10 +1773,10 @@ def train_irradianceNet(
                 'validation_loss': loss_for_scheduler,
                 'model_state_dict': copy.deepcopy(model.state_dict()),
                 'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
-                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL,
-                'val_mae_loss': VAL_MAE_LOSS_GLOBAL,
-                'val_mse_loss': VAL_MSE_LOSS_GLOBAL,
-                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL
+                'train_loss_epoch_mean': TRAIN_LOSS_GLOBAL.copy(),
+                'val_mae_loss': VAL_MAE_LOSS_GLOBAL.copy(),
+                'val_mse_loss': VAL_MSE_LOSS_GLOBAL.copy(),
+                'val_ssim_loss': VAL_SSIM_LOSS_GLOBAL.copy()
             }
             
             ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
@@ -1790,7 +1790,7 @@ def train_irradianceNet(
                     print ("Error: Couldnt delete checkpoint")
             PREVIOUS_CHECKPOINT_NAME = NAME
             
-            if best_model_not_saved:
+            if best_model_not_saved and epoch > 0:
                 PATH = 'checkpoints/'
                 ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
                 NAME =  model_name + '_' + str(best_model_epoch) + '_' + str(ts) + '_BEST.pt'
@@ -1798,7 +1798,7 @@ def train_irradianceNet(
                 best_model_not_saved = False
                 
     # if training finished and best model not saved
-    if best_model_not_saved:
+    if best_model_not_saved and epoch > 0:
         if verbose: print('Saving Checkpoint')
         PATH = 'checkpoints/'
         ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
