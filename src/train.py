@@ -1602,7 +1602,7 @@ def train_irradianceNet(
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
             model.train()
             
-            if testing_loop and batch_idx==1:
+            if testing_loop and batch_idx == 5:
                 break
             
             if not geo_data:
@@ -1643,7 +1643,7 @@ def train_irradianceNet(
 
             TRAIN_LOSS_EPOCH += loss.detach().item()
             
-        TRAIN_LOSS_GLOBAL.append(TRAIN_LOSS_EPOCH/len(train_loader))
+        TRAIN_LOSS_GLOBAL.append(TRAIN_LOSS_EPOCH / len(train_loader))
         
         #evaluation
         model.eval()
@@ -1655,7 +1655,7 @@ def train_irradianceNet(
             
             for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
                 
-                if testing_loop and val_batch_idx==1:
+                if testing_loop and val_batch_idx == 5:
                     break
 
                 if not geo_data:
