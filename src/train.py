@@ -1586,7 +1586,7 @@ def train_irradianceNet(
         print(f'Start from pre trained model, epoch: {first_epoch}, last train loss: {TRAIN_LOSS_GLOBAL[-1]}, best val loss: {BEST_VAL_ACC}')
         
     else:
-        TRAIN_LOSS_GLOBAL = [] #perists through epochs, stores the mean of each epoch
+        TRAIN_LOSS_GLOBAL = []  # perists through epochs, stores the mean of each epoch
         VAL_MAE_LOSS_GLOBAL = []
         VAL_MSE_LOSS_GLOBAL = []
         VAL_SSIM_LOSS_GLOBAL = []
@@ -1597,7 +1597,7 @@ def train_irradianceNet(
         
     for epoch in range(first_epoch, epochs):
         start_epoch = time.time()
-        TRAIN_LOSS_EPOCH = 0 #stores values inside the current epoch
+        TRAIN_LOSS_EPOCH = 0  # stores values inside the current epoch
         
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
             model.train()
