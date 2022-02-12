@@ -1607,11 +1607,11 @@ def train_irradianceNet(
             
             if not geo_data:
                 in_frames = torch.unsqueeze(in_frames, dim=2)
+            
+            if not train_w_last:
+                out_frames = torch.unsqueeze(out_frames, dim=2
                 
-            in_frames = in_frames.to(device=device)
-
-            out_frames = torch.unsqueeze(out_frames, dim=2)
-    
+            in_frames = in_frames.to(device=device)    
             out_frames = out_frames.to(device=device)
 
             # forward
@@ -1627,12 +1627,12 @@ def train_irradianceNet(
             
             else:
                 if train_loss in ['mae', 'MAE', 'mse', 'MSE', 'forecaster_loss', 'FORECASTER_LOSS']:
-                    loss = train_criterion(frames_pred[:, -1, :,:,:], out_frames[:, -1, :, :, :])
+                    loss = train_criterion(frames_pred[:, -1, :,:,:], out_frames)
                 if train_loss in ['ssim', 'SSIM']:
-                    loss = 1 - train_criterion(frames_pred[:, -1, :,:,:], out_frames[:, -1, :, :, :])
+                    loss = 1 - train_criterion(frames_pred[:, -1, :,:,:], out_frames)
                 if train_loss in ['mae_ssim', 'MAE_SSIM']:
-                    loss = 1 - train_criterion_ssim(frames_pred[:, -1, :, :, :], out_frames[:, -1, :, :, :]) + \
-                           train_criterion_mae(frames_pred[:, -1, :, :, :], out_frames[:, -1, :, :, :])
+                    loss = 1 - train_criterion_ssim(frames_pred[:, -1, :,:,:], out_frames) + \
+                            train_criterion_mae(frames_pred[:, -1, :,:,:], out_frames)
 
                 # backward
             optimizer.zero_grad()
@@ -1660,9 +1660,12 @@ def train_irradianceNet(
 
                 if not geo_data:
                     in_frames = torch.unsqueeze(in_frames, dim=2)  # B, Si, C(=1), H, W
+                    
                 in_frames = in_frames.to(device=device)
 
-                out_frames = torch.unsqueeze(out_frames, dim=2)  # B, So, C(=1), H, W
+                if not train_w_last:
+                    out_frames = torch.unsqueeze(out_frames, dim=2)  # B, So, C(=1), H, W
+
                 out_frames = out_frames.to(device=device)
 
                 mae_val_loss_Q = 0
@@ -1691,16 +1694,16 @@ def train_irradianceNet(
                                 ssim_val_loss_Q = 0
                         else:
                             mae_val_loss_Q += mae_loss(frames_pred_Q[:, -1, :, :, :],  # B, 1, H, W
-                                                       out_frames[:, -1, :, n:n+patch_size, m:m+patch_size]
+                                                       out_frames[:, :, n:n+patch_size, m:m+patch_size]
                                                        ).detach().item()
                             mse_val_loss_Q += mse_loss(frames_pred_Q[:, -1, :, :, :],
-                                                       out_frames[:, -1, :, n:n+patch_size, m:m+patch_size]
+                                                       out_frames[:, :, n:n+patch_size, m:m+patch_size]
                                                        ).detach().item()
 
                             frames_pred_Q = torch.clamp(frames_pred_Q[:, -1, :, :, :], min=0, max=1)
   
                             ssim_val_loss_Q += ssim_loss(frames_pred_Q,
-                                                        out_frames[:, -1, :, n:n+patch_size, m:m+patch_size]
+                                                        out_frames[:, :, n:n+patch_size, m:m+patch_size]
                                                         ).detach().item()
                         
                 mae_val_loss += (mae_val_loss_Q / (dim**2))
