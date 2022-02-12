@@ -25,7 +25,7 @@ from src.lib.utils_irradianceNet import convert_to_full_res, interpolate_borders
 # DeepCloud
 from src import data, evaluate, model, preprocessing, visualization, train
 from src.lib import utils
-from src.data import MontevideoFoldersDataset
+from src.data import MontevideoFoldersDataset, PatchesFoldersDataset
 
 print('finis import')
 
@@ -38,9 +38,9 @@ torch.manual_seed(50)
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
 
 in_channel = 1 # 1 if only image, higher if more metadata in training
-n_future_frames = 4
+n_future_frames = 6
 input_seq_len = 3
-img_size = 256
+img_size = 512
 patch_size = 128
 
 train_mvd = PatchesFoldersDataset(
@@ -55,7 +55,7 @@ train_mvd = PatchesFoldersDataset(
         patch_size=patch_size,
         train=True
         )
-                                        
+                             
 val_mvd = PatchesFoldersDataset(
         path='/clusteruy/home03/DeepCloud/deepCloud/data/uru/validation/',                          	
         in_channel=input_seq_len,
@@ -70,8 +70,8 @@ val_mvd = PatchesFoldersDataset(
         )
 
 
-batch_size = 20
-epochs = 120
+batch_size = 10
+epochs = 1
 
 
 train_loader = DataLoader(train_mvd, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
@@ -106,26 +106,26 @@ model.apply(train.weights_init)
 # stops improving beyond a small threshold for at least five consecutive
 # epochs, also called reduce learning rate on plateau
 
-lr = 1e-4
+lr = 2e-3
 
 optimizer = optim.Adam(model.parameters(), lr=lr , betas=(0.9,0.999), eps=1e-08, weight_decay=0 ,amsgrad=False)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=5, min_lr=1e-9)
 
 train_loss = 'mae'  # ['mae', 'mse', 'ssim']
-loss_for_scheduler = 'mse'
-model_name = f'Xmin_IrradianceNet_uru_{train_loss}'
-comment = f' batch_size:{batch_size} lr:{lr} model:{mdl} train_loss:{train_loss}'
-writer = SumaryWriter(log_dir='runs/predict_20min' ,comment=comment)
+loss_for_scheduler = 'mae'
+model_name = f'60min_IrradianceNet_uru_{train_loss}'
+comment = f' batch_size:{batch_size} lr:{lr} model:irradianceNet train_loss:{train_loss}'
+writer = SummaryWriter(log_dir='runs/predict_60min/irradianceNet', comment=comment)
 
 # TRAIN LOOP
 
-TRAIN_LOSS, VAL_MAE_LOSS, VAL_MSE_LOSS, VAL_SSIM_LOSS = train_irradianceNet(
+TRAIN_LOSS, VAL_MAE_LOSS, VAL_MSE_LOSS, VAL_SSIM_LOSS = train.train_irradianceNet(
     model=model,
     train_loss=train_loss,
     optimizer=optimizer,
     device=device,
     train_loader=train_loader,
-    val_loader=val+loader,
+    val_loader=val_loader,
     epochs=epochs,
     img_size=512,
     patch_size=128,
@@ -152,3 +152,4 @@ if save_dict:
         'val_ssim_loss': VAL_SSIM_LOSS
         }                                         
     utils.save_pickle_dict(name=model_name, dict_=learning_values)   
+

@@ -15,12 +15,13 @@ from src.dl_models.unet_advanced import R2U_Net, AttU_Net, R2AttU_Net, NestedUNe
 import scipy.stats as st
 
 ## CONFIGURATION #########
+
 REGION = 'R3' # [MVD, URU, R3]
 PREDICT_HORIZON = '60min'
 FRAME_OUT = 5  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
 CSV_PATH = None
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
-MODEL_PATH = 'checkpoints/'+REGION+'/'+PREDICT_HORIZON+'/240min_UNET2_mae_sigmoid_f32_R3_48_31-08-2021_11:34.pt'
+MODEL_PATH = 'checkpoints/'+REGION+'/'+PREDICT_HORIZON+'/60min_UNET__region3_mae_filters16_sigmoid_diffFalse_retrainTrue_80_01-02-2022_15:18.pt'
 OUTPUT_ACTIVATION = 'sigmoid'
 CROP_SIZE = 50
 
@@ -28,11 +29,13 @@ CROP_SIZE = 50
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
 
-#model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=48).to(device)
-model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation=OUTPUT_ACTIVATION, bias=False, filters=32).to(device)
+model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=16).to(device)
+#model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=32).to(device)
+
 
 SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
 SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON 
+
 
 ###########################
 if REGION == 'MVD':
@@ -42,7 +45,6 @@ elif REGION == 'URU':
 elif REGION == 'R3':
     dataset = 'region3'
 PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
-
 
 if OUTPUT_ACTIVATION == 'tanh':
     PREDICT_DIFF = True
@@ -751,5 +753,5 @@ if M < 1000:
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'filter_layer_output.png')
     visualization.show_image_list(output_list, rows=8, fig_name=fig_name, save_fig=True)
     plt.close()
-
 print('Done.')
+

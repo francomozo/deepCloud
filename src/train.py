@@ -1598,7 +1598,7 @@ def train_irradianceNet(
     for epoch in range(first_epoch, epochs):
         start_epoch = time.time()
         TRAIN_LOSS_EPOCH = 0 #stores values inside the current epoch
-
+        
         for batch_idx, (in_frames, out_frames) in enumerate(train_loader):
             model.train()
             

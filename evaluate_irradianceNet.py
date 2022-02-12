@@ -36,9 +36,9 @@ print('using device:', device)
 torch.manual_seed(50)
 
 patch_model = True
-MODEL_PATH = 'checkpoints/R3/240min/240min_UNET2_mae_sigmoid_f32_R3_48_31-08-2021_11:34.pt'
+MODEL_PATH = 'checkpoints/10min_IrradianceNet_uru_mae_60_04-11-2021_05:40.pt'
 
-n_future_frames = 4
+n_future_frames = 6
 input_seq_len = 3
 patch_size = 128
 dataset = 'uru'
