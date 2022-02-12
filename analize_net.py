@@ -36,11 +36,11 @@ SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON
 
 ###########################
 if REGION == 'MVD':
-    dataset = mvd
+    dataset = 'mvd'
 elif REGION == 'URU':
-    dataset = uru
+    dataset = 'uru'
 elif REGION == 'R3':
-    dataset = region3
+    dataset = 'region3'
 PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
 
 
