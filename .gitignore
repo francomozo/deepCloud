@@ -28,4 +28,4 @@ exp_gan_gs_a[a-z]*.py
 
 misc/images/img_example.png
 
-train_Unet2_*.py
+train_UNet2_*.py
