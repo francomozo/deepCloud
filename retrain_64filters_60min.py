@@ -32,7 +32,8 @@ torch.manual_seed(50)
 
 batch_size = 1
 init_filters = 64
-MODEL_PATH = 'checkpoints/R3/60min/60min_UNET__region3_mae_filters64_sigmoid_diffFalse_retrainFalse_40_02-02-2022_21:01.pt' # AGREGAR NOMBRE COMPLETO DEL MODELO
+MODEL_PATH = 'checkpoints/R3/60min/60min_UNET__region3_mae_filters64_sigmoid_diffFalse_retrainTrue_76_09-02-2022_17:42.pt' 
+# retrain 1 'checkpoints/R3/60min/60min_UNET__region3_mae_filters64_sigmoid_diffFalse_retrainFalse_40_02-02-2022_21:01.pt' # AGREGAR NOMBRE COMPLETO DEL MODELO
 
 
 
