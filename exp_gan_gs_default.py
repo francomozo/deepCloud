@@ -1,6 +1,6 @@
 import datetime
-import random
 import os
+import random
 
 import numpy as np
 import torch
@@ -16,6 +16,11 @@ from src.dl_models.gan import Discriminator
 from src.dl_models.unet import UNet2
 from src.lib.utils import gradient_penalty, save_checkpoint
 
+#####################################################################
+# this script works, but no json is written for later plotting,
+# modify exp_gan_gs_aaap.py instead and use that
+#####################################################################
+
 expId = # global experiment Id. string
 
 # Params =======================
@@ -27,7 +32,7 @@ DATA_PATH_TRAIN = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/'
 DATA_PATH_VAL = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
 
 BATCH_SIZE = 12 # fixed
-NUM_EPOCHS = 2 # fixed
+NUM_EPOCHS = 15 # fixed
 predict_horizon = 6 # this is for validation
 sub_expId = 0
 
