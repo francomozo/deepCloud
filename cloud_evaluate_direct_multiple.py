@@ -17,8 +17,6 @@ from src.dl_models.unet import UNet, UNet2
 
 ap = argparse.ArgumentParser(description='Evaluate direct models with multiple metrics')
 
-# ap.add_argument("--out-channel", default=None, type=int,
-#                 help="Defaults to None")
 ap.add_argument("--horizon-step", default=6, type=int,
                 help="Defaults to 6. Distance between predictions")                
 ap.add_argument("--start-horizon", default=6, type=int,
@@ -61,8 +59,6 @@ csv_path_unet = params['csv_path_unet']
 PATH_DATA = params['data_path']
 metrics = params['metrics']
 metrics = [each_string.upper() for each_string in metrics]
-#start_horizon = params['start_horizon'] if params['start_horizon'] is not None else 0
-#out_channel = params['out_channel'] if params['out_channel'] is not None else params['predict_horizon']
 start_horizon = params['start_horizon']
 horizon_step = params['horizon_step']
 predict_horizon = params['predict_horizon']
@@ -110,7 +106,7 @@ for metric in metrics:
                                         output_last=True)
     val_loader_Unet = DataLoader(val_dataset_Unet)
 
-    error_array = evaluate.evaluate_model(models[i], val_loader_Unet, 
+    error_array = evaluate.evaluate_model([models[i]], val_loader_Unet, 
                                         predict_horizon=1, 
                                         start_horizon=None,
                                         device=device, 
