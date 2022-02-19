@@ -13,6 +13,8 @@ import pandas as pd
 import pickle
 import os
 
+from src.lib.latex_options import Colors, Linestyles
+
 #rolo graph
 def matrix_graph (error_array):
     """
@@ -198,7 +200,9 @@ def show_seq_and_pred(sequence_array, fig_name=None, save_fig=False):
         sequence_array (array)
     """
     nbof_frames = sequence_array.shape[0]
-
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+    
     # plt.figure(figsize=(25, 5))
     fig, ax = plt.subplots(1, 5, figsize=(30, 5))
     for i in range(nbof_frames):
@@ -207,16 +211,19 @@ def show_seq_and_pred(sequence_array, fig_name=None, save_fig=False):
             ax[i].imshow(sequence_array[i])
             ax[i].set_title('In Frame ' + str(i))
             ax[i].grid()
+            ax[i].axis('off')
         if i == nbof_frames - 2:
             im = ax[i].imshow(sequence_array[i])
-            plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
-            ax[i].set_title('GT')
+            plt.colorbar(im, cax=ax[i], fraction=0.046, pad=0.04)
+            ax[i].set_title('Ground Truth')
             ax[i].grid()
+            ax[i].axis('off')
         if i == nbof_frames - 1:
             im = ax[i].imshow(sequence_array[i])
             plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
             ax[i].set_title('Prediction')
             ax[i].grid()
+            ax[i].axis('off')
     if save_fig:
         plt.savefig(fig_name)
     plt.show()
@@ -296,18 +303,21 @@ def plot_histogram(values,bins, normalize = True):
     plt.show()
 
 
-def show_image_w_colorbar(image, fig_name=None, save_fig=False):
+def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False):
     """
     Shows the image with a colorbar 
 
     Args:
         image (array): Array containing the values of the image
-    """    
-    fig, (ax1) = plt.subplots(figsize=(13, 3), ncols=1)
+    """ 
+    fig = plt.figure()
+    fig.set_size_inches(8, 4)
+    ax1 = fig.add_subplot(1, 1, 1)
+    
     image_ = ax1.imshow(image, interpolation='none')
-    #grafica = ax1.imshow(error_array[70:100], interpolation='none')
     fig.colorbar(image_, ax=ax1)
-    ax1.title.set_text('Image')
+    if title:
+        ax1.title.set_text('Image')
     if save_fig:
         plt.savefig(fig_name)
     plt.show()
@@ -349,6 +359,7 @@ def use_filter(in_frames, filter_):
             output[i-1,j-1] = np.sum(W*filter_)
 
     return output
+
 
 def make_plots_from_dict(load_paths, save_folder=None):
     """
