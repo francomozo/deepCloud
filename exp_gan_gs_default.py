@@ -34,22 +34,23 @@ from src.lib.utils import gradient_penalty, save_checkpoint
 #   -> save the image grid to mem (epoch*sequences*5)
 
 
-expId = '' # global experiment Id. string TODO: complete the expId
+expId = 'btest' # global experiment Id. string TODO: complete the expId
 
 # Params =======================
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print(f'Using device {device}')
 torch.manual_seed(50)
 
-PT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/' # TODO:complete path depending on the ph
-DATA_PATH_TRAIN = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/'
-CSV_PATH_TRAIN = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train_cosangs_mvd.csv'
+ROOT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/'
+PT_PATH = ROOT_PATH + 'checkpoints/30min_UNET2_mvd_mae_filters16_sigmoid_diffFalse_retrainFalse_34_16-02-2022_11:26_BEST_FINAL.pt' # TODO:complete path depending on the ph
+DATA_PATH_TRAIN = ROOT_PATH + '/data/mvd/train/'
+CSV_PATH_TRAIN = ROOT_PATH + '/data/mvd/train_cosangs_mvd.csv'
 
-DATA_PATH_VAL = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'
-CSV_PATH_VAL = '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/val_cosangs_mvd.csv' 
+DATA_PATH_VAL = ROOT_PATH + '/data/mvd/validation/'
+CSV_PATH_VAL = ROOT_PATH + '/data/mvd/val_cosangs_mvd.csv' 
 
 BATCH_SIZE = 16 # fixed
-NUM_EPOCHS = 15 # fixed
+NUM_EPOCHS = 1 # TODO fixed
 PREDICT_HORIZON = 3 # int corresponding to num output images, ph=30min is 3
 sub_expId = 0
 
@@ -58,24 +59,24 @@ outputs = {}
 models = {
     'aaag5' : {
         'lr' : 0.0001, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
-    'aaag8' : {
-        'lr' : 0.0001, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : False},
-    'aaah6' : {
-        'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
-    'aaah8' : {
-        'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : False},
-    'aaah10' : {
-        'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 16, 'use_critic_iter' : True},
-    'aaah13' : {
-        'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 32, 'use_critic_iter' : True},
-    'aaaj4' : {
-        'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : False},
-    'aaaj5' : {
-        'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
-    'aaaj12' : {
-        'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 16, 'use_critic_iter' : False},
-    'aaan2' : {
-        'lr' : 5e-05, 'lambda_gp' : 10, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : True}
+    #'aaag8' : {
+    #    'lr' : 0.0001, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : False},
+    #'aaah6' : {
+    #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
+    #'aaah8' : {
+    #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : False},
+    #'aaah10' : {
+    #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 16, 'use_critic_iter' : True},
+    #'aaah13' : {
+    #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 32, 'use_critic_iter' : True},
+    #'aaaj4' : {
+    #    'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : False},
+    #'aaaj5' : {
+    #    'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
+    #'aaaj12' : {
+    #    'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 16, 'use_critic_iter' : False},
+    #'aaan2' : {
+    #    'lr' : 5e-05, 'lambda_gp' : 10, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : True}
 }
 
 total_exps = len(models)
@@ -118,8 +119,7 @@ for index, key in enumerate(models.keys()):
                                            max_time_diff=15,
                                            csv_path=CSV_PATH_VAL,
                                            transform=normalize, 
-                                           output_last=True, 
-                                           csv_path=CSV_PATH_VAL)
+                                           output_last=True)
 
         val_loader = DataLoader(val_mvd)
 

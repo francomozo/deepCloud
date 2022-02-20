@@ -441,6 +441,6 @@ def make_val_grid(model,
                 break
     
     grid = torch.cat(grid)
-    return  (grid, nrow=5, normalize=True)
+    return torchvision.utils.make_grid(grid, nrow=5, normalize=True)
 
 
