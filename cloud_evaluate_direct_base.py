@@ -106,9 +106,8 @@ for metric in metrics:
         val_loader = DataLoader(val_mvd)
 
         error_array = evaluate.evaluate_model(a_model, val_loader, 
-                                              predict_horizon=out_channel, 
-                                              #device=device_aux, 
-                                              metric=metric[:end_metric], 
+                                              predict_horizon=out_channel,
+                                              metric=metric[:end_metric],
                                               error_percentage=error_percentage,
                                               window_pad=params['window_pad'],
                                               window_pad_height=params['window_pad_height'],
@@ -125,10 +124,10 @@ for metric in metrics:
 if params['save_errors']:
   PATH = "reports/errors_evaluate_model/"
   ts = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M")
-  NAME = "base_" + str(ts)
+  NAME = "base_"
   if params['save_name']:
-    NAME = NAME + "_" + params['save_name']
-  NAME = NAME + '.pkl'
+    NAME = NAME + params['save_name'] + "_"
+  NAME = NAME + str(ts) + '.pkl'
   a_file = open(os.path.join(PATH, NAME), "wb")
   pickle.dump(errors_metrics, a_file)
   a_file.close()
