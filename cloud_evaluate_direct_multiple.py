@@ -21,7 +21,7 @@ ap.add_argument("--horizon-step", default=6, type=int,
                 help="Defaults to 6. Distance between predictions")                
 ap.add_argument("--start-horizon", default=6, type=int,
                 help="Defaults to 6. Starting point of prediction")
-ap.add_argument("--predict-horizon", default=5, type=int,
+ap.add_argument("--predict-length", default=5, type=int,
                 help="Defaults to 5. Amount of predicted images")
 
 ap.add_argument("--metrics", nargs="+", default=["RMSE"],
@@ -61,14 +61,14 @@ metrics = params['metrics']
 metrics = [each_string.upper() for each_string in metrics]
 start_horizon = params['start_horizon']
 horizon_step = params['horizon_step']
-predict_horizon = params['predict_horizon']
-out_channels = list(range(start_horizon, start_horizon+horizon_step*predict_horizon, horizon_step))
+predict_length = params['predict_length']
+out_channels = list(range(start_horizon, start_horizon+horizon_step*predict_length, horizon_step))
 print("out_channels:", out_channels)
 
 #Definition of models
 models = []
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-for i in range(params['predict_horizon']):
+for i in range(predict_length):
   model_path = os.path.join(params["model_path"], params["model_names"][i])
   if params['unet_type'] == 1:
     model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
@@ -94,7 +94,7 @@ for metric in metrics:
   time.sleep(1)
 
   normalize = preprocessing.normalize_pixels(mean0=False) 
-  error_mean_all_models = []
+  error_mean_all_horizons = []
   for i in range(len(models)):
     #DataLoaders
     val_dataset_Unet = MontevideoFoldersDataset(path = PATH_DATA, 
@@ -116,17 +116,16 @@ for metric in metrics:
                                         window_pad_height=params['window_pad_height'],
                                         window_pad_width=params['window_pad_width'])
     error_mean = np.mean(error_array, axis=0)
-    error_mean_all_models.append(error_mean)
-  print(f'Error_mean: {error_mean_all_models}')
-  print(f'Error_mean_mean: {np.mean(error_mean_all_models)}')
-  errors_metric["unet_direct"] = error_mean_all_models
-
+    error_mean_all_horizons.append(error_mean)
+  print(f'Error_mean: {error_mean_all_horizons}')
+  print(f'Error_mean_mean: {np.mean(error_mean_all_horizons)}')
+  errors_metric["unet_direct"] = error_mean_all_horizons
   errors_metrics[metric] = errors_metric
 
 if params['save_errors']:
   PATH = "reports/errors_evaluate_model/"
   ts = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M")
-  NAME = 'errors_models_direct_' + str(ts)
+  NAME = 'direct_' + str(ts)
   if params['save_name']:
     NAME = NAME + "_" + params['save_name']
   NAME = NAME + '.pkl'
