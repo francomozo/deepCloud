@@ -30,4 +30,4 @@ misc/images/img_example.png
 
 train_UNet2_*.py
 
-/clusteruy/home/franco.mozo/deepCloud/reports/gan_exp_outputs/static_sequences/*
+reports/gan_exp_outputs/static_sequences/*
