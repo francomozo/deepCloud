@@ -11,6 +11,7 @@ import torch.optim as optim
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchvision.utils import save_image
 
 from src import evaluate, preprocessing
 from src.data import MontevideoFoldersDataset
@@ -42,7 +43,7 @@ print(f'Using device {device}')
 torch.manual_seed(50)
 
 ROOT_PATH = '/clusteruy/home03/DeepCloud/deepCloud/'
-PT_PATH = ROOT_PATH + 'checkpoints/30min_UNET2_mvd_mae_filters16_sigmoid_diffFalse_retrainFalse_34_16-02-2022_11:26_BEST_FINAL.pt' # TODO:complete path depending on the ph
+PT_PATH = ROOT_PATH + 'checkpoints/MVD/30min/30min_UNET2_mvd_mae_filters16_sigmoid_diffFalse_retrainFalse_34_16-02-2022_11:26_BEST_FINAL.pt' # TODO:complete path depending on the ph
 DATA_PATH_TRAIN = ROOT_PATH + '/data/mvd/train/'
 CSV_PATH_TRAIN = ROOT_PATH + '/data/mvd/train_cosangs_mvd.csv'
 
@@ -52,7 +53,10 @@ CSV_PATH_VAL = ROOT_PATH + '/data/mvd/val_cosangs_mvd.csv'
 BATCH_SIZE = 16 # fixed
 NUM_EPOCHS = 1 # TODO fixed
 PREDICT_HORIZON = 3 # int corresponding to num output images, ph=30min is 3
+
+SAVE_STATIC_SEQUENCES = True
 sub_expId = 0
+
 
 outputs = {}
 
@@ -92,8 +96,8 @@ for index, key in enumerate(models.keys()):
     print(f'=================================================================================================================================')
     print(f'Exp {sub_expId}/{total_exps}.')
     print(f'ExpId: {expId}{sub_expId} ({key}). lr({lr})_lambda_gp({lambda_gp})_critic_iter({critic_iter})_features_d({features_d})_use_critic_iter({use_critic_iter}).')
-    try:
-        
+    #try:
+    if True:   
         # Hyperparams =======================
         LEARNING_RATE = lr
         LAMBDA_GP = lambda_gp
@@ -125,7 +129,7 @@ for index, key in enumerate(models.keys()):
 
         # Nets =======================
         disc = Discriminator(channels_img=1, features_d=FEATURES_D).to(device)
-        gen = UNet2(n_channels=3, n_classes=1, bilinear=True, bias=True, filters=16).to(device)
+        gen = UNet2(n_channels=3, n_classes=1, bilinear=True, bias=False, filters=16).to(device)
         
         gen.load_state_dict(torch.load(PT_PATH)["model_state_dict"])
 
@@ -141,6 +145,10 @@ for index, key in enumerate(models.keys()):
         ts = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M")
         if os.path.isdir(f'{os.getcwd()}/checkpoints/{expId}') == False: 
             os.mkdir(f'{os.getcwd()}/checkpoints/{expId}')
+        
+        if SAVE_STATIC_SEQUENCES:
+            if os.path.isdir(f'{os.getcwd()}/reports/gan_exp_outputs/static_sequences/{expId}') == False: 
+                os.mkdir(f'{os.getcwd()}/reports/gan_exp_outputs/static_sequences/{expId}')
 
         # tb
         # writer_gt = SummaryWriter(f"runs/{expId}/{expId}{sub_expId}/gt") DISABLE FOR SPEED PURPOSES
@@ -161,10 +169,12 @@ for index, key in enumerate(models.keys()):
             print(f'==> Epoch {epoch+1}/{NUM_EPOCHS}') 
             
             with torch.no_grad():
-                grid = evaluate.make_val_grid(gen, sequences=3, device=device, val_mvd=val_mvd)
+                grid = evaluate.make_val_grid(gen, sequences=4, device=device, val_mvd=val_mvd)
                 writer_static.add_image("static_imgs", grid, global_step=epoch) # epoch corresponds to the actual epoch
                                                                                 # epoch=0 is before training 
-                
+                if SAVE_STATIC_SEQUENCES:
+                    save_image(grid, f'{os.getcwd()}/reports/gan_exp_outputs/static_sequences/{expId}/{expId}{sub_expId}_epoch{epoch}.png')
+
             gen.train() 
 
             for batch_idx, (in_frames, gt) in enumerate(train_loader):
@@ -274,10 +284,26 @@ for index, key in enumerate(models.keys()):
         exp = expId  + str(sub_expId)
         outputs[exp] = experiment_output
         
-        
+        # save best model checkpoint
         save_checkpoint(gen_dict, disc_dict, expId, sub_expId)       
-    except:
-        print('Experiment failed :(')
+        
+        # save last epoch model checkpoint
+        gen_dict = {
+            'epoch': epoch+1,
+            'model_state_dict': copy.deepcopy(gen.state_dict()),
+            'opt_state_dict': copy.deepcopy(opt_gen.state_dict()),
+            'gen_epoch_loss': gen_loss_by_epochs,
+        }
+        disc_dict = {
+                'epoch': epoch+1,
+                'model_state_dict': copy.deepcopy(disc.state_dict()),
+                'opt_state_dict': copy.deepcopy(opt_disc.state_dict()),
+                'disc_epoch_loss': disc_loss_by_epochs,
+        }
+
+        save_checkpoint(gen_dict, disc_dict, expId, sub_expId)
+    #except:
+    #    print('Experiment failed :(')
 
 with open(f'reports/gan_exp_outputs/{expId}.json', 'w') as fp:
    json.dump(outputs, fp)

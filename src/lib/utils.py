@@ -24,11 +24,11 @@ def save_checkpoint(gen_dict, disc_dict, expId, sub_expId=None):
 
     ts = datetime.now().strftime("%d-%m-%Y_%H:%M")
     if sub_expId is None:
-        GEN_NAME = f'{expId}_gen_{ts}.pt'
-        DISC_NAME = f'{expId}_disc_{ts}.pt'
+        GEN_NAME = f'{expId}_gen_epoch{curr_epoch}_{ts}.pt'
+        DISC_NAME = f'{expId}_disc_epoch{curr_epoch}_{ts}.pt'
     else:
-        GEN_NAME = f'{expId}{sub_expId}_gen_{ts}.pt'
-        DISC_NAME = f'{expId}{sub_expId}_disc_{ts}.pt'
+        GEN_NAME = f'{expId}{sub_expId}_gen_epoch{curr_epoch}_{ts}.pt'
+        DISC_NAME = f'{expId}{sub_expId}_disc_epoch{curr_epoch}_{ts}.pt'
 
     torch.save(gen_dict, PATH + GEN_NAME)
     torch.save(disc_dict, PATH + DISC_NAME)
