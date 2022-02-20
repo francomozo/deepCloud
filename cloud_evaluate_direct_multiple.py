@@ -125,10 +125,10 @@ for metric in metrics:
 if params['save_errors']:
   PATH = "reports/errors_evaluate_model/"
   ts = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M")
-  NAME = 'direct_' + str(ts)
+  NAME = 'direct_' 
   if params['save_name']:
-    NAME = NAME + "_" + params['save_name']
-  NAME = NAME + '.pkl'
+    NAME = NAME + params['save_name'] + "_"
+  NAME = NAME + str(ts) + '.pkl'
   a_file = open(os.path.join(PATH, NAME), "wb")
   pickle.dump(errors_metrics, a_file)
   a_file.close()
