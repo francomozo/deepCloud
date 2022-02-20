@@ -23,14 +23,15 @@ from src.lib.utils import gradient_penalty, save_checkpoint
 # This is the new default script to train gans on mvd
 # Differences:
 #   -> the Unet models have 16 filters DONE
-#   -> models will be trained to 30, 60 and 90 min
+#   -> models will be trained to 30, 60 and 90 min PENDING
 #   -> the dataloaders use csvs in a different way DONE
 #   -> evaluate.evaluate_gan_val evaluation horizon PENDING, debug with pdb
 #   -> the static grid images starts before epoch 1 (and possibly
-#       generate a different dataset with chosen images for this) 
-#   -> modify evaluate.make_val_grid 
-#   -> disable the grid gt vs pred for tb to save time
+#       generate a different dataset with chosen images for this(didnt do this)) DONE
+#   -> modify evaluate.make_val_grid DONE
+#   -> disable the grid gt vs pred for tb to save time DONE
 #   -> save best model, and model in last epoch
+#   -> save the image grid to mem (epoch*sequences*5)
 
 
 expId = '' # global experiment Id. string TODO: complete the expId
@@ -158,6 +159,12 @@ for index, key in enumerate(models.keys()):
             disc_epoch_loss_list = []
             epoch_output = {}
             print(f'==> Epoch {epoch+1}/{NUM_EPOCHS}') 
+            
+            with torch.no_grad():
+                grid = evaluate.make_val_grid(gen, sequences=3, device=device, val_mvd=val_mvd)
+                writer_static.add_image("static_imgs", grid, global_step=epoch) # epoch corresponds to the actual epoch
+                                                                                # epoch=0 is before training 
+                
             gen.train() 
 
             for batch_idx, (in_frames, gt) in enumerate(train_loader):
@@ -228,15 +235,16 @@ for index, key in enumerate(models.keys()):
 
             # tb losses by epoch
             with torch.no_grad():
-                grid = evaluate.make_val_grid(gen, sequences=3, device=device, val_mvd=val_mvd)
-                writer_static.add_image("static_imgs", grid, global_step=epoch+1)
-                
+                # obs:  the next to lines were moved to the beginning of the epoch to print the first sequence without
+                #       an epoch of gan model training
+                # grid = evaluate.make_val_grid(gen, sequences=3, device=device, val_mvd=val_mvd) 
+                # writer_static.add_image("static_imgs", grid, global_step=epoch+1)
                 writer_loss.add_scalar('epoch_loss/Gen', loss_gen, global_step=epoch+1)
                 writer_loss.add_scalar('epoch_loss/Disc', loss_disc, global_step=epoch+1)
                 writer_loss.add_scalar('epoch_loss/Val_SSIM', val_loss, global_step=epoch+1)
 
             # save best model (on val)
-            if val_loss_modified < best_val_loss: 
+            if val_loss_modified < best_val_loss: # this part save the gen and dict after one epoch of training
                 if best_val_loss != 1e3:
                     print(f'\t -> New best model!!!')
                 gen_dict = {
@@ -252,6 +260,7 @@ for index, key in enumerate(models.keys()):
                         'disc_epoch_loss': disc_loss_by_epochs,
                 }
                 best_val_loss = val_loss_modified
+
 
             epoch_output = {
                 'disc_loss' : disc_loss_by_epochs[-1],
