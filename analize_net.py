@@ -770,26 +770,39 @@ print('OUTPUT WITH MOST NANS SEQUENCE')
 img0 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_115017.npy'))
 img1 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_120017.npy'))
 img2 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_121017.npy'))
+time_list = ['11:50', '12:00', '12:10']
 if FRAME_OUT == 0:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_122017.npy'))
+    time_list.append('12:20')
 elif FRAME_OUT == 1:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_123017.npy'))
+    time_list.append('12:30')
 elif FRAME_OUT == 2:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_124017.npy'))      
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_124017.npy'))
+    time_list.append('12:40')
 elif FRAME_OUT == 3:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_125017.npy'))
+    time_list.append('12:50')   
 elif FRAME_OUT == 4:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_130017.npy'))
+    time_list.append('13:00')
 elif FRAME_OUT == 5:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_131017.npy'))
-elif FRAME_OUT ==11:
+    time_list.append('13:10')
+elif FRAME_OUT == 11:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_141017.npy'))
+    time_list.append('14:10')
 elif FRAME_OUT == 17:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_151017.npy'))
+    time_list.append('15:10')
 elif FRAME_OUT == 23:
     output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_161017.npy'))
+    time_list.append('16:10')
+elif FRAME_OUT == 29:
+    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_171017.npy'))
+    time_list.append('17:10')
 else:
-    raise ValueError('Prediction time must be 10,20,30,40,50,60,120,180 or 240 minutes.')
+    raise ValueError('Prediction time must be 10,20,30,40,50,60,120,180,240 or 300 minutes.')
         
 in_frames= torch.tensor(np.ones((1, 3, M, N))).to(device)
 out_frames= torch.tensor(np.ones((1, 1, M, N))).to(device)
@@ -814,7 +827,10 @@ frames_array[3]= out_frames[0,0].cpu().numpy()
 frames_array[4] = frames_pred[0,0].cpu().numpy()
     
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_nan_sequence.pdf')
-visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
+visualization.show_seq_and_pred(frames_array,
+                                time_list=time_list,
+                                prediction_t=FRAME_OUT+1,
+                                fig_name=fig_name, save_fig=True)
 
 if PREDICT_DIFF:
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_nan_sequence_diff_pred.pdf')
@@ -825,26 +841,40 @@ if PREDICT_DIFF:
 img0 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_135018.npy'))
 img1 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_140018.npy'))
 img2 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_141018.npy'))
+time_list = ['13:50', '14:00', '14:10']
+
 if FRAME_OUT == 0:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_142018.npy'))
+    time_list.append('14:20')
 elif FRAME_OUT == 1:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_143018.npy'))
+    time_list.append('14:30')
 elif FRAME_OUT == 2:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_144018.npy'))      
+    time_list.append('14:40')
 elif FRAME_OUT == 3:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_145018.npy'))
+    time_list.append('14:50')
 elif FRAME_OUT == 4:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_150018.npy'))
+    time_list.append('15:00')
 elif FRAME_OUT == 5:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_151018.npy'))
+    time_list.append('15:10')
 elif FRAME_OUT ==11:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_161018.npy'))
+    time_list.append('16:10')
 elif FRAME_OUT == 17:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_171017.npy'))
+    time_list.append('17:10')
 elif FRAME_OUT == 23:
     output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_181017.npy'))
+    time_list.append('18:10')
+elif FRAME_OUT == 29:
+    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_191017.npy'))
+    time_list.append('19:10')
 else:
-    raise ValueError('Prediction time must be 10,20,30,40,50,60,120,180 or 240 minutes.')
+    raise ValueError('Prediction time must be 10,20,30,40,50,60,120,180,240 or 300 minutes.')
         
 in_frames= torch.tensor(np.ones((1, 3, M, N))).to(device)
 out_frames= torch.tensor(np.ones((1, 1, M, N))).to(device)
@@ -869,7 +899,10 @@ frames_array[3]= out_frames[0,0].cpu().numpy()
 frames_array[4] = frames_pred[0,0].cpu().numpy()
     
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence.pdf')
-visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
+visualization.show_seq_and_pred(frames_array,
+                                time_list=time_list,
+                                prediction_t=FRAME_OUT+1,
+                                fig_name=fig_name, save_fig=True)
 
 if PREDICT_DIFF:
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence_diff_pred.pdf')
