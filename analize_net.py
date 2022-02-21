@@ -19,9 +19,10 @@ import scipy.stats as st
 REGION = 'R3' # [MVD, URU, R3]
 PREDICT_HORIZON = '60min'
 FRAME_OUT = 5  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
-CSV_PATH = None
+CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv' 
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
-MODEL_PATH = 'checkpoints/'+REGION+'/'+PREDICT_HORIZON+'/60min_UNET__region3_mae_filters16_sigmoid_diffFalse_retrainTrue_80_01-02-2022_15:18.pt'
+MODEL_PATH = 'checkpoints/'+REGION+'/'+PREDICT_HORIZON+'/60min_UNET__region3_mae_filters16_sigmoid_diffFalse_retrainTrue_80_04-02-2022_01:41_BEST.pt' 
+#MODEL_PATH = '/clusteruy/home03/DeepCloud/experiments/outputs/trained_models/60min_UNET__region3_mae_filters32_sigmoid_diffFalse_retrainTrue_91_09-02-2022_09:41_BEST.pt'
 OUTPUT_ACTIVATION = 'sigmoid'
 CROP_SIZE = 50
 
