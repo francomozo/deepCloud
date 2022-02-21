@@ -257,7 +257,8 @@ def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, sa
         line = plt.Line2D((.59, .59),(.1, 1), color=Colors.concrete, linestyle=Linestyles.dashed, linewidth=3)
         fig.add_artist(line)
     if save_fig:
-        plt.savefig(fig_name)
+        fig.tight_layout() 
+        fig.savefig(fig_name)
     plt.show()
 
 
@@ -351,7 +352,8 @@ def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False):
     if title:
         ax1.title.set_text('Image')
     if save_fig:
-        plt.savefig(fig_name)
+        fig.tight_layout() 
+        fig.savefig(fig_name)
     plt.show()
     
     
