@@ -802,9 +802,9 @@ model.eval()
 with torch.no_grad():
     if not PREDICT_DIFF:
         # frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
-        frames_pred = model(in_frames.to(device=device).torch.FloatTensor)
-
-        diff_pred = model(in_frames.type(torch.cuda.FloatTensor))        
+        frames_pred = model(in_frames.to(device=device).type(torch.FloatTensor))
+    if PREDICT_DIFF:
+        diff_pred = model(in_frames.to(device).type(torch.FloatTensor))        
         frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1) 
     
 frames_array = np.ones((5, M, N))
@@ -852,7 +852,7 @@ model.eval()
 with torch.no_grad():
     if not PREDICT_DIFF:
         # frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
-        frames_pred = model(in_frames.to(device=device).torch.FloatTensor)
+        frames_pred = model(in_frames.to(device=device).tyep(torch.FloatTensor))
         
     if PREDICT_DIFF:
         diff_pred = model(in_frames.to(device).type(torch.cuda.FloatTensor))
