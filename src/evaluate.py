@@ -326,9 +326,15 @@ def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
     return np.array(error_list)
 
 
-def evaluate_gan_val(model_instance, loader, predict_horizon, 
-                   device=None, metric='RMSE', error_percentage=False,
-                   window_pad=0, window_pad_height=0, window_pad_width=0):
+def evaluate_gan_val(model_instance, 
+                    loader, 
+                    predict_horizon, 
+                    device=None, 
+                    metric='SSIM', 
+                    error_percentage=False,
+                    window_pad=0, 
+                    window_pad_height=0, 
+                    window_pad_width=0):
     """
         This function is the same as evaluate_model but without tqdm
         for sbatch purposes
@@ -390,21 +396,35 @@ def evaluate_gan_val(model_instance, loader, predict_horizon,
     
     return np.array(error_list)
 
+
 def make_val_grid(model, 
                   sequences=1,
                   device='cuda',
                   val_mvd=None,
                   data_path_val='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/',
-                  csv_path_val='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/val_cosangs_in3_out6.csv'):
+                  csv_path_val='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/val_cosangs_mvd.csv'):
+    """
+    Args:
+        model (): Generator (Unet)
+        sequences (int, optional): Num of sequences to load as static. Defaults to 1.
+        val_mvd (optional): Dataset to get the examples. In general i want to pass the val_loader. Defaults to None. (Bad choice for variable name)
+        data_path_val (str, optional): Defaults to '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/validation/'.
+        csv_path_val (str, optional): Defaults to '/clusteruy/home03/DeepCloud/deepCloud/data/mvd/val_cosangs_mvd.csv'.
+
+    Returns:
+        _type_: _description_
+    """
 
     model.eval()
     normalize = preprocessing.normalize_pixels()
     if val_mvd is None:
         val_mvd = MontevideoFoldersDataset(path=data_path_val,
-                                                in_channel=3, out_channel=1,
-                                                min_time_diff=5, max_time_diff=15,
-                                                transform=normalize,
-                                                csv_path=csv_path_val)
+                                            in_channel=3, 
+                                            out_channel=1,
+                                            min_time_diff=5, 
+                                            max_time_diff=15,
+                                            transform=normalize,
+                                            csv_path=csv_path_val)
     val_loader = DataLoader(val_mvd)
     grid = []
     flag = 0

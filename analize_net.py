@@ -13,6 +13,8 @@ from piqa import SSIM , MS_SSIM
 from src.dl_models.unet import UNet, UNet2
 from src.dl_models.unet_advanced import R2U_Net, AttU_Net, R2AttU_Net, NestedUNet
 import scipy.stats as st
+from src.lib.latex_options import Colors, Linestyles
+
 
 ## CONFIGURATION #########
 
@@ -39,6 +41,14 @@ SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON
 
 
 ###########################
+
+# LATEX CONFIG
+fontSize = 22 # 22 generates the font more like the latex text
+save_fig = True
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+
+
 if REGION == 'MVD':
     dataset = 'mvd'
 elif REGION == 'URU':
@@ -65,7 +75,6 @@ except:
 #Evaluate Unet
 
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
-transforms = [normalize]
 
 val_mvd = MontevideoFoldersDataset_w_time(
                                             path=PATH_DATA,
@@ -74,7 +83,7 @@ val_mvd = MontevideoFoldersDataset_w_time(
                                             min_time_diff=5,
                                             max_time_diff=15,
                                             csv_path=CSV_PATH,
-                                            transform=transforms,
+                                            transform=normalize,
                                             output_last=True
                                             )
 
@@ -134,7 +143,7 @@ MAE_error_image = np.zeros((M,N))
 
 model.eval()
 with torch.no_grad():
-    for val_batch_idx, (in_frames, out_frames, out_time) in enumerate(val_loader):
+    for val_batch_idx, (in_frames, out_frames, in_time, out_time) in enumerate(val_loader):
         
         in_frames = in_frames.to(device=device)
         out_frames = out_frames.to(device=device)
@@ -173,14 +182,33 @@ with torch.no_grad():
                 MAE_per_hour_crop[(hour, 30)].append(MAE_loss_crop.detach().item())
         if MAE_loss.detach().item() > worst_MAE_error:
             worst_MAE_error = MAE_loss.detach().item()
+            
             worst_MAE_time = out_time[0, 0]
+            worst_MAE_input_time = in_time[0].numpy()
+            
+            worst_MAE_time_list = [
+                str(int((worst_MAE_input_time[0][1]))).zfill(2) + ':' + str(int((worst_MAE_input_time[0][2]))).zfill(2),
+                str(int((worst_MAE_input_time[1][1]))).zfill(2) + ':' + str(int((worst_MAE_input_time[1][2]))).zfill(2),
+                str(int((worst_MAE_input_time[2][1]))).zfill(2) + ':' + str(int((worst_MAE_input_time[2][2]))).zfill(2),
+                str(int(worst_MAE_time[1].numpy())).zfill(2) + ':' + str(int(worst_MAE_time[2].numpy())).zfill(2)
+            ]
+            
             worst_MAE_images[0:3] = in_frames[0].cpu().numpy()
             worst_MAE_images[3] = out_frames[0, 0].cpu().numpy()
             worst_MAE_images[4] = frames_pred[0, 0].cpu().numpy()
             
         if MAE_loss.detach().item() < best_MAE_error:
             best_MAE_error = MAE_loss.item()
+            best_MAE_input_time = in_time[0].numpy()
             best_MAE_time = out_time[0, 0]
+            
+            best_MAE_time_list = [
+                str(int((best_MAE_input_time[0][1]))).zfill(2) + ':' + str(int((best_MAE_input_time[0][2]))).zfill(2),
+                str(int((best_MAE_input_time[1][1]))).zfill(2) + ':' + str(int((best_MAE_input_time[1][2]))).zfill(2),
+                str(int((best_MAE_input_time[2][1]))).zfill(2) + ':' + str(int((best_MAE_input_time[2][2]))).zfill(2),
+                str(int(best_MAE_time[1].numpy())).zfill(2) + ':' + str(int(best_MAE_time[2].numpy())).zfill(2)
+            ]
+            
             best_MAE_images[0:3] = in_frames[0].cpu().numpy()
             best_MAE_images[3] = out_frames[0,0].cpu().numpy()
             best_MAE_images[4] = frames_pred[0,0].cpu().numpy()
@@ -202,13 +230,31 @@ with torch.no_grad():
                 
         if MSE_loss.detach().item() > worst_MSE_error:
             worst_MSE_error = MSE_loss.detach().item()
+            worst_MSE_input_time = in_time[0].numpy()
             worst_MSE_time = out_time[0, 0]
+            
+            worst_MSE_time_list = [
+                str(int((worst_MSE_input_time[0][1]))).zfill(2) + ':' + str(int((worst_MSE_input_time[0][2]))).zfill(2),
+                str(int((worst_MSE_input_time[1][1]))).zfill(2) + ':' + str(int((worst_MSE_input_time[1][2]))).zfill(2),
+                str(int((worst_MSE_input_time[2][1]))).zfill(2) + ':' + str(int((worst_MSE_input_time[2][2]))).zfill(2),
+                str(int(worst_MSE_time[1].numpy())).zfill(2) + ':' + str(int(worst_MSE_time[2].numpy())).zfill(2)
+            ] 
+            
             worst_MSE_images[0:3] = in_frames[0].cpu().numpy()
             worst_MSE_images[3] = out_frames[0, 0].cpu().numpy()
             worst_MSE_images[4] = frames_pred[0, 0].cpu().numpy()
         if MSE_loss.detach().item() < best_MSE_error:
             best_MSE_error = MSE_loss.detach().item()
+            best_MSE_input_time = in_time[0].numpy()
             best_MSE_time = out_time[0, 0]
+            
+            best_MSE_time_list = [
+                str(int((best_MSE_input_time[0][1]))).zfill(2) + ':' + str(int((best_MSE_input_time[0][2]))).zfill(2),
+                str(int((best_MSE_input_time[1][1]))).zfill(2) + ':' + str(int((best_MSE_input_time[1][2]))).zfill(2),
+                str(int((best_MSE_input_time[2][1]))).zfill(2) + ':' + str(int((best_MSE_input_time[2][2]))).zfill(2),
+                str(int(best_MSE_time[1].numpy())).zfill(2) + ':' + str(int(best_MSE_time[2].numpy())).zfill(2)
+            ]
+            
             best_MSE_images[0:3] = in_frames[0].cpu().numpy()
             best_MSE_images[3] = out_frames[0,0].cpu().numpy()
             best_MSE_images[4] = frames_pred[0, 0].cpu().numpy()
@@ -241,14 +287,32 @@ with torch.no_grad():
                     
         if PSNR_per_hour[(hour, minute_key)][-1] < worst_PSNR_error:
             worst_PSNR_error = PSNR_per_hour[(hour, minute_key)][-1]
+            worst_PSNR_input_time = in_time[0].numpy()
             worst_PSNR_time = out_time[0, 0]
+            
+            worst_PSNR_time_list = [
+                str(int((worst_PSNR_input_time[0][1]))).zfill(2) + ':' + str(int((worst_PSNR_input_time[0][2]))).zfill(2),
+                str(int((worst_PSNR_input_time[1][1]))).zfill(2) + ':' + str(int((worst_PSNR_input_time[1][2]))).zfill(2),
+                str(int((worst_PSNR_input_time[2][1]))).zfill(2) + ':' + str(int((worst_PSNR_input_time[2][2]))).zfill(2),
+                str(int(worst_PSNR_time[1].numpy())).zfill(2) + ':' + str(int(worst_PSNR_time[2].numpy())).zfill(2)
+            ] 
+            
             worst_PSNR_images[0:3] = in_frames[0].cpu().numpy()
             worst_PSNR_images[3] = out_frames[0,0].cpu().numpy()
             worst_PSNR_images[4] = frames_pred[0,0].cpu().numpy()
             
         if PSNR_per_hour[(hour, minute_key)][-1] > best_PSNR_error:
             best_PSNR_error = PSNR_per_hour[(hour, minute_key)][-1]
+            best_PSNR_input_time = in_time[0].numpy()
             best_PSNR_time = out_time[0, 0]
+            
+            best_PSNR_time_list = [
+                str(int((best_PSNR_input_time[0][1]))).zfill(2) + ':' + str(int((best_PSNR_input_time[0][2]))).zfill(2),
+                str(int((best_PSNR_input_time[1][1]))).zfill(2) + ':' + str(int((best_PSNR_input_time[1][2]))).zfill(2),
+                str(int((best_PSNR_input_time[2][1]))).zfill(2) + ':' + str(int((best_PSNR_input_time[2][2]))).zfill(2),
+                str(int(best_PSNR_time[1].numpy())).zfill(2) + ':' + str(int(best_PSNR_time[2].numpy())).zfill(2)
+            ] 
+            
             best_PSNR_images[0:3] = in_frames[0].cpu().numpy()
             best_PSNR_images[3] = out_frames[0,0].cpu().numpy()
             best_PSNR_images[4] = frames_pred[0,0].cpu().numpy()
@@ -279,12 +343,30 @@ with torch.no_grad():
         if SSIM_loss.detach().item() < worst_SSIM_error:
             worst_SSIM_error = SSIM_loss.detach().item()
             worst_SSIM_time = out_time[0, 0]
+            worst_SSIM_input_time = in_time[0].numpy()
+
+            worst_SSIM_time_list = [
+                str(int((worst_SSIM_input_time[0][1]))).zfill(2) + ':' + str(int((worst_SSIM_input_time[0][2]))).zfill(2),
+                str(int((worst_SSIM_input_time[1][1]))).zfill(2) + ':' + str(int((worst_SSIM_input_time[1][2]))).zfill(2),
+                str(int((worst_SSIM_input_time[2][1]))).zfill(2) + ':' + str(int((worst_SSIM_input_time[2][2]))).zfill(2),
+                str(int(worst_SSIM_time[1].numpy())).zfill(2) + ':' + str(int(worst_SSIM_time[2].numpy())).zfill(2)
+            ] 
+            
             worst_SSIM_images[0:3] = in_frames[0].cpu().numpy()
             worst_SSIM_images[3] = out_frames[0,0].cpu().numpy()
             worst_SSIM_images[4] = frames_pred[0,0].cpu().numpy()
         if SSIM_loss.detach().item() > best_SSIM_error:
             best_SSIM_error = SSIM_loss.detach().item()
+            best_SSIM_input_time = in_time[0].numpy() 
             best_SSIM_time = out_time[0, 0]
+            
+            best_SSIM_time_list = [
+                str(int((best_SSIM_input_time[0][1]))).zfill(2) + ':' + str(int((best_SSIM_input_time[0][2]))).zfill(2),
+                str(int((best_SSIM_input_time[1][1]))).zfill(2) + ':' + str(int((best_SSIM_input_time[1][2]))).zfill(2),
+                str(int((best_SSIM_input_time[2][1]))).zfill(2) + ':' + str(int((best_SSIM_input_time[2][2]))).zfill(2),
+                str(int(best_SSIM_time[1].numpy())).zfill(2) + ':' + str(int(best_SSIM_time[2].numpy())).zfill(2)
+            ]
+            
             best_SSIM_images[0:3] = in_frames[0].cpu().numpy()
             best_SSIM_images[3] = out_frames[0,0].cpu().numpy()
             best_SSIM_images[4] = frames_pred[0,0].cpu().numpy()
@@ -295,8 +377,10 @@ with torch.no_grad():
         pred_std.append(torch.std(frames_pred[0,0]).cpu().numpy())
 
 MAE_error_image = MAE_error_image/len(val_mvd)
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.png')
-visualization.show_image_w_colorbar(MAE_error_image, fig_name=fig_name, save_fig=True)
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'MAE_error_image.png')
+visualization.show_image_w_colorbar(image=MAE_error_image, title=None,
+                                    fig_name=fig_name, save_fig=True)
 
 mean_MAE = []
 mean_MAE_crop = []
@@ -354,37 +438,6 @@ if SAVE_VALUES_PATH:
     utils.save_pickle_dict(path=SAVE_VALUES_PATH, name=MODEL_PATH.split('/')[-1][:-9], dict_=dict_values) 
 
 print('Dict with error values saved.')
-
-# ERROR GRAPHS
-# fig, axs = plt.subplots(4, 1, figsize=(20, 10))
-# axs[0].plot(mean_MAE, 'r-o', label='Full window')
-# axs[0].plot(mean_MAE_crop, 'g-o', label='Crop')
-# axs[0].legend(loc='upper right')
-# axs[0].xticks(range(len(hour_list)), hour_list)
-# axs[0].gcf().autofmt_xdate()
-# axs[0].set_title('MAE')
-# #axs[0].set(xlabel='hour', ylabel='Error')
-# axs[1].plot(mean_MSE, 'r-o')
-# axs[1].set_title('MSE')
-# axs[1].xticks(range(len(hour_list)), hour_list)
-# axs[1].gcf().autofmt_xdate()
-# #axs[1].set(xlabel='hour', ylabel='Error')
-# axs[2].plot(mean_PSNR, 'r-o')
-# axs[2].set_title('PSNR')
-# axs[2].xticks(range(len(hour_list)), hour_list)
-# axs[2].gcf().autofmt_xdate()
-# #axs[2].set(xlabel='hour', ylabel='Error')
-# axs[3].plot(mean_SSIM, 'r-o', label='Full Window')
-# axs[3].plot(mean_SSIM_crop, 'g-o', label='Crop')
-# axs[3].legend(loc='upper left')
-# axs[3].xticks(range(len(hour_list)), hour_list)
-# axs[3].gcf().autofmt_xdate()
-# axs[3].set_title('SSIM')
-# if SAVE_IMAGES_PATH:
-#     plt.savefig(os.path.join(
-#                             SAVE_IMAGES_PATH, 'error_graphs.png')
-#                 )
-# plt.show()
 
 plt.figure(figsize=(12, 6))
 plt.plot(mean_MAE, '-o', label='Full window')
@@ -451,41 +504,58 @@ plt.show()
 
 #SCATTER PLOT
 print('Scatter Plot')
-m, b = np.polyfit(gt_mean, pred_mean, 1)
-plt.figure(figsize=(5,5))
-plt.scatter(x=gt_mean, y=pred_mean)
-plt.plot(gt_mean, m*np.array(gt_mean) + b, 'r')
-textstr = '\n'.join((
-    r'$m=%.2f$' % (m, ),
-    r'$n=%.2f$' % (b, )))
-plt.title('Image means scatter plot')
-plt.xlabel('GT mean')
-plt.ylabel('Prediction mean')
-plt.text(np.min(gt_mean), np.max(pred_mean),textstr, fontsize=14,
-        va='top', ha='left')
-if SAVE_IMAGES_PATH:
-    plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'scatterplot_mean.png')
-                )
-plt.show()
 
-m, b = np.polyfit(gt_std, pred_std, 1)
-plt.figure(figsize=(5,5))
-plt.scatter(x=gt_std, y=pred_std)
-plt.plot(gt_std, m*np.array(gt_std) + b, 'r')
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+m, b = np.polyfit(gt_mean, pred_mean, 1)
+fig = plt.figure()
+fig.set_size_inches(6, 6)
+ax = fig.add_subplot(1, 1, 1)
+ax.xaxis.set_tick_params(labelsize=fontSize)
+ax.yaxis.set_tick_params(labelsize=fontSize)
+for axis in ['top','bottom','left','right']:
+    ax.spines[axis].set_linewidth(1.0)
+ax.tick_params(direction='out', length=6, width=1, colors='k')
+ax.scatter(x=gt_mean, y=pred_mean, color=Colors.peterRiver)
+ax.plot(gt_mean, m*np.array(gt_mean) + b, color=Colors.pomegranate)
 textstr = '\n'.join((
     r'$m=%.2f$' % (m, ),
     r'$n=%.2f$' % (b, )))
-plt.title('Image std scatter plot')
-plt.xlabel('GT std')
-plt.ylabel('Prediction std')
-plt.text(np.min(gt_std), np.max(pred_std),textstr, fontsize=14,
+ax.set_xlabel('GT Mean', fontsize=fontSize)
+ax.set_ylabel('Prediction Mean', fontsize=fontSize)
+ax.text(np.min(gt_mean), np.max(pred_mean),textstr, fontsize=fontSize,
         va='top', ha='left')
+
 if SAVE_IMAGES_PATH:
-    plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'scatterplot_std.png')
-                )
-plt.show()
+    fig.tight_layout() 
+    fig.savefig(os.path.join(
+                            SAVE_IMAGES_PATH, 'scatterplot_mean.png'))
+
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+m, b = np.polyfit(gt_std, pred_std, 1)
+fig = plt.figure()
+fig.set_size_inches(6, 6)
+ax = fig.add_subplot(1, 1, 1)
+ax.xaxis.set_tick_params(labelsize=fontSize)
+ax.yaxis.set_tick_params(labelsize=fontSize)
+for axis in ['top','bottom','left','right']:
+    ax.spines[axis].set_linewidth(1.0)
+ax.tick_params(direction='out', length=6, width=1, colors='k')
+ax.scatter(x=gt_std, y=pred_std, color=Colors.peterRiver)
+ax.plot(gt_std, m*np.array(gt_std) + b, color=Colors.pomegranate)
+textstr = '\n'.join((
+    r'$m=%.2f$' % (m, ),
+    r'$n=%.2f$' % (b, )))
+ax.set_xlabel('GT Standard Deviation', fontsize=fontSize)
+ax.set_ylabel('Prediction Standard Deviation', fontsize=fontSize)
+ax.text(np.min(gt_std), np.max(pred_std), textstr, fontsize=fontSize,
+        va='top', ha='left')
+
+if SAVE_IMAGES_PATH:
+    fig.tight_layout() 
+    fig.savefig(os.path.join(
+                            SAVE_IMAGES_PATH, 'scatterplot_std.png'))
 plt.close()
 
 #MEANS DENSITY DISTRIBUTION
@@ -542,100 +612,141 @@ plt.show()
 plt.close()
 
 # IMG MEANS HISTOGRAM
-plt.figure(figsize=(8,6))
-gt_mean_hist, gt_mean_bins, _ = plt.hist(gt_mean, bins=100, alpha=0.5, label="GT")
-pred_mean_hist, pred_mean_bins, _ = plt.hist(pred_mean, bins=100, alpha=0.5, label="Pred")
-l1 = plt.axvline(np.mean(gt_mean), c='b')
-l2 = plt.axvline(np.mean(pred_mean), c='r')
-plt.xlabel("Data", size=14)
-plt.ylabel("Count", size=14)
-plt.title("Image Mean value")
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+fig = plt.figure()
+fig.set_size_inches(12, 6)
+ax = fig.add_subplot(1, 1, 1)
+ax.set_xlabel(r"Mean Value of Image", fontsize=fontSize)
+ax.set_ylabel(r"Quantity", fontsize=fontSize)
+ax.xaxis.set_tick_params(labelsize=fontSize)
+ax.yaxis.set_tick_params(labelsize=fontSize)
+
+ax.grid(alpha=.2)
+for axis in ['top','bottom','left','right']:
+    ax.spines[axis].set_linewidth(1.0)
+ax.tick_params(direction='out', length=6, width=1, colors='k')
+
+ax.hist(gt_mean, bins=100, alpha=0.5, label="Ground Truth")
+ax.hist(pred_mean, bins=100, alpha=0.5, label="Prediction")
+l1 = plt.axvline(np.mean(gt_mean), color=Colors.peterRiver)
+l2 = plt.axvline(np.mean(pred_mean), color=Colors.pomegranate)
 plt.legend(loc='upper right')
 if SAVE_IMAGES_PATH:
-    plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'means_histogram.png')
-                )
-plt.show()
+    fig.tight_layout() 
+    fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'means_histogram.png'))
+
 plt.close()
 
 # IMG STD DEV HISTOGRAM
-plt.figure(figsize=(8,6))
-gt_std_hist, gt_std_bins, _ = plt.hist(gt_std, bins=100, alpha=0.5, label="GT")
-pred_std_hist, pred_std_bins, _ =plt.hist(pred_std, bins=100, alpha=0.5, label="Pred")
-l1 = plt.axvline(np.mean(gt_std), c='b')
-l2 = plt.axvline(np.mean(pred_std), c='r')
-plt.xlabel("Data", size=14)
-plt.ylabel("Count", size=14)
-plt.title("Image Std value")
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+fig = plt.figure()
+fig.set_size_inches(12, 6)
+ax = fig.add_subplot(1, 1, 1)
+ax.set_xlabel(r"STD of Image", fontsize=fontSize)
+ax.set_ylabel(r"Quantity", fontsize=fontSize)
+ax.xaxis.set_tick_params(labelsize=fontSize)
+ax.yaxis.set_tick_params(labelsize=fontSize)
+
+ax.grid(alpha=.2)
+for axis in ['top','bottom','left','right']:
+    ax.spines[axis].set_linewidth(1.0)
+ax.tick_params(direction='out', length=6, width=1, colors='k')
+
+ax.hist(gt_std, bins=100, alpha=0.5, label="Ground Truth")
+ax.hist(pred_std, bins=100, alpha=0.5, label="Prediction")
+l1 = plt.axvline(np.mean(gt_std), color=Colors.peterRiver)
+l2 = plt.axvline(np.mean(pred_std), color=Colors.pomegranate)
 plt.legend(loc='upper right')
+
 if SAVE_IMAGES_PATH:
-    plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'stds_histogram.png')
-                )
-plt.show()
+    fig.tight_layout() 
+    fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'stds_histogram.png'))
 plt.close()
 
 #BEST AND WORST PREDICTIONS
 
-# print('MAE best prediction, day:', int(best_MAE_time[0].numpy()),'hour:', int(best_MAE_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE best prediction, day:'+str(int(best_MAE_time[0].numpy()))+'hour:'+ str(int(best_MAE_time[1].numpy())).zfill(2)+str(int(best_MAE_time[2].numpy())).zfill(2))
-visualization.show_seq_and_pred(best_MAE_images, fig_name=fig_name, save_fig=True)
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'MAE best prediction, day:' + str(int(best_MAE_time[0].numpy())) + \
+                        'hour:' + str(int(best_MAE_time[1].numpy())).zfill(2)+str(int(best_MAE_time[2].numpy())).zfill(2))
+visualization.show_seq_and_pred(best_MAE_images,
+                                time_list=best_MAE_time_list,
+                                prediction_t=FRAME_OUT+1,
+                                fig_name=fig_name,
+                                save_fig=True)
 plt.close()
 
-# print('MAE worst prediction, day:', int(worst_MAE_time[0].numpy()),'hour:', int(worst_MAE_time[1].numpy())) 
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE worst prediction, day:'+str(int(worst_MAE_time[0].numpy()))+'hour:'+ str(int(worst_MAE_time[1].numpy())).zfill(2) + str(int(worst_MAE_time[2].numpy())).zfill(2))
-visualization.show_seq_and_pred(worst_MAE_images, fig_name=fig_name, save_fig=True)
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'MAE worst prediction, day:'+str(int(worst_MAE_time[0].numpy())) + \
+                        'hour:' + str(int(worst_MAE_time[1].numpy())).zfill(2) + str(int(worst_MAE_time[2].numpy())).zfill(2))
+visualization.show_seq_and_pred(worst_MAE_images,
+                                time_list=worst_MAE_time_list,
+                                prediction_t=FRAME_OUT+1,
+                                fig_name=fig_name,
+                                save_fig=True)
 plt.close()
 
-# print('MSE best prediction, day:', int(best_MSE_time[0].numpy()),'hour:', int(best_MSE_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'MSE best prediction, day:'+str(int(best_MSE_time[0].numpy()))+'hour:'+ str(int(best_MSE_time[1].numpy())).zfill(2) + str(int(best_MSE_time[2].numpy())).zfill(2))
-visualization.show_seq_and_pred(best_MSE_images, fig_name=fig_name, save_fig=True)
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'MSE best prediction, day:' + str(int(best_MSE_time[0].numpy())) + \
+                        'hour:'+ str(int(best_MSE_time[1].numpy())).zfill(2) + str(int(best_MSE_time[2].numpy())).zfill(2))
+visualization.show_seq_and_pred(best_MSE_images,
+                                time_list=best_MSE_time_list,
+                                prediction_t=FRAME_OUT+1,
+                                fig_name=fig_name,
+                                save_fig=True)
 plt.close()
 
-# print('MSE worst prediction, day:', int(worst_MSE_time[0].numpy()),'hour:', int(worst_MSE_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'MSE worst prediction, day:'+str(int(worst_MSE_time[0].numpy()))+'hour:'+ str(int(worst_MSE_time[1].numpy())).zfill(2) + str(int(worst_MSE_time[2].numpy())).zfill(2))
-visualization.show_seq_and_pred(worst_MSE_images, fig_name=fig_name, save_fig=True)
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'MSE worst prediction, day:' + str(int(worst_MSE_time[0].numpy())) + \
+                        'hour:'+ str(int(worst_MSE_time[1].numpy())).zfill(2) + str(int(worst_MSE_time[2].numpy())).zfill(2))
+visualization.show_seq_and_pred(worst_MSE_images,
+                                time_list=worst_MSE_time_list,
+                                prediction_t=FRAME_OUT+1,
+                                fig_name=fig_name,
+                                save_fig=True)
 plt.close()
 
-# print('PSNR best prediction, day:', int(best_PSNR_time[0].numpy()),'hour:', int(best_PSNR_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'PSNR best prediction, day:'+str(int(best_PSNR_time[0].numpy()))+'hour:'+ str(int(best_PSNR_time[1].numpy())).zfill(2) + str(int(best_PSNR_time[2].numpy())).zfill(2))
-visualization.show_seq_and_pred(best_PSNR_images, fig_name=fig_name, save_fig=True)
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'PSNR best prediction, day:' + str(int(best_PSNR_time[0].numpy())) + \
+                        'hour:'+ str(int(best_PSNR_time[1].numpy())).zfill(2) + str(int(best_PSNR_time[2].numpy())).zfill(2))
+visualization.show_seq_and_pred(best_PSNR_images,
+                                time_list=best_PSNR_time_list,
+                                prediction_t=FRAME_OUT+1,
+                                fig_name=fig_name,
+                                save_fig=True)
 plt.close()
 
-# print('PSNR worst prediction, day:', int(worst_PSNR_time[0].numpy()),'hour:', int(worst_PSNR_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'PSNR worst prediction, day:'+str(int(worst_PSNR_time[0].numpy()))+'hour:'+ str(int(worst_PSNR_time[1].numpy())).zfill(2) + str(int(worst_PSNR_time[2].numpy())).zfill(2))
-visualization.show_seq_and_pred(worst_PSNR_images, fig_name=fig_name, save_fig=True)
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'PSNR worst prediction, day:'+str(int(worst_PSNR_time[0].numpy())) + \
+                        'hour:' + str(int(worst_PSNR_time[1].numpy())).zfill(2) + str(int(worst_PSNR_time[2].numpy())).zfill(2))
+visualization.show_seq_and_pred(worst_PSNR_images,
+                                time_list=worst_PSNR_time_list,
+                                prediction_t=FRAME_OUT+1,
+                                fig_name=fig_name,
+                                save_fig=True)
 plt.close()
 
-# print('SSIM best prediction, day:', int(best_SSIM_time[0].numpy()),'hour:', int(best_SSIM_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'SSIM best prediction, day:'+str(int(best_SSIM_time[0].numpy()))+'hour:'+ str(int(best_SSIM_time[1].numpy())).zfill(2) + str(int(best_SSIM_time[2].numpy())).zfill(2))
-visualization.show_seq_and_pred(best_SSIM_images, fig_name=fig_name, save_fig=True)
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'SSIM best prediction, day:'+str(int(best_SSIM_time[0].numpy())) + \
+                        'hour:' + str(int(best_SSIM_time[1].numpy())).zfill(2) + str(int(best_SSIM_time[2].numpy())).zfill(2))
+visualization.show_seq_and_pred(best_SSIM_images,
+                                time_list=best_SSIM_time_list,
+                                prediction_t=FRAME_OUT+1,
+                                fig_name=fig_name,
+                                save_fig=True)
 plt.close()
 
-# print('SSIM worst prediction, day:', int(worst_SSIM_time[0].numpy()),'hour:', int(worst_SSIM_time[1].numpy()))
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'SSIM worst prediction, day:'+str(int(worst_SSIM_time[0].numpy()))+'hour:'+ str(int(worst_SSIM_time[1].numpy())).zfill(2) + str(int(worst_SSIM_time[2].numpy())).zfill(2))
-visualization.show_seq_and_pred(worst_SSIM_images, fig_name=fig_name, save_fig=True)
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'SSIM worst prediction, day:' + str(int(worst_SSIM_time[0].numpy())) + \
+                        'hour:' + str(int(worst_SSIM_time[1].numpy())).zfill(2) + str(int(worst_SSIM_time[2].numpy())).zfill(2))
+visualization.show_seq_and_pred(worst_SSIM_images,
+                                time_list=worst_SSIM_time_list,
+                                prediction_t=FRAME_OUT+1,
+                                fig_name=fig_name,
+                                save_fig=True)
 plt.close()
 
-
-# PRECITIONS WITH INPUT ALL ONES OR ZEROS
-ones_frames = torch.tensor(np.ones((1, 3, M, N))).to(device)
-zeros_frames = torch.tensor(np.zeros((1, 3, M, N))).to(device)
-
-with torch.no_grad():
-    ones_pred = model(ones_frames.float())
-    zeros_pred = model(zeros_frames.float())
-
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'prediction_from_ones.png')
-visualization.show_image_w_colorbar(ones_pred[0,0].cpu().numpy(), fig_name=fig_name, save_fig=True)
-plt.close()
-
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'prediction_from_zeros.png')
-visualization.show_image_w_colorbar(zeros_pred[0,0].cpu().numpy(), fig_name=fig_name, save_fig=True)
-plt.close()
-
-
-               
 # OUTPUT WITH MOST NANS SEQUENCE
 print('OUTPUT WITH MOST NANS SEQUENCE')
 img0 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_115017.npy'))
@@ -755,4 +866,3 @@ if M < 1000:
     visualization.show_image_list(output_list, rows=8, fig_name=fig_name, save_fig=True)
     plt.close()
 print('Done.')
-

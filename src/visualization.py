@@ -13,6 +13,8 @@ import pandas as pd
 import pickle
 import os
 
+from src.lib.latex_options import Colors, Linestyles
+
 #rolo graph
 def matrix_graph (error_array):
     """
@@ -162,7 +164,8 @@ def plot_graph_multiple(models_values, models_names, error_metric='RMSE', save_f
     if save_file is not None:
         plt.savefig(save_file)
     plt.show()
-    
+
+
 def show_image_list(images_list, rows, fig_name=None, save_fig=False):
     """ Shows the images passed in a grid
 
@@ -192,31 +195,67 @@ def show_image_list(images_list, rows, fig_name=None, save_fig=False):
     plt.show()
     
     
-def show_seq_and_pred(sequence_array, fig_name=None, save_fig=False):
+def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, save_fig=False):
     """ Shows the images passed in a grid
     Args:
         sequence_array (array)
     """
     nbof_frames = sequence_array.shape[0]
-
+    fontsize = 22 # 22 generates the font more like the latex text
+    
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+    
     # plt.figure(figsize=(25, 5))
     fig, ax = plt.subplots(1, 5, figsize=(30, 5))
+    plt.subplots_adjust(wspace=0.01)
     for i in range(nbof_frames):
-
-        if i < nbof_frames-2:
+        if i < nbof_frames - 2:
             ax[i].imshow(sequence_array[i])
-            ax[i].set_title('In Frame ' + str(i))
-            ax[i].grid()
+            input_nbr = i - 2
+            ax[i].set_title(rf'{time_list[i]} ($t_{{{input_nbr}}}$)',
+                            fontsize=fontsize)
+            if i == 1:
+                ax[i].set_xlabel('Inputs', fontsize=fontsize)
+            
+            ax[i].grid(True)
+            ax[i].set_xticklabels([])
+            ax[i].set_yticklabels([])
+
+            for tic in ax[i].xaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+            for tic in ax[i].yaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
         if i == nbof_frames - 2:
             im = ax[i].imshow(sequence_array[i])
-            plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
-            ax[i].set_title('GT')
-            ax[i].grid()
+            cbar = plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
+            cbar.ax.tick_params(labelsize=fontsize)
+            ax[i].set_title(rf'{time_list[i]} ($t_{prediction_t}$)', fontsize=fontsize)
+            ax[i].set_xlabel('Ground Truth', fontsize=fontsize)
+            ax[i].grid(True)
+            ax[i].set_xticklabels([])
+            ax[i].set_yticklabels([])
+            for tic in ax[i].xaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+            for tic in ax[i].yaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
         if i == nbof_frames - 1:
             im = ax[i].imshow(sequence_array[i])
-            plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
-            ax[i].set_title('Prediction')
-            ax[i].grid()
+            cbar = plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
+            cbar.ax.tick_params(labelsize=fontsize)
+            
+            ax[i].set_title(rf'{time_list[-1]} ($\hat{{t_{prediction_t}}}$)', fontsize=fontsize)
+            ax[i].set_xlabel('Prediction', fontsize=fontsize)
+
+            ax[i].grid(True)
+            ax[i].set_xticklabels([])
+            ax[i].set_yticklabels([])
+            for tic in ax[i].xaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+            for tic in ax[i].yaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+        line = plt.Line2D((.59, .59),(.1, 1), color=Colors.concrete, linestyle=Linestyles.dashed, linewidth=3)
+        fig.add_artist(line)
     if save_fig:
         plt.savefig(fig_name)
     plt.show()
@@ -296,18 +335,21 @@ def plot_histogram(values,bins, normalize = True):
     plt.show()
 
 
-def show_image_w_colorbar(image, fig_name=None, save_fig=False):
+def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False):
     """
     Shows the image with a colorbar 
 
     Args:
         image (array): Array containing the values of the image
-    """    
-    fig, (ax1) = plt.subplots(figsize=(13, 3), ncols=1)
+    """ 
+    fig = plt.figure()
+    fig.set_size_inches(8, 4)
+    ax1 = fig.add_subplot(1, 1, 1)
+    
     image_ = ax1.imshow(image, interpolation='none')
-    #grafica = ax1.imshow(error_array[70:100], interpolation='none')
     fig.colorbar(image_, ax=ax1)
-    ax1.title.set_text('Image')
+    if title:
+        ax1.title.set_text('Image')
     if save_fig:
         plt.savefig(fig_name)
     plt.show()
@@ -349,6 +391,7 @@ def use_filter(in_frames, filter_):
             output[i-1,j-1] = np.sum(W*filter_)
 
     return output
+
 
 def make_plots_from_dict(load_paths, save_folder=None):
     """
