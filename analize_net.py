@@ -152,7 +152,6 @@ with torch.no_grad():
         day, hour, minute  = int(out_time[0, 0, 0]), int(out_time[0, 0, 1]), int(out_time[0, 0, 2]) 
         if day == 18:
           break
-            break
         if not PREDICT_DIFF:
             frames_pred = model(in_frames)
         
