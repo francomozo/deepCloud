@@ -579,19 +579,22 @@ values = np.vstack([gt_mean, pred_mean])
 kernel = st.gaussian_kde(values)
 Z = np.reshape(kernel(positions).T, X.shape)
 
-fig, ax = plt.subplots()
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+fig = plt.figure()
+fig.set_size_inches(6, 6)
+ax = fig.add_subplot(1, 1, 1)
 ax.imshow(np.rot90(Z), cmap=plt.cm.gist_earth_r,
           extent=[xmin, xmax, ymin, ymax])
 ax.plot(gt_mean, pred_mean, 'k.', markersize=2)
 ax.set_xlim([xmin, xmax])
 ax.set_ylim([ymin, ymax])
-ax.set_title('Scatter plot of Means with prob distribution')
 ax.set_xlabel('GT mean')
 ax.set_ylabel('Pred mean')
 if SAVE_IMAGES_PATH:
-    plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'mean_distribution.pdf')
-                )
+    fig.tight_layout() 
+    fig.savefig(os.path.join(
+                            SAVE_IMAGES_PATH, 'mean_distribution.pdf'))
 plt.show()
 plt.close()
 
@@ -606,19 +609,22 @@ values = np.vstack([gt_std, pred_std])
 kernel = st.gaussian_kde(values)
 Z = np.reshape(kernel(positions).T, X.shape)
 
-fig, ax = plt.subplots()
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+fig = plt.figure()
+fig.set_size_inches(6, 6)
+ax = fig.add_subplot(1, 1, 1)
 ax.imshow(np.rot90(Z), cmap=plt.cm.gist_earth_r,
           extent=[xmin, xmax, ymin, ymax])
 ax.plot(gt_std, pred_std, 'k.', markersize=2)
 ax.set_xlim([xmin, xmax])
 ax.set_ylim([ymin, ymax])
-ax.set_title('Scatter plot of STD with prob distribution')
 ax.set_xlabel('GT std')
 ax.set_ylabel('Pred std')
 if SAVE_IMAGES_PATH:
-    plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'std_distribution.pdf')
-                )
+    fig.tight_layout() 
+    fig.savefig(os.path.join(
+                            SAVE_IMAGES_PATH, 'std_distribution.pdf'))
 plt.show()
 plt.close()
 
