@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 from datetime import datetime
 from datetime import timedelta
+from tqdm import tqdm
 from src import data, evaluate, model, preprocessing, visualization
 from src.lib import utils
 from src.data import MontevideoFoldersDataset, MontevideoFoldersDataset_w_time
@@ -23,7 +24,7 @@ PREDICT_HORIZON = '60min'
 FRAME_OUT = 5  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
 CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv' 
 # CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
-MODEL_PATH = 'checkpoints/'+REGION+'/'+PREDICT_HORIZON+'/60min_UNET__region3_mae_filters16_sigmoid_diffFalse_retrainTrue_80_04-02-2022_01:41_BEST.pt' 
+MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/'+REGION+'/'+PREDICT_HORIZON+'/60min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_52_12-02-2022_21:30_BEST_FINAL.pt' 
 #MODEL_PATH = '/clusteruy/home03/DeepCloud/experiments/outputs/trained_models/60min_UNET__region3_mae_filters32_sigmoid_diffFalse_retrainTrue_91_09-02-2022_09:41_BEST.pt'
 OUTPUT_ACTIVATION = 'sigmoid'
 CROP_SIZE = 50
@@ -32,7 +33,7 @@ CROP_SIZE = 50
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
 
-model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=16).to(device)
+model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=16).to(device)
 #model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=32).to(device)
 
 
@@ -88,7 +89,7 @@ val_mvd = MontevideoFoldersDataset_w_time(
                                             )
 
 val_loader = DataLoader(val_mvd, batch_size=1, shuffle=False)
-in_frames, out_frames, out_time = next(iter(val_loader))
+in_frames, out_frames, _, _ = next(iter(val_loader))
 M, N = out_frames[0,0].shape[0], out_frames[0,0].shape[1] 
 
 model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu'))["model_state_dict"])
@@ -126,7 +127,7 @@ worst_PSNR_images = np.zeros((5, M, N))
 PSNR_per_hour = {}
 
 try:
-    SSIM = SSIM(n_channels=1).cuda()
+    SSIM = SSIM(n_channels=1).to(device)
 except:
     pass
 
@@ -143,13 +144,14 @@ MAE_error_image = np.zeros((M,N))
 
 model.eval()
 with torch.no_grad():
-    for val_batch_idx, (in_frames, out_frames, in_time, out_time) in enumerate(val_loader):
+    for val_batch_idx, (in_frames, out_frames, in_time, out_time) in enumerate(tqdm(val_loader)):
         
         in_frames = in_frames.to(device=device)
         out_frames = out_frames.to(device=device)
                
         day, hour, minute  = int(out_time[0, 0, 0]), int(out_time[0, 0, 1]), int(out_time[0, 0, 2]) 
-
+        if day == 18:
+          break
         if not PREDICT_DIFF:
             frames_pred = model(in_frames)
         
@@ -378,7 +380,7 @@ with torch.no_grad():
 
 MAE_error_image = MAE_error_image/len(val_mvd)
 fig_name = os.path.join(SAVE_IMAGES_PATH,
-                        'MAE_error_image.png')
+                        'MAE_error_image.pdf')
 visualization.show_image_w_colorbar(image=MAE_error_image, title=None,
                                     fig_name=fig_name, save_fig=True)
 
