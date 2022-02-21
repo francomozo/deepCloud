@@ -803,7 +803,7 @@ with torch.no_grad():
     if not PREDICT_DIFF:
         frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
 
-    if PREDICT_DIFF
+    if PREDICT_DIFF:
         diff_pred = model(in_frames.type(torch.cuda.FloatTensor))
         img_diff_pred = diff_pred[0, 0, :, :].cpu().numpy()
         frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1) 
