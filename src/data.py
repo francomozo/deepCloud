@@ -878,16 +878,23 @@ class MontevideoFoldersDataset_w_time(Dataset):
 
     def __getitem__(self, index):
         # images loading
+        in_time = np.zeros((self.in_channel, 3))
         for i in range(self.in_channel + self.out_channel):
             if i == 0:  # first image in in_frames
                 in_frames = np.load(os.path.join(
                     self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))
                 in_frames = in_frames[np.newaxis]
+                in_time[i, 0] = int(self.sequence_df.values[index][i][8:11]) # day
+                in_time[i, 1] = int(self.sequence_df.values[index][i][12:14]) # hh
+                in_time[i, 2] = int(self.sequence_df.values[index][i][14:16]) # mm
             if i > 0 and i < self.in_channel:  # next images in in_frames
                 aux = np.load(os.path.join(
                     self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
                 aux = aux[np.newaxis]
                 in_frames = np.concatenate((in_frames, aux), axis=0)
+                in_time[i, 0] = int(self.sequence_df.values[index][i][8:11] )# day
+                in_time[i, 1] = int(self.sequence_df.values[index][i][12:14]) # hh
+                in_time[i, 2] = int(self.sequence_df.values[index][i][14:16]) # mm
                 
             if self.output_last:
                 if i == (self.in_channel + self.out_channel -1):  # first image in out_frames
@@ -928,7 +935,7 @@ class MontevideoFoldersDataset_w_time(Dataset):
             else:
                 in_frames, out_frames = self.transform(in_frames,out_frames) 
         
-        return in_frames, out_frames, out_time
+        return in_frames, out_frames, in_time, out_time
 
     def __len__(self):
         return (len(self.sequence_df))
