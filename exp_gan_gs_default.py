@@ -36,7 +36,7 @@ from src.lib.utils import gradient_penalty, save_checkpoint
 #   -> save the image grid to mem DONE
 #   -> print time elapsed training the ith modelDONE
 
-expId = 'dtest' # global experiment Id. string TODO: complete the expId
+expId = 'prueba' # global experiment Id. string TODO: complete the expId
 
 # Params =======================
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -52,7 +52,7 @@ DATA_PATH_VAL = ROOT_PATH + '/data/mvd/validation/'
 CSV_PATH_VAL = ROOT_PATH + '/data/mvd/val_cosangs_mvd.csv' 
 
 BATCH_SIZE = 12 #16 # fixed
-NUM_EPOCHS = 10 # TODO 
+NUM_EPOCHS = 1 # TODO 
 PREDICT_HORIZON = 3 # int corresponding to num output images, ph=30min is 3
 
 SAVE_STATIC_SEQUENCES = True
@@ -66,16 +66,16 @@ models = {
         'lr' : 0.0001, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
     #'aaag8' : {
     #    'lr' : 0.0001, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : False},
-    'aaah6' : {
-        'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
+    ##'aaah6' : {
+    ##    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
     #'aaah8' : {
     #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : False},
     #'aaah10' : {
     #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 16, 'use_critic_iter' : True},
     #'aaah13' : {
     #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 32, 'use_critic_iter' : True},
-    'aaaj4' : {
-        'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : False},
+    ##'aaaj4' : {
+    ##    'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : False},
     #'aaaj5' : {
     #    'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
     #'aaaj12' : {
@@ -176,6 +176,7 @@ for index, key in enumerate(models.keys()):
                                                                                 # epoch=0 is before training 
                 if SAVE_STATIC_SEQUENCES:
                     save_image(grid, f'{os.getcwd()}/reports/gan_exp_outputs/static_sequences/{expId}/{expId}{sub_expId}_epoch{epoch}.png')
+                    torch.save(grid, f'{os.getcwd()}/reports/gan_exp_outputs/static_sequences/{expId}/{expId}{sub_expId}_epoch{epoch}.pt')
 
             gen.train() 
 
@@ -285,7 +286,16 @@ for index, key in enumerate(models.keys()):
 
         exp = expId  + str(sub_expId)
         outputs[exp] = experiment_output
-        
+
+        # save last epoch static images        
+        with torch.no_grad():
+            grid = evaluate.make_val_grid(gen, sequences=4, device=device, val_mvd=val_mvd)
+            writer_static.add_image("static_imgs", grid, global_step=epoch+1) # last epoch 
+                                                                                 
+            if SAVE_STATIC_SEQUENCES:
+                save_image(grid, f'{os.getcwd()}/reports/gan_exp_outputs/static_sequences/{expId}/{expId}{sub_expId}_epoch{epoch+1}.png')
+                torch.save(grid, f'{os.getcwd()}/reports/gan_exp_outputs/static_sequences/{expId}/{expId}{sub_expId}_epoch{epoch}.pt')                
+
         # save best model checkpoint
         save_checkpoint(gen_dict, disc_dict, expId, sub_expId, obs='BEST')       
         

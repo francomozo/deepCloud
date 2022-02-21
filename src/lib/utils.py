@@ -649,7 +649,7 @@ def create_video(source_folder, dest_folder=None, video_name=None, filter=None, 
         dest_path = os.path.join(source_folder, video_name)
 
     if filter is not None:
-        images = [img for img in os.listdir(image_folder) if filter in img]
+        images = [img for img in os.listdir(image_folder) if filter in img and img.endswith(".png")]
     else:  
         images = [img for img in os.listdir(image_folder)]    
 
