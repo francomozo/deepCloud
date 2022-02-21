@@ -3,6 +3,7 @@ import datetime
 import json
 import os
 import random
+import time
 
 import numpy as np
 import torch
@@ -31,11 +32,11 @@ from src.lib.utils import gradient_penalty, save_checkpoint
 #       generate a different dataset with chosen images for this(didnt do this)) DONE
 #   -> modify evaluate.make_val_grid DONE
 #   -> disable the grid gt vs pred for tb to save time DONE
-#   -> save best model, and model in last epoch
-#   -> save the image grid to mem (epoch*sequences*5)
+#   -> save best model, and model in last epoch DONE
+#   -> save the image grid to mem DONE
+#   -> print time elapsed training the ith modelDONE
 
-
-expId = 'btest' # global experiment Id. string TODO: complete the expId
+expId = 'dtest' # global experiment Id. string TODO: complete the expId
 
 # Params =======================
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -50,8 +51,8 @@ CSV_PATH_TRAIN = ROOT_PATH + '/data/mvd/train_cosangs_mvd.csv'
 DATA_PATH_VAL = ROOT_PATH + '/data/mvd/validation/'
 CSV_PATH_VAL = ROOT_PATH + '/data/mvd/val_cosangs_mvd.csv' 
 
-BATCH_SIZE = 16 # fixed
-NUM_EPOCHS = 1 # TODO fixed
+BATCH_SIZE = 12 #16 # fixed
+NUM_EPOCHS = 10 # TODO 
 PREDICT_HORIZON = 3 # int corresponding to num output images, ph=30min is 3
 
 SAVE_STATIC_SEQUENCES = True
@@ -65,16 +66,16 @@ models = {
         'lr' : 0.0001, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
     #'aaag8' : {
     #    'lr' : 0.0001, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : False},
-    #'aaah6' : {
-    #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
+    'aaah6' : {
+        'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
     #'aaah8' : {
     #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : False},
     #'aaah10' : {
     #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 16, 'use_critic_iter' : True},
     #'aaah13' : {
     #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 32, 'use_critic_iter' : True},
-    #'aaaj4' : {
-    #    'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : False},
+    'aaaj4' : {
+        'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : False},
     #'aaaj5' : {
     #    'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
     #'aaaj12' : {
@@ -162,6 +163,7 @@ for index, key in enumerate(models.keys()):
         
         experiment_output = {}
         
+        start = time.time()
         for epoch in range(NUM_EPOCHS):
             gen_epoch_loss_list = []
             disc_epoch_loss_list = []
@@ -285,7 +287,7 @@ for index, key in enumerate(models.keys()):
         outputs[exp] = experiment_output
         
         # save best model checkpoint
-        save_checkpoint(gen_dict, disc_dict, expId, sub_expId)       
+        save_checkpoint(gen_dict, disc_dict, expId, sub_expId, obs='BEST')       
         
         # save last epoch model checkpoint
         gen_dict = {
@@ -302,6 +304,10 @@ for index, key in enumerate(models.keys()):
         }
 
         save_checkpoint(gen_dict, disc_dict, expId, sub_expId)
+
+        # print elapsed time while training this model
+        end = time.time()
+        print(f'Time elapse: {int((end - start)/60)} minutes.')
     #except:
     #    print('Experiment failed :(')
 

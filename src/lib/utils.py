@@ -6,6 +6,7 @@
 import csv
 import datetime
 import os
+import cv2
 import sys
 import shutil
 from datetime import datetime, timedelta
@@ -17,18 +18,24 @@ import pandas as pd
 import src.lib.preprocessing_functions as pf
 import torch
 
-def save_checkpoint(gen_dict, disc_dict, expId, sub_expId=None):
+def save_checkpoint(gen_dict, disc_dict, expId, sub_expId=None, obs=None):
 
     PATH = f"checkpoints/{expId}/"
     curr_epoch = gen_dict['epoch']
 
     ts = datetime.now().strftime("%d-%m-%Y_%H:%M")
-    if sub_expId is None:
-        GEN_NAME = f'{expId}_gen_epoch{curr_epoch}_{ts}.pt'
-        DISC_NAME = f'{expId}_disc_epoch{curr_epoch}_{ts}.pt'
+
+    if obs is None:
+        obs = ''
     else:
-        GEN_NAME = f'{expId}{sub_expId}_gen_epoch{curr_epoch}_{ts}.pt'
-        DISC_NAME = f'{expId}{sub_expId}_disc_epoch{curr_epoch}_{ts}.pt'
+        obs = '_' + obs
+
+    if sub_expId is None:
+        GEN_NAME = f'{expId}_gen_epoch{curr_epoch}_{ts}{obs}.pt'
+        DISC_NAME = f'{expId}_disc_epoch{curr_epoch}_{ts}{obs}.pt'
+    else:
+        GEN_NAME = f'{expId}{sub_expId}_gen_epoch{curr_epoch}_{ts}{obs}.pt'
+        DISC_NAME = f'{expId}{sub_expId}_disc_epoch{curr_epoch}_{ts}{obs}.pt'
 
     torch.save(gen_dict, PATH + GEN_NAME)
     torch.save(disc_dict, PATH + DISC_NAME)
@@ -624,3 +631,34 @@ def sequence_df_generator_w_cosangs_folders(path,
 
     sequences_df = pd.DataFrame(sequences_df)
     return sequences_df
+
+def create_video(source_folder, dest_folder=None, video_name=None, filter=None, fps=1):
+    """
+        create avi video from png images from "source_folder", filtering using 
+        "filter" and saves it in "dest_folder" as "video_name".avi
+    """
+    
+    if video_name is not None:
+        video_name = f'{video_name}.avi' 
+    else:
+        video_name = 'video.avi'
+    
+    if dest_folder is not None:
+        dest_path = os.path.join(dest_folder, video_name)    
+    else:
+        dest_path = os.path.join(source_folder, video_name)
+
+    if filter is not None:
+        images = [img for img in os.listdir(image_folder) if filter in img]
+    else:  
+        images = [img for img in os.listdir(image_folder)]    
+
+    frame = cv2.imread(os.path.join(image_folder, images[0]))
+    height, width, layers = frame.shape
+    video = cv2.VideoWriter(dest_path, 0, fps, (width,height))
+    for image in images:
+        video.write(cv2.imread(os.path.join(image_folder, image)))
+    cv2.destroyAllWindows()
+    video.release()
+
+    return
