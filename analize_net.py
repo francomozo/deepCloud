@@ -152,6 +152,7 @@ with torch.no_grad():
         day, hour, minute  = int(out_time[0, 0, 0]), int(out_time[0, 0, 1]), int(out_time[0, 0, 2]) 
         if day == 18:
           break
+            break
         if not PREDICT_DIFF:
             frames_pred = model(in_frames)
         
@@ -453,7 +454,7 @@ plt.ylabel('MAE')
 plt.grid()
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'MAE_p_hour.png')
+                            SAVE_IMAGES_PATH, 'MAE_p_hour.pdf')
                 )
 plt.show()
 
@@ -467,7 +468,7 @@ plt.ylabel('MSE')
 plt.grid()
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'MSE_p_hour.png')
+                            SAVE_IMAGES_PATH, 'MSE_p_hour.pdf')
                 )
 plt.show()
 plt.close()
@@ -484,7 +485,7 @@ plt.ylabel('SSIM')
 plt.grid()
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'SSIM_p_hour.png')
+                            SAVE_IMAGES_PATH, 'SSIM_p_hour.pdf')
                 )
 plt.show()
 plt.close()
@@ -499,7 +500,7 @@ plt.ylabel('PSNR')
 plt.grid()
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'PSNR_p_hour.png')
+                            SAVE_IMAGES_PATH, 'PSNR_p_hour.pdf')
                 )
 plt.show()
 
@@ -531,7 +532,7 @@ ax.text(np.min(gt_mean), np.max(pred_mean),textstr, fontsize=fontSize,
 if SAVE_IMAGES_PATH:
     fig.tight_layout() 
     fig.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'scatterplot_mean.png'))
+                            SAVE_IMAGES_PATH, 'scatterplot_mean.pdf'))
 
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
@@ -557,7 +558,7 @@ ax.text(np.min(gt_std), np.max(pred_std), textstr, fontsize=fontSize,
 if SAVE_IMAGES_PATH:
     fig.tight_layout() 
     fig.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'scatterplot_std.png'))
+                            SAVE_IMAGES_PATH, 'scatterplot_std.pdf'))
 plt.close()
 
 #MEANS DENSITY DISTRIBUTION
@@ -581,7 +582,7 @@ ax.set_xlabel('GT mean')
 ax.set_ylabel('Pred mean')
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'mean_distribution.png')
+                            SAVE_IMAGES_PATH, 'mean_distribution.pdf')
                 )
 plt.show()
 plt.close()
@@ -608,7 +609,7 @@ ax.set_xlabel('GT std')
 ax.set_ylabel('Pred std')
 if SAVE_IMAGES_PATH:
     plt.savefig(os.path.join(
-                            SAVE_IMAGES_PATH, 'std_distribution.png')
+                            SAVE_IMAGES_PATH, 'std_distribution.pdf')
                 )
 plt.show()
 plt.close()
@@ -636,7 +637,7 @@ l2 = plt.axvline(np.mean(pred_mean), color=Colors.pomegranate)
 plt.legend(loc='upper right')
 if SAVE_IMAGES_PATH:
     fig.tight_layout() 
-    fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'means_histogram.png'))
+    fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'means_histogram.pdf'))
 
 plt.close()
 
@@ -664,14 +665,14 @@ plt.legend(loc='upper right')
 
 if SAVE_IMAGES_PATH:
     fig.tight_layout() 
-    fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'stds_histogram.png'))
+    fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'stds_histogram.pdf'))
 plt.close()
 
 #BEST AND WORST PREDICTIONS
 
 fig_name = os.path.join(SAVE_IMAGES_PATH,
                         'MAE best prediction, day:' + str(int(best_MAE_time[0].numpy())) + \
-                        'hour:' + str(int(best_MAE_time[1].numpy())).zfill(2)+str(int(best_MAE_time[2].numpy())).zfill(2))
+                        'hour:' + str(int(best_MAE_time[1].numpy())).zfill(2)+str(int(best_MAE_time[2].numpy())).zfill(2) + '.pdf')
 visualization.show_seq_and_pred(best_MAE_images,
                                 time_list=best_MAE_time_list,
                                 prediction_t=FRAME_OUT+1,
@@ -681,7 +682,7 @@ plt.close()
 
 fig_name = os.path.join(SAVE_IMAGES_PATH,
                         'MAE worst prediction, day:'+str(int(worst_MAE_time[0].numpy())) + \
-                        'hour:' + str(int(worst_MAE_time[1].numpy())).zfill(2) + str(int(worst_MAE_time[2].numpy())).zfill(2))
+                        'hour:' + str(int(worst_MAE_time[1].numpy())).zfill(2) + str(int(worst_MAE_time[2].numpy())).zfill(2) + '.pdf')
 visualization.show_seq_and_pred(worst_MAE_images,
                                 time_list=worst_MAE_time_list,
                                 prediction_t=FRAME_OUT+1,
@@ -691,7 +692,7 @@ plt.close()
 
 fig_name = os.path.join(SAVE_IMAGES_PATH,
                         'MSE best prediction, day:' + str(int(best_MSE_time[0].numpy())) + \
-                        'hour:'+ str(int(best_MSE_time[1].numpy())).zfill(2) + str(int(best_MSE_time[2].numpy())).zfill(2))
+                        'hour:'+ str(int(best_MSE_time[1].numpy())).zfill(2) + str(int(best_MSE_time[2].numpy())).zfill(2) + '.pdf')
 visualization.show_seq_and_pred(best_MSE_images,
                                 time_list=best_MSE_time_list,
                                 prediction_t=FRAME_OUT+1,
@@ -701,7 +702,7 @@ plt.close()
 
 fig_name = os.path.join(SAVE_IMAGES_PATH,
                         'MSE worst prediction, day:' + str(int(worst_MSE_time[0].numpy())) + \
-                        'hour:'+ str(int(worst_MSE_time[1].numpy())).zfill(2) + str(int(worst_MSE_time[2].numpy())).zfill(2))
+                        'hour:'+ str(int(worst_MSE_time[1].numpy())).zfill(2) + str(int(worst_MSE_time[2].numpy())).zfill(2) + '.pdf')
 visualization.show_seq_and_pred(worst_MSE_images,
                                 time_list=worst_MSE_time_list,
                                 prediction_t=FRAME_OUT+1,
@@ -711,7 +712,7 @@ plt.close()
 
 fig_name = os.path.join(SAVE_IMAGES_PATH,
                         'PSNR best prediction, day:' + str(int(best_PSNR_time[0].numpy())) + \
-                        'hour:'+ str(int(best_PSNR_time[1].numpy())).zfill(2) + str(int(best_PSNR_time[2].numpy())).zfill(2))
+                        'hour:'+ str(int(best_PSNR_time[1].numpy())).zfill(2) + str(int(best_PSNR_time[2].numpy())).zfill(2) + '.pdf')
 visualization.show_seq_and_pred(best_PSNR_images,
                                 time_list=best_PSNR_time_list,
                                 prediction_t=FRAME_OUT+1,
@@ -721,7 +722,7 @@ plt.close()
 
 fig_name = os.path.join(SAVE_IMAGES_PATH,
                         'PSNR worst prediction, day:'+str(int(worst_PSNR_time[0].numpy())) + \
-                        'hour:' + str(int(worst_PSNR_time[1].numpy())).zfill(2) + str(int(worst_PSNR_time[2].numpy())).zfill(2))
+                        'hour:' + str(int(worst_PSNR_time[1].numpy())).zfill(2) + str(int(worst_PSNR_time[2].numpy())).zfill(2) + '.pdf')
 visualization.show_seq_and_pred(worst_PSNR_images,
                                 time_list=worst_PSNR_time_list,
                                 prediction_t=FRAME_OUT+1,
@@ -731,7 +732,7 @@ plt.close()
 
 fig_name = os.path.join(SAVE_IMAGES_PATH,
                         'SSIM best prediction, day:'+str(int(best_SSIM_time[0].numpy())) + \
-                        'hour:' + str(int(best_SSIM_time[1].numpy())).zfill(2) + str(int(best_SSIM_time[2].numpy())).zfill(2))
+                        'hour:' + str(int(best_SSIM_time[1].numpy())).zfill(2) + str(int(best_SSIM_time[2].numpy())).zfill(2) + '.pdf')
 visualization.show_seq_and_pred(best_SSIM_images,
                                 time_list=best_SSIM_time_list,
                                 prediction_t=FRAME_OUT+1,
@@ -741,7 +742,7 @@ plt.close()
 
 fig_name = os.path.join(SAVE_IMAGES_PATH,
                         'SSIM worst prediction, day:' + str(int(worst_SSIM_time[0].numpy())) + \
-                        'hour:' + str(int(worst_SSIM_time[1].numpy())).zfill(2) + str(int(worst_SSIM_time[2].numpy())).zfill(2))
+                        'hour:' + str(int(worst_SSIM_time[1].numpy())).zfill(2) + str(int(worst_SSIM_time[2].numpy())).zfill(2) + '.pdf')
 visualization.show_seq_and_pred(worst_SSIM_images,
                                 time_list=worst_SSIM_time_list,
                                 prediction_t=FRAME_OUT+1,
@@ -795,7 +796,7 @@ frames_array[0:3] = in_frames[0].cpu().numpy()
 frames_array[3]= out_frames[0,0].cpu().numpy()
 frames_array[4] = frames_pred[0,0].cpu().numpy()
     
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_nan_sequence.png')
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_nan_sequence.pdf')
 visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
 
 # LARGEST MOVEMENT left to right --->
@@ -846,11 +847,11 @@ frames_array[0:3] = in_frames[0].cpu().numpy()
 frames_array[3]= out_frames[0,0].cpu().numpy()
 frames_array[4] = frames_pred[0,0].cpu().numpy()
     
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence.png')
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence.pdf')
 visualization.show_seq_and_pred(frames_array, fig_name=fig_name, save_fig=True)
 
 if PREDICT_DIFF:
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence_diff_pred.png')
+    fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence_diff_pred.pdf')
     visualization.show_image_w_colorbar(img_diff_pred, fig_name=fig_name, save_fig=True)
 
 # FIRST LAYER OF FILTERS OUTPUT
