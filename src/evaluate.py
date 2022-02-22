@@ -139,6 +139,7 @@ def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100,
             SSIM_criterion = SSIM(n_channels=1).cuda()
             pred = torch.from_numpy(pred*(cosangs_map==1)/normalize)
             pred = pred.unsqueeze(0).unsqueeze(0).cuda()
+            pred = torch.clip(pred, 0, 1)
             gt_aux = torch.from_numpy(gt_aux*(cosangs_map==1)/normalize)
             gt_aux = gt_aux.unsqueeze(0).unsqueeze(0).cuda()
             error.append(SSIM_criterion(pred,gt_aux).cpu().numpy()*normalize)

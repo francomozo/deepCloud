@@ -20,9 +20,13 @@ ap = argparse.ArgumentParser(description='Evaluate direct models with multiple m
 ap.add_argument("--out-channel", default=None, type=int,
                 help="Defaults to None")
 ap.add_argument("--start-horizon", default=None, type=int,
-                help="Defaults to None")
+                help="Defaults to None. Starting point of prediction, 0->10min, 5->60min")
 ap.add_argument("--predict-horizon", default=6, type=int,
-                help="Defaults to 6")
+                help="Defaults to 6. Amount of predicted images")
+ap.add_argument("--output-last", default=False, type=bool,
+                help="Defaults to False")
+ap.add_argument("--horizon-step", default=None, type=int,
+                help="Defaults to 1. Step for targets in evaluation")
 
 ap.add_argument("--metrics", nargs="+", default=["RMSE"],
                 help="Defaults to RMSE. Add %% for percentage metric")
@@ -69,7 +73,8 @@ val_mvd_Unet = MontevideoFoldersDataset(path = PATH_DATA,
                                         out_channel=out_channel,
                                         min_time_diff=5, max_time_diff=15,
                                         transform=normalize, 
-                                        csv_path=csv_path_unet)
+                                        csv_path=csv_path_unet,
+                                        output_last=params['output_last'])
 
 val_loader_Unet = DataLoader(val_mvd_Unet)
 
