@@ -36,7 +36,7 @@ from src.lib.utils import gradient_penalty, save_checkpoint
 #   -> save the image grid to mem DONE
 #   -> print time elapsed training the ith modelDONE
 
-expId = 'prueba' # global experiment Id. string TODO: complete the expId
+expId =  # global experiment Id. string TODO: complete the expId
 
 # Params =======================
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -52,7 +52,7 @@ DATA_PATH_VAL = ROOT_PATH + '/data/mvd/validation/'
 CSV_PATH_VAL = ROOT_PATH + '/data/mvd/val_cosangs_mvd.csv' 
 
 BATCH_SIZE = 12 #16 # fixed
-NUM_EPOCHS = 1 # TODO 
+NUM_EPOCHS = 30 # TODO 
 PREDICT_HORIZON = 3 # int corresponding to num output images, ph=30min is 3
 
 SAVE_STATIC_SEQUENCES = True
@@ -74,14 +74,14 @@ models = {
     #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 16, 'use_critic_iter' : True},
     #'aaah13' : {
     #    'lr' : 0.0003, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 32, 'use_critic_iter' : True},
-    ##'aaaj4' : {
-    ##    'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : False},
+    'aaaj4' : {
+        'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : False},
     #'aaaj5' : {
     #    'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 5,  'features_d' : 32, 'use_critic_iter' : True},
     #'aaaj12' : {
     #    'lr' : 5e-05, 'lambda_gp' : 5, 'critic_iter' : 10,  'features_d' : 16, 'use_critic_iter' : False},
-    #'aaan2' : {
-    #    'lr' : 5e-05, 'lambda_gp' : 10, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : True}
+    'aaan2' : {
+        'lr' : 5e-05, 'lambda_gp' : 10, 'critic_iter' : 5,  'features_d' : 16, 'use_critic_iter' : True}
 }
 
 total_exps = len(models)
@@ -294,7 +294,7 @@ for index, key in enumerate(models.keys()):
                                                                                  
             if SAVE_STATIC_SEQUENCES:
                 save_image(grid, f'{os.getcwd()}/reports/gan_exp_outputs/static_sequences/{expId}/{expId}{sub_expId}_epoch{epoch+1}.png')
-                torch.save(grid, f'{os.getcwd()}/reports/gan_exp_outputs/static_sequences/{expId}/{expId}{sub_expId}_epoch{epoch}.pt')                
+                torch.save(grid, f'{os.getcwd()}/reports/gan_exp_outputs/static_sequences/{expId}/{expId}{sub_expId}_epoch{epoch+1}.pt')                
 
         # save best model checkpoint
         save_checkpoint(gen_dict, disc_dict, expId, sub_expId, obs='BEST')       
