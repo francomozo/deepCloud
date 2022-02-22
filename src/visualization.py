@@ -201,6 +201,11 @@ def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, sa
         sequence_array (array)
     """
     nbof_frames = sequence_array.shape[0]
+    if np.max(sequence_array[0]) > 1.1:
+        vmax = 100
+    else:
+        vmax = 1
+    
     fontsize = 22 # 22 generates the font more like the latex text
     
     plt.rc('text', usetex=True)
@@ -211,7 +216,7 @@ def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, sa
     plt.subplots_adjust(wspace=0.01)
     for i in range(nbof_frames):
         if i < nbof_frames - 2:
-            ax[i].imshow(sequence_array[i])
+            ax[i].imshow(sequence_array[i], vmin=0, vmax=vmax)
             input_nbr = i - 2
             ax[i].set_title(rf'{time_list[i]} ($t_{{{input_nbr}}}$)',
                             fontsize=fontsize)
@@ -227,10 +232,10 @@ def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, sa
             for tic in ax[i].yaxis.get_major_ticks():
                 tic.tick1line.set_visible(False)
         if i == nbof_frames - 2:
-            im = ax[i].imshow(sequence_array[i])
+            im = ax[i].imshow(sequence_array[i], vmin=0, vmax=vmax)
             cbar = plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
             cbar.ax.tick_params(labelsize=fontsize)
-            ax[i].set_title(rf'{time_list[i]} ($t_{prediction_t}$)', fontsize=fontsize)
+            ax[i].set_title(rf'{time_list[i]} ($t_{{{prediction_t}}}$)', fontsize=fontsize)
             ax[i].set_xlabel('Ground Truth', fontsize=fontsize)
             ax[i].grid(True)
             ax[i].set_xticklabels([])
@@ -240,11 +245,11 @@ def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, sa
             for tic in ax[i].yaxis.get_major_ticks():
                 tic.tick1line.set_visible(False)
         if i == nbof_frames - 1:
-            im = ax[i].imshow(sequence_array[i])
+            im = ax[i].imshow(sequence_array[i], vmin=0, vmax=vmax)
             cbar = plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
             cbar.ax.tick_params(labelsize=fontsize)
             
-            ax[i].set_title(rf'{time_list[-1]} ($\hat{{t_{prediction_t}}}$)', fontsize=fontsize)
+            ax[i].set_title(rf'{time_list[-1]} ($\hat{{t_{{{prediction_t}}}}}$)', fontsize=fontsize)
             ax[i].set_xlabel('Prediction', fontsize=fontsize)
 
             ax[i].grid(True)
