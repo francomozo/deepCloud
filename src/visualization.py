@@ -195,7 +195,7 @@ def show_image_list(images_list, rows, fig_name=None, save_fig=False):
     plt.show()
     
     
-def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, save_fig=False):
+def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, save_fig=False, grid=True):
     """ Shows the images passed in a grid
     Args:
         sequence_array (array)
@@ -223,7 +223,7 @@ def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, sa
             if i == 1:
                 ax[i].set_xlabel('Inputs', fontsize=fontsize)
             
-            ax[i].grid(True)
+            ax[i].grid(grid)
             ax[i].set_xticklabels([])
             ax[i].set_yticklabels([])
 
@@ -237,7 +237,7 @@ def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, sa
             cbar.ax.tick_params(labelsize=fontsize)
             ax[i].set_title(rf'{time_list[i]} ($t_{{{prediction_t}}}$)', fontsize=fontsize)
             ax[i].set_xlabel('Ground Truth', fontsize=fontsize)
-            ax[i].grid(True)
+            ax[i].grid(grid)
             ax[i].set_xticklabels([])
             ax[i].set_yticklabels([])
             for tic in ax[i].xaxis.get_major_ticks():
@@ -252,7 +252,7 @@ def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, sa
             ax[i].set_title(rf'{time_list[-1]} ($\hat{{t_{{{prediction_t}}}}}$)', fontsize=fontsize)
             ax[i].set_xlabel('Prediction', fontsize=fontsize)
 
-            ax[i].grid(True)
+            ax[i].grid(grid)
             ax[i].set_xticklabels([])
             ax[i].set_yticklabels([])
             for tic in ax[i].xaxis.get_major_ticks():
