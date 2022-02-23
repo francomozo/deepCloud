@@ -29,7 +29,7 @@ frames_pred = CMV.predict(imgi=img1,
                             period=10*60, delta_t=10*60, 
                             predict_horizon=6)
 
-frames_array = np.array([img1, img2, output, frames_pred[-1]])
+frames_array = np.array([img1/100, img2/100, output/100, frames_pred[-1]/100])
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence_day77_60min.pdf')
 visualization.show_seq_and_pred(frames_array,
                                 time_list=time_list,
@@ -48,7 +48,7 @@ frames_pred = CMV.predict(imgi=img1,
                             period=10*60, delta_t=10*60, 
                             predict_horizon=18)
 
-frames_array = np.array([img1, img2, output, frames_pred[-1]])
+frames_array = np.array([img1/100, img2/100, output/100, frames_pred[-1]/100])
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'day61_180min.pdf')
 visualization.show_seq_and_pred(frames_array,
                                 time_list=time_list,
@@ -68,7 +68,7 @@ frames_pred = CMV.predict(imgi=img1,
                             period=10*60, delta_t=10*60, 
                             predict_horizon=30)
 
-frames_array = np.array([img1, img2, output, frames_pred[-1]])
+frames_array = np.array([img1/100, img2/100, output/100, frames_pred[-1]/100])
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'day356_300min.pdf')
 visualization.show_seq_and_pred(frames_array,
                                 time_list=time_list,
@@ -88,7 +88,7 @@ frames_pred = CMV.predict(imgi=img1,
                             period=10*60, delta_t=10*60, 
                             predict_horizon=12)
 
-frames_array = np.array([img1, img2, output, frames_pred[-1]])
+frames_array = np.array([img1/100, img2/100, output/100, frames_pred[-1]/100])
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'day61_120min.pdf')
 visualization.show_seq_and_pred(frames_array,
                                 time_list=time_list,
