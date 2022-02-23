@@ -212,12 +212,12 @@ def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, sa
     plt.rc('font', family='serif')
     
     # plt.figure(figsize=(25, 5))
-    fig, ax = plt.subplots(1, 5, figsize=(30, 5))
+    fig, ax = plt.subplots(1, nbof_frames, figsize=(6 * nbof_frames, 5))
     plt.subplots_adjust(wspace=0.01)
     for i in range(nbof_frames):
         if i < nbof_frames - 2:
             ax[i].imshow(sequence_array[i], vmin=0, vmax=vmax)
-            input_nbr = i - 2
+            input_nbr = i - (nbof_frames - 3)
             ax[i].set_title(rf'{time_list[i]} ($t_{{{input_nbr}}}$)',
                             fontsize=fontsize)
             if i == 1:
@@ -259,7 +259,10 @@ def show_seq_and_pred(sequence_array, time_list, prediction_t, fig_name=None, sa
                 tic.tick1line.set_visible(False)
             for tic in ax[i].yaxis.get_major_ticks():
                 tic.tick1line.set_visible(False)
-        line = plt.Line2D((.59, .59),(.1, 1), color=Colors.concrete, linestyle=Linestyles.dashed, linewidth=3)
+        if nbof_frames == 5:
+            line = plt.Line2D((.59, .59),(.1, 1), color=Colors.concrete, linestyle=Linestyles.dashed, linewidth=3)
+        else:
+            line = plt.Line2D((.515, .515),(.1, 1), color=Colors.concrete, linestyle=Linestyles.dashed, linewidth=3)
         fig.add_artist(line)
     if save_fig:
         fig.tight_layout() 
