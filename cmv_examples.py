@@ -79,7 +79,7 @@ visualization.show_seq_and_pred(frames_array,
 # EXAMPLE DAY 61, 120 minutes
 img1 = np.load(os.path.join(PATH_DATA, '2020061/ART_2020061_122017.npy'))
 img2 = np.load(os.path.join(PATH_DATA, '2020061/ART_2020061_123017.npy'))
-output = np.load(os.path.join(PATH_DATA, '2020061\ART_2020061_143017.npy'))
+output = np.load(os.path.join(PATH_DATA, '2020061/ART_2020061_143017.npy'))
 time_list = ['12:20', '12:30', '14:30']
 
 frames_pred = CMV.predict(imgi=img1,
