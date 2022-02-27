@@ -18,28 +18,27 @@ from src.dl_models.unet import UNet, UNet2
 #guardar con el tiempo de prediccion
 ap = argparse.ArgumentParser(description='Generate cmv prediction dataset')
 
-ap.add_argument("--csv-path-base", default=None,
-                help="Csv path for baseline models (CMV, Persistence, BCMV). Defaults to None.")
-ap.add_argument("--data-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/',
-                help="Defaults to /clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/")
-ap.add_argument("--dest-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/cmv_mvd_10min/train/',
-                help="Defaults to /clusteruy/home03/DeepCloud/deepCloud/data/cmv_mvd_10min/train/")
-
+ap.add_argument("--data-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train/')
+ap.add_argument("--dest-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/cmv/cmv_mvd_10min/train/')
+ap.add_argument("--csv-path", default='/clusteruy/home03/DeepCloud/deepCloud/data/mvd/train_cosangs_mvd.csv')
+                
 ap.add_argument("--predict-horizon", default=1, type=int,
                 help="Defaults to 1")
 
 params = vars(ap.parse_args())
 PATH_DATA = params['data_path']
-csv_path_base = params['csv_path_base']
 destination_path = params['dest_path']
 
 cmv = model.Cmv2()
 val_mvd = MontevideoFoldersDataset_w_name(path = PATH_DATA, 
                                           in_channel = 2, out_channel=params['predict_horizon'], 
-                                          output_last=True)
+                                          output_last=True,
+                                          csv_path=params['csv_path'])
 val_loader = DataLoader(val_mvd)
 
 for idx, (inputs, targets, out_name) in enumerate(val_loader):
+  if idx % 1000 == 0:
+      print(idx)
   prediction = cmv.predict(
                           imgi=inputs[0][0], 
                           imgf=inputs[0][1],

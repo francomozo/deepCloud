@@ -20,26 +20,41 @@ from src.lib.latex_options import Colors, Linestyles
 ## CONFIGURATION #########
 
 REGION = 'R3' # [MVD, URU, R3]
-PREDICT_HORIZON = '120min'
-FRAME_OUT = 11  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
-CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv' 
-# CSV_PATH = 'data/mvd/val_seq_in3_out1_cosangs.csv'
-MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/'+REGION+'/'+PREDICT_HORIZON+'/120min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_29_12-02-2022_19:40_BEST_FINAL.pt' 
-#MODEL_PATH = '/clusteruy/home03/DeepCloud/experiments/outputs/trained_models/60min_UNET__region3_mae_filters32_sigmoid_diffFalse_retrainTrue_91_09-02-2022_09:41_BEST.pt'
+if REGION == 'MVD':
+    dataset = 'mvd'
+elif REGION == 'URU':
+    dataset = 'uru'
+elif REGION == 'R3':
+    dataset = 'region3'
+
+PREDICT_HORIZON = '60min'
+FRAME_OUT = 5  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
+
+evaluate_test = True
+
+MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/' + REGION + '/' + PREDICT_HORIZON + \
+    '/60min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_52_12-02-2022_21:30_BEST_FINAL.pt' 
+
+if evaluate_test:
+    CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/test_cosangs_region3.csv'
+    PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/test/'
+    SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/test/' + MODEL_PATH.split('/')[-1][:-9]  
+    SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/test'
+
+else:
+    CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv'
+    PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
+    SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
+    SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON 
+    
 OUTPUT_ACTIVATION = 'sigmoid'
 CROP_SIZE = 50
-
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
 
-model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=16).to(device)
+model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation=OUTPUT_ACTIVATION, bias=False, filters=16).to(device)
 #model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=32).to(device)
-
-
-SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
-SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON 
-
 
 ###########################
 
@@ -49,15 +64,6 @@ fontSize = 22
 save_fig = True
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
-
-
-if REGION == 'MVD':
-    dataset = 'mvd'
-elif REGION == 'URU':
-    dataset = 'uru'
-elif REGION == 'R3':
-    dataset = 'region3'
-PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
 
 if OUTPUT_ACTIVATION == 'tanh':
     PREDICT_DIFF = True
@@ -76,7 +82,7 @@ except:
 
 #Evaluate Unet
 
-normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
+normalize = preprocessing.normalize_pixels(mean0=False) #values between [0,1]
 
 val_mvd = MontevideoFoldersDataset_w_time(
                                             path=PATH_DATA,
@@ -762,149 +768,149 @@ visualization.show_seq_and_pred(worst_SSIM_images,
                                 save_fig=True)
 plt.close()
 
-# OUTPUT WITH MOST NANS SEQUENCE
-print('OUTPUT WITH MOST NANS SEQUENCE')
-img0 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_115017.npy'))
-img1 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_120017.npy'))
-img2 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_121017.npy'))
-time_list = ['11:50', '12:00', '12:10']
-if FRAME_OUT == 0:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_122017.npy'))
-    time_list.append('12:20')
-elif FRAME_OUT == 1:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_123017.npy'))
-    time_list.append('12:30')
-elif FRAME_OUT == 2:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_124017.npy'))
-    time_list.append('12:40')
-elif FRAME_OUT == 3:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_125017.npy'))
-    time_list.append('12:50')   
-elif FRAME_OUT == 4:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_130017.npy'))
-    time_list.append('13:00')
-elif FRAME_OUT == 5:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_131017.npy'))
-    time_list.append('13:10')
-elif FRAME_OUT == 11:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_141017.npy'))
-    time_list.append('14:10')
-elif FRAME_OUT == 17:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_151017.npy'))
-    time_list.append('15:10')
-elif FRAME_OUT == 23:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_161017.npy'))
-    time_list.append('16:10')
-elif FRAME_OUT == 29:
-    output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_171017.npy'))
-    time_list.append('17:10')
-else:
-    raise ValueError('Prediction time must be 10,20,30,40,50,60,120,180,240 or 300 minutes.')
-        
-in_frames= torch.tensor(np.ones((1, 3, M, N))).to(device)
-out_frames= torch.tensor(np.ones((1, 1, M, N))).to(device)
-in_frames[0,0] = torch.from_numpy(img0/100).float().to(device)
-in_frames[0,1] = torch.from_numpy(img1/100).float().to(device)
-in_frames[0,2] = torch.from_numpy(img2/100).float().to(device)
-out_frames[0,0] = torch.from_numpy(output/100).float().to(device)
+if not evaluate_test:
+    # OUTPUT WITH MOST NANS SEQUENCE
+    print('OUTPUT WITH MOST NANS SEQUENCE')
+    img0 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_115017.npy'))
+    img1 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_120017.npy'))
+    img2 = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_121017.npy'))
+    time_list = ['11:50', '12:00', '12:10']
+    if FRAME_OUT == 0:
+        output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_122017.npy'))
+        time_list.append('12:20')
+    elif FRAME_OUT == 1:
+        output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_123017.npy'))
+        time_list.append('12:30')
+    elif FRAME_OUT == 2:
+        output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_124017.npy'))
+        time_list.append('12:40')
+    elif FRAME_OUT == 3:
+        output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_125017.npy'))
+        time_list.append('12:50')   
+    elif FRAME_OUT == 4:
+        output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_130017.npy'))
+        time_list.append('13:00')
+    elif FRAME_OUT == 5:
+        output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_131017.npy'))
+        time_list.append('13:10')
+    elif FRAME_OUT == 11:
+        output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_141017.npy'))
+        time_list.append('14:10')
+    elif FRAME_OUT == 17:
+        output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_151017.npy'))
+        time_list.append('15:10')
+    elif FRAME_OUT == 23:
+        output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_161017.npy'))
+        time_list.append('16:10')
+    elif FRAME_OUT == 29:
+        output = np.load(os.path.join(PATH_DATA, '2020160/ART_2020160_171017.npy'))
+        time_list.append('17:10')
+    else:
+        raise ValueError('Prediction time must be 10,20,30,40,50,60,120,180,240 or 300 minutes.')
+            
+    in_frames= torch.tensor(np.ones((1, 3, M, N))).to(device)
+    out_frames= torch.tensor(np.ones((1, 1, M, N))).to(device)
+    in_frames[0,0] = torch.from_numpy(img0/100).float().to(device)
+    in_frames[0,1] = torch.from_numpy(img1/100).float().to(device)
+    in_frames[0,2] = torch.from_numpy(img2/100).float().to(device)
+    out_frames[0,0] = torch.from_numpy(output/100).float().to(device)
 
-model.eval()
-with torch.no_grad():
-    if not PREDICT_DIFF:
-        frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
+    model.eval()
+    with torch.no_grad():
+        if not PREDICT_DIFF:
+            frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
+
+        if PREDICT_DIFF:
+            diff_pred = model(in_frames.type(torch.cuda.FloatTensor))
+            img_diff_pred = diff_pred[0, 0, :, :].cpu().numpy()
+            frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1) 
+            
+    frames_array = np.ones((5, M, N))
+    frames_array[0:3] = in_frames[0].cpu().numpy()
+    frames_array[3]= out_frames[0,0].cpu().numpy()
+    frames_array[4] = frames_pred[0,0].cpu().numpy()
+        
+    fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_nan_sequence.pdf')
+    visualization.show_seq_and_pred(frames_array,
+                                    time_list=time_list,
+                                    prediction_t=FRAME_OUT+1,
+                                    fig_name=fig_name, save_fig=True)
 
     if PREDICT_DIFF:
-        diff_pred = model(in_frames.type(torch.cuda.FloatTensor))
-        img_diff_pred = diff_pred[0, 0, :, :].cpu().numpy()
-        frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1) 
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_nan_sequence_diff_pred.pdf')
+        visualization.show_image_w_colorbar(img_diff_pred, fig_name=fig_name, save_fig=True)
         
-frames_array = np.ones((5, M, N))
-frames_array[0:3] = in_frames[0].cpu().numpy()
-frames_array[3]= out_frames[0,0].cpu().numpy()
-frames_array[4] = frames_pred[0,0].cpu().numpy()
-    
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_nan_sequence.pdf')
-visualization.show_seq_and_pred(frames_array,
-                                time_list=time_list,
-                                prediction_t=FRAME_OUT+1,
-                                fig_name=fig_name, save_fig=True)
+    # LARGEST MOVEMENT left to right --->
 
-if PREDICT_DIFF:
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_nan_sequence_diff_pred.pdf')
-    visualization.show_image_w_colorbar(img_diff_pred, fig_name=fig_name, save_fig=True)
-    
-# LARGEST MOVEMENT left to right --->
+    img0 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_135018.npy'))
+    img1 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_140018.npy'))
+    img2 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_141018.npy'))
+    time_list = ['13:50', '14:00', '14:10']
 
-img0 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_135018.npy'))
-img1 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_140018.npy'))
-img2 = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_141018.npy'))
-time_list = ['13:50', '14:00', '14:10']
+    if FRAME_OUT == 0:
+        output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_142018.npy'))
+        time_list.append('14:20')
+    elif FRAME_OUT == 1:
+        output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_143018.npy'))
+        time_list.append('14:30')
+    elif FRAME_OUT == 2:
+        output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_144018.npy'))      
+        time_list.append('14:40')
+    elif FRAME_OUT == 3:
+        output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_145018.npy'))
+        time_list.append('14:50')
+    elif FRAME_OUT == 4:
+        output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_150018.npy'))
+        time_list.append('15:00')
+    elif FRAME_OUT == 5:
+        output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_151018.npy'))
+        time_list.append('15:10')
+    elif FRAME_OUT ==11:
+        output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_161018.npy'))
+        time_list.append('16:10')
+    elif FRAME_OUT == 17:
+        output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_171017.npy'))
+        time_list.append('17:10')
+    elif FRAME_OUT == 23:
+        output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_181017.npy'))
+        time_list.append('18:10')
+    elif FRAME_OUT == 29:
+        output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_191017.npy'))
+        time_list.append('19:10')
+    else:
+        raise ValueError('Prediction time must be 10,20,30,40,50,60,120,180,240 or 300 minutes.')
+            
+    in_frames= torch.tensor(np.ones((1, 3, M, N))).to(device)
+    out_frames= torch.tensor(np.ones((1, 1, M, N))).to(device)
+    in_frames[0,0] = torch.from_numpy(img0/100).float().to(device)
+    in_frames[0,1] = torch.from_numpy(img1/100).float().to(device)
+    in_frames[0,2] = torch.from_numpy(img2/100).float().to(device)
+    out_frames[0,0] = torch.from_numpy(output/100).float().to(device)
 
-if FRAME_OUT == 0:
-    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_142018.npy'))
-    time_list.append('14:20')
-elif FRAME_OUT == 1:
-    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_143018.npy'))
-    time_list.append('14:30')
-elif FRAME_OUT == 2:
-    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_144018.npy'))      
-    time_list.append('14:40')
-elif FRAME_OUT == 3:
-    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_145018.npy'))
-    time_list.append('14:50')
-elif FRAME_OUT == 4:
-    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_150018.npy'))
-    time_list.append('15:00')
-elif FRAME_OUT == 5:
-    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_151018.npy'))
-    time_list.append('15:10')
-elif FRAME_OUT ==11:
-    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_161018.npy'))
-    time_list.append('16:10')
-elif FRAME_OUT == 17:
-    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_171017.npy'))
-    time_list.append('17:10')
-elif FRAME_OUT == 23:
-    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_181017.npy'))
-    time_list.append('18:10')
-elif FRAME_OUT == 29:
-    output = np.load(os.path.join(PATH_DATA, '2020077/ART_2020077_191017.npy'))
-    time_list.append('19:10')
-else:
-    raise ValueError('Prediction time must be 10,20,30,40,50,60,120,180,240 or 300 minutes.')
+    model.eval()
+    with torch.no_grad():
+        if not PREDICT_DIFF:
+            frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
+            
+        if PREDICT_DIFF:
+            diff_pred = model(in_frames.type(torch.cuda.FloatTensor))
+            img_diff_pred = diff_pred[0, 0, :, :].cpu().numpy()
+            frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1)
         
-in_frames= torch.tensor(np.ones((1, 3, M, N))).to(device)
-out_frames= torch.tensor(np.ones((1, 1, M, N))).to(device)
-in_frames[0,0] = torch.from_numpy(img0/100).float().to(device)
-in_frames[0,1] = torch.from_numpy(img1/100).float().to(device)
-in_frames[0,2] = torch.from_numpy(img2/100).float().to(device)
-out_frames[0,0] = torch.from_numpy(output/100).float().to(device)
-
-model.eval()
-with torch.no_grad():
-    if not PREDICT_DIFF:
-        frames_pred = model(in_frames.type(torch.cuda.FloatTensor))
+    frames_array = np.ones((5, M, N))
+    frames_array[0:3] = in_frames[0].cpu().numpy()
+    frames_array[3]= out_frames[0,0].cpu().numpy()
+    frames_array[4] = frames_pred[0,0].cpu().numpy()
         
+    fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence.pdf')
+    visualization.show_seq_and_pred(frames_array,
+                                    time_list=time_list,
+                                    prediction_t=FRAME_OUT+1,
+                                    fig_name=fig_name, save_fig=True)
+
     if PREDICT_DIFF:
-        diff_pred = model(in_frames.type(torch.cuda.FloatTensor))
-        img_diff_pred = diff_pred[0, 0, :, :].cpu().numpy()
-        frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1)
-    
-frames_array = np.ones((5, M, N))
-frames_array[0:3] = in_frames[0].cpu().numpy()
-frames_array[3]= out_frames[0,0].cpu().numpy()
-frames_array[4] = frames_pred[0,0].cpu().numpy()
-    
-fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence.pdf')
-visualization.show_seq_and_pred(frames_array,
-                                time_list=time_list,
-                                prediction_t=FRAME_OUT+1,
-                                fig_name=fig_name, save_fig=True,
-                                grid=False)
-
-if PREDICT_DIFF:
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence_diff_pred.pdf')
-    visualization.show_image_w_colorbar(img_diff_pred, fig_name=fig_name, save_fig=True)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence_diff_pred.pdf')
+        visualization.show_image_w_colorbar(img_diff_pred, fig_name=fig_name, save_fig=True)
 
 # FIRST LAYER OF FILTERS OUTPUT
 if M < 1000:
