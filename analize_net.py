@@ -30,7 +30,10 @@ elif REGION == 'R3':
 PREDICT_HORIZON = '60min'
 FRAME_OUT = 5  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
 
-evaluate_in_test = True
+evaluate_test = True
+
+MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/' + REGION + '/' + PREDICT_HORIZON + \
+    '/60min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_52_12-02-2022_21:30_BEST_FINAL.pt' 
 
 MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/' + REGION + '/' + PREDICT_HORIZON + \
     '/60min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_52_12-02-2022_21:30_BEST_FINAL.pt' 
@@ -46,7 +49,6 @@ else:
     PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
     SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
     SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON 
-
 OUTPUT_ACTIVATION = 'sigmoid'
 CROP_SIZE = 50
 
@@ -59,7 +61,8 @@ model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation=O
 ###########################
 
 # LATEX CONFIG
-fontSize = 22 # 22 generates the font more like the latex text
+fontsize = 22 # 22 generates the font more like the latex text
+fontSize = 22
 save_fig = True
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
@@ -151,16 +154,12 @@ MAE_error_image = np.zeros((M,N))
 model.eval()
 with torch.no_grad():
     for val_batch_idx, (in_frames, out_frames, in_time, out_time) in enumerate(tqdm(val_loader)):
-        
         in_frames = in_frames.to(device=device)
         out_frames = out_frames.to(device=device)
-               
-        day, hour, minute  = int(out_time[0, 0, 0]), int(out_time[0, 0, 1]), int(out_time[0, 0, 2]) 
-        if day == 18:
-          break
+        day, hour, minute  = int(out_time[0, 0, 0]), int(out_time[0, 0, 1]), int(out_time[0, 0, 2])
         if not PREDICT_DIFF:
             frames_pred = model(in_frames)
-        
+
         if PREDICT_DIFF:
             diff_pred = model(in_frames)        
             frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1)  
@@ -454,7 +453,7 @@ fig.set_size_inches(12, 6)
 ax = fig.add_subplot(1, 1, 1)
 ax.plot(mean_MAE, '-o', label='Full window')
 ax.plot(mean_MAE_crop, '-o', label='Crop')
-plt.legend(loc='upper right')
+plt.legend(loc='upper right', fontsize=fontsize)
 plt.xticks(range(len(hour_list)), hour_list)
 plt.gcf().autofmt_xdate()
 ax.set_xlabel('Time of day')
@@ -491,7 +490,7 @@ fig.set_size_inches(12, 6)
 ax = fig.add_subplot(1, 1, 1)
 ax.plot(mean_SSIM, '-o', label='Full Window')
 ax.plot(mean_SSIM_crop, '-o', label='Crop')
-plt.legend(loc='upper right')
+plt.legend(loc='upper right', fontsize=fontsize)
 plt.xticks(range(len(hour_list)), hour_list)
 plt.gcf().autofmt_xdate()
 ax.set_xlabel('Time of day')
