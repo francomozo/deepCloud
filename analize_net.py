@@ -27,13 +27,15 @@ elif REGION == 'URU':
 elif REGION == 'R3':
     dataset = 'region3'
 
-PREDICT_HORIZON = '60min'
-FRAME_OUT = 5  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
+PREDICT_HORIZON = '180min'
+FRAME_OUT = 17  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
 
 evaluate_test = True
 
+# MODEL_PATH = 'checkpoints/' + REGION + '/' + PREDICT_HORIZON + \
+#     '/UNET/60min_UNET__region3_mae_filters16_sigmoid_diffFalse_retrainTrue_80_04-02-2022_BEST_EXPERIMENT.pt' 
 MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/' + REGION + '/' + PREDICT_HORIZON + \
-    '/60min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_52_12-02-2022_21:30_BEST_FINAL.pt' 
+    '/180min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_20_12-02-2022_07:46_BEST_FINAL.pt' 
 
 if evaluate_test:
     CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/test_cosangs_region3.csv'
@@ -43,6 +45,7 @@ if evaluate_test:
 
 else:
     CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv'
+    # CSV_PATH = None
     PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
     SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
     SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON 
@@ -53,8 +56,8 @@ CROP_SIZE = 50
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print('using device:', device)
 
+#model = UNet(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation=OUTPUT_ACTIVATION, bias=False, filters=16).to(device)
 model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation=OUTPUT_ACTIVATION, bias=False, filters=16).to(device)
-#model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation='sigmoid', bias=False, filters=32).to(device)
 
 ###########################
 
