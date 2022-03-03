@@ -119,7 +119,7 @@ for metric in metrics:
                                         window_pad_height=params['window_pad_height'],
                                         window_pad_width=params['window_pad_width'])
     error_mean = np.mean(error_array, axis=0)
-    error_mean_all_horizons.append(error_mean)
+    error_mean_all_horizons.append(error_mean[0])
   print(f'Error_mean: {error_mean_all_horizons}')
   print(f'Error_mean_mean: {np.mean(error_mean_all_horizons)}')
   errors_metric["unet_direct"] = error_mean_all_horizons
