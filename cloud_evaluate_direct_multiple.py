@@ -63,7 +63,7 @@ start_horizon = params['start_horizon']
 horizon_step = params['horizon_step']
 predict_length = params['predict_length']
 if horizon_step == 0:
-  out_channels = [start_horizon]
+  out_channels = start_horizon
 else:
   out_channels = list(range(start_horizon, start_horizon+horizon_step*predict_length, horizon_step))
 print("out_channels:", out_channels)
@@ -100,6 +100,7 @@ for metric in metrics:
   error_mean_all_horizons = []
   for i in range(len(models)):
     #DataLoaders
+    out_channel = out_channels[i] if type(out_channels)==list else out_channels
     val_dataset_Unet = MontevideoFoldersDataset(path = PATH_DATA, 
                                         in_channel=3, 
                                         out_channel=out_channels[i],
