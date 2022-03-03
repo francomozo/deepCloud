@@ -103,7 +103,7 @@ for metric in metrics:
     out_channel = out_channels[i] if type(out_channels)==list else out_channels
     val_dataset_Unet = MontevideoFoldersDataset(path = PATH_DATA, 
                                         in_channel=3, 
-                                        out_channel=out_channels[i],
+                                        out_channel=out_channel,
                                         min_time_diff=5, max_time_diff=15,
                                         transform=normalize, 
                                         csv_path=csv_path_unet,
