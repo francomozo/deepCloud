@@ -62,14 +62,17 @@ metrics = [each_string.upper() for each_string in metrics]
 start_horizon = params['start_horizon']
 horizon_step = params['horizon_step']
 predict_length = params['predict_length']
-out_channels = list(range(start_horizon, start_horizon+horizon_step*predict_length, horizon_step))
+if horizon_step == 0:
+  out_channels = [start_horizon]
+else:
+  out_channels = list(range(start_horizon, start_horizon+horizon_step*predict_length, horizon_step))
 print("out_channels:", out_channels)
 
 #Definition of models
 models = []
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-for i in range(predict_length):
-  model_path = os.path.join(params["model_path"], params["model_names"][i])
+for model_name in params["model_names"]:
+  model_path = os.path.join(params["model_path"], model_name)
   if params['unet_type'] == 1:
     model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
   elif params['unet_type'] == 2:
