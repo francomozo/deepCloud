@@ -15,7 +15,7 @@ from src.dl_models.unet import UNet, UNet2
 from src.dl_models.unet_advanced import R2U_Net, AttU_Net, R2AttU_Net, NestedUNet
 import scipy.stats as st
 from src.lib.latex_options import Colors, Linestyles
-
+from src.lib.utils import get_model_name
 
 ## CONFIGURATION #########
 
@@ -29,16 +29,13 @@ elif REGION == 'R3':
 
 PREDICT_HORIZON = '180min'
 FRAME_OUT = 17  # 0->10min, 1->20min, 2->30min... [0,5] U [11] U [17] U [23] 
+OUTPUT_ACTIVATION = 'sigmoid'
+PREDICT_DIFF = False
 
 evaluate_test = True
 
-# MODEL_PATH = 'checkpoints/' + REGION + '/' + PREDICT_HORIZON + \
-#     '/UNET/60min_UNET__region3_mae_filters16_sigmoid_diffFalse_retrainTrue_80_04-02-2022_BEST_EXPERIMENT.pt' 
-MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/' + REGION + '/' + PREDICT_HORIZON + \
-    '/180min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_20_12-02-2022_07:46_BEST_FINAL.pt' 
-
-MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/' + REGION + '/' + PREDICT_HORIZON + \
-    '/60min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_52_12-02-2022_21:30_BEST_FINAL.pt' 
+MODEL_NAME = get_model_name(predict_horizon=PREDICT_HORIZON, predict_diff=PREDICT_DIFF)
+MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/' + REGION + '/' + PREDICT_HORIZON +  '/' + MODEL_NAME 
 
 if evaluate_test:
     CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/test_cosangs_region3.csv'
@@ -52,7 +49,7 @@ else:
     PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
     SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
     SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON 
-OUTPUT_ACTIVATION = 'sigmoid'
+
 CROP_SIZE = 50
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -70,11 +67,6 @@ save_fig = True
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
-if OUTPUT_ACTIVATION == 'tanh':
-    PREDICT_DIFF = True
-else:
-    PREDICT_DIFF = False
-
 try:
     os.mkdir(SAVE_IMAGES_PATH)
 except:
@@ -89,7 +81,7 @@ except:
 
 normalize = preprocessing.normalize_pixels(mean0=False) #values between [0,1]
 
-val_mvd = MontevideoFoldersDataset_w_time(
+val_dataset = MontevideoFoldersDataset_w_time(
                                             path=PATH_DATA,
                                             in_channel=3,
                                             out_channel=FRAME_OUT+1,
@@ -100,7 +92,7 @@ val_mvd = MontevideoFoldersDataset_w_time(
                                             output_last=True
                                             )
 
-val_loader = DataLoader(val_mvd, batch_size=1, shuffle=False)
+val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
 in_frames, out_frames, _, _ = next(iter(val_loader))
 M, N = out_frames[0,0].shape[0], out_frames[0,0].shape[1] 
 
@@ -111,24 +103,29 @@ gt_std = []
 pred_mean = []
 pred_std = []
 
+# MAE
+MAE = nn.L1Loss()
 worst_MAE_error = 0
 worst_MAE_time = ''
 best_MAE_error = 1
 best_MAE_time = ''
 best_MAE_images = np.zeros((5, M, N))
 worst_MAE_images = np.zeros((5, M, N))
-MAE = nn.L1Loss()
 MAE_per_hour = {}
-MAE_per_hour_crop = {}
+# MAE PORCENTUAL
+MAE_pct_per_hour = {}
 
-worst_MSE_error = 0
-worst_MSE_time = ''
-best_MSE_error = 1
-best_MSE_time = ''    
+# RMSE
 MSE = nn.MSELoss()
-best_MSE_images = np.zeros((5, M, N))
-worst_MSE_images = np.zeros((5, M, N))
-MSE_per_hour = {}
+worst_RMSE_error = 0
+worst_RMSE_time = ''
+best_RMSE_error = 1
+best_RMSE_time = ''    
+best_RMSE_images = np.zeros((5, M, N))
+worst_RMSE_images = np.zeros((5, M, N))
+RMSE_per_hour = {}
+# RMSE PORCENTUAL
+RMSE_pct_per_hour = {}
 
 worst_PSNR_error = 100
 worst_PSNR_time = ''
@@ -152,7 +149,11 @@ worst_SSIM_images = np.zeros((5, M, N))
 SSIM_per_hour = {}
 SSIM_per_hour_crop = {}
 
+mean_image = np.zeros((M,N))
 MAE_error_image = np.zeros((M,N))
+MAE_pct_error_image = np.zeros((M,N))
+RMSE_pct_error_image = np.zeros((M,N))
+RMSE_error_image = np.zeros((M,N))
 
 model.eval()
 with torch.no_grad():
@@ -160,38 +161,44 @@ with torch.no_grad():
         in_frames = in_frames.to(device=device)
         out_frames = out_frames.to(device=device)
         day, hour, minute  = int(out_time[0, 0, 0]), int(out_time[0, 0, 1]), int(out_time[0, 0, 2])
+
+        mean_image += out_frames[0,0].cpu().numpy()
+
         if not PREDICT_DIFF:
             frames_pred = model(in_frames)
 
         if PREDICT_DIFF:
             diff_pred = model(in_frames)        
             frames_pred = torch.add(diff_pred[:,0], in_frames[:,2]).unsqueeze(1)  
-            frames_pred = torch.clamp(frames_pred, min=0, max=1)     
+            frames_pred = torch.clamp(frames_pred, min=0, max=1)  
 
         # MAE
-        MAE_loss = MAE(frames_pred, out_frames)
-        MAE_error_image += torch.abs(torch.subtract(out_frames[0,0], frames_pred[0,0])).cpu().numpy()
+        MAE_loss = (MAE(frames_pred, out_frames).detach().item() * 100)
+        MAE_pct_loss = (MAE_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
+
+        MAE_error_image += torch.abs(torch.multiply(torch.subtract(out_frames[0,0], frames_pred[0,0]), 100)).cpu().numpy()
+        
         MAE_loss_crop = MAE(frames_pred[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE], out_frames[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE])
         if minute < 30:
             if (hour, 0) in MAE_per_hour.keys():
-                MAE_per_hour[(hour, 0)].append(MAE_loss.detach().item())
-                MAE_per_hour_crop[(hour, 0)].append(MAE_loss_crop.detach().item())
+                MAE_per_hour[(hour, 0)].append(MAE_loss)
+                MAE_per_hour_crop[(hour, 0)].append(MAE_loss_crop)
+                MAE_pct_per_hour[(hour, 0)].append(MAE_pct_loss)
             else:
-                MAE_per_hour[(hour,0)] = []
-                MAE_per_hour[(hour,0)].append(MAE_loss.detach().item())
-                MAE_per_hour_crop[(hour,0)] = []
-                MAE_per_hour_crop[(hour,0)].append(MAE_loss_crop.detach().item())
+                MAE_per_hour[(hour, 0)] = [MAE_loss]
+                MAE_pct_per_hour[(hour, 0)] = [MAE_pct_loss]
+                MAE_per_hour_crop[(hour, 0)] = [MAE_loss_crop]
         else:
-            if (hour,30) in MAE_per_hour.keys():
-                MAE_per_hour[(hour, 30)].append(MAE_loss.detach().item())
-                MAE_per_hour_crop[(hour, 30)].append(MAE_loss_crop.detach().item())
+            if (hour, 30) in MAE_per_hour.keys():
+                MAE_per_hour[(hour, 30)].append(MAE_loss)
+                MAE_pct_per_hour[(hour, 30)].append(MAE_pct_loss)
+                MAE_per_hour_crop[(hour, 30)].append(MAE_loss_crop)
             else:
-                MAE_per_hour[(hour, 30)] = []
-                MAE_per_hour[(hour, 30)].append(MAE_loss.detach().item())
-                MAE_per_hour_crop[(hour, 30)] = []
-                MAE_per_hour_crop[(hour, 30)].append(MAE_loss_crop.detach().item())
-        if MAE_loss.detach().item() > worst_MAE_error:
-            worst_MAE_error = MAE_loss.detach().item()
+                MAE_per_hour[(hour, 30)] = [MAE_loss]
+                MAE_pct_per_hour[(hour, 30)] = [MAE_pct_loss]
+                MAE_per_hour_crop[(hour, 30)] = [MAE_loss_crop]
+        if MAE_loss > worst_MAE_error:
+            worst_MAE_error = MAE_loss
             
             worst_MAE_time = out_time[0, 0]
             worst_MAE_input_time = in_time[0].numpy()
@@ -207,8 +214,8 @@ with torch.no_grad():
             worst_MAE_images[3] = out_frames[0, 0].cpu().numpy()
             worst_MAE_images[4] = frames_pred[0, 0].cpu().numpy()
             
-        if MAE_loss.detach().item() < best_MAE_error:
-            best_MAE_error = MAE_loss.item()
+        if MAE_loss < best_MAE_error:
+            best_MAE_error = MAE_loss
             best_MAE_input_time = in_time[0].numpy()
             best_MAE_time = out_time[0, 0]
             
@@ -220,63 +227,69 @@ with torch.no_grad():
             ]
             
             best_MAE_images[0:3] = in_frames[0].cpu().numpy()
-            best_MAE_images[3] = out_frames[0,0].cpu().numpy()
-            best_MAE_images[4] = frames_pred[0,0].cpu().numpy()
+            best_MAE_images[3] = out_frames[0, 0].cpu().numpy()
+            best_MAE_images[4] = frames_pred[0, 0].cpu().numpy()
         
-        # MSE
-        MSE_loss = MSE(frames_pred, out_frames)
+        # RMSE
+        RMSE_loss = torch.sqrt(MSE(frames_pred, out_frames)).detach().item() * 100
+        RMSE_pct_loss = (RMSE_loss / (torch.mean(out_frames[0, 0]).cpu().numpy() * 100)) * 100
+        
+        RMSE_error_image += torch.square(torch.multiply(torch.subtract(out_frames[0,0], frames_pred[0,0]), 100)).cpu().numpy()
+    
         if minute<30:
-            if (hour,0) in MSE_per_hour.keys():
-                MSE_per_hour[(hour,0)].append(MSE_loss.detach().item())
+            if (hour, 0) in RMSE_per_hour.keys():
+                RMSE_per_hour[(hour, 0)].append(RMSE_loss)
+                RMSE_pct_per_hour[(hour, 0)].append(RMSE_pct_loss)
             else:
-                MSE_per_hour[(hour,0)] = []
-                MSE_per_hour[(hour,0)].append(MSE_loss.detach().item())
+                RMSE_per_hour[(hour, 0)] = [RMSE_loss]
+                RMSE_pct_per_hour[(hour, 0)] = [RMSE_pct_loss]
         else:
-            if (hour,30) in MSE_per_hour.keys():
-                MSE_per_hour[(hour,30)].append(MSE_loss.detach().item())
+            if (hour, 30) in RMSE_per_hour.keys():
+                RMSE_per_hour[(hour, 30)].append(RMSE_loss)
+                RMSE_pct_per_hour[(hour, 30)].append(RMSE_pct_loss)
             else:
-                MSE_per_hour[(hour,30)] = []
-                MSE_per_hour[(hour,30)].append(MSE_loss.detach().item())
+                RMSE_per_hour[(hour, 30)] = [RMSE_loss]
+                RMSE_pct_per_hour[(hour, 30)] = [RMSE_pct_loss]
                 
-        if MSE_loss.detach().item() > worst_MSE_error:
-            worst_MSE_error = MSE_loss.detach().item()
-            worst_MSE_input_time = in_time[0].numpy()
-            worst_MSE_time = out_time[0, 0]
+        if RMSE_loss > worst_RMSE_error:
+            worst_RMSE_error = RMSE_loss
+            worst_RMSE_input_time = in_time[0].numpy()
+            worst_RMSE_time = out_time[0, 0]
             
-            worst_MSE_time_list = [
-                str(int((worst_MSE_input_time[0][1]))).zfill(2) + ':' + str(int((worst_MSE_input_time[0][2]))).zfill(2),
-                str(int((worst_MSE_input_time[1][1]))).zfill(2) + ':' + str(int((worst_MSE_input_time[1][2]))).zfill(2),
-                str(int((worst_MSE_input_time[2][1]))).zfill(2) + ':' + str(int((worst_MSE_input_time[2][2]))).zfill(2),
-                str(int(worst_MSE_time[1].numpy())).zfill(2) + ':' + str(int(worst_MSE_time[2].numpy())).zfill(2)
+            worst_RMSE_time_list = [
+                str(int((worst_RMSE_input_time[0][1]))).zfill(2) + ':' + str(int((worst_RMSE_input_time[0][2]))).zfill(2),
+                str(int((worst_RMSE_input_time[1][1]))).zfill(2) + ':' + str(int((worst_RMSE_input_time[1][2]))).zfill(2),
+                str(int((worst_RMSE_input_time[2][1]))).zfill(2) + ':' + str(int((worst_RMSE_input_time[2][2]))).zfill(2),
+                str(int(worst_RMSE_time[1].numpy())).zfill(2) + ':' + str(int(worst_RMSE_time[2].numpy())).zfill(2)
             ] 
             
-            worst_MSE_images[0:3] = in_frames[0].cpu().numpy()
-            worst_MSE_images[3] = out_frames[0, 0].cpu().numpy()
-            worst_MSE_images[4] = frames_pred[0, 0].cpu().numpy()
-        if MSE_loss.detach().item() < best_MSE_error:
-            best_MSE_error = MSE_loss.detach().item()
-            best_MSE_input_time = in_time[0].numpy()
-            best_MSE_time = out_time[0, 0]
+            worst_RMSE_images[0:3] = in_frames[0].cpu().numpy()
+            worst_RMSE_images[3] = out_frames[0, 0].cpu().numpy()
+            worst_RMSE_images[4] = frames_pred[0, 0].cpu().numpy()
+        if RMSE_loss < best_RMSE_error:
+            best_RMSE_error = RMSE_loss
+            best_RMSE_input_time = in_time[0].numpy()
+            best_RMSE_time = out_time[0, 0]
             
-            best_MSE_time_list = [
-                str(int((best_MSE_input_time[0][1]))).zfill(2) + ':' + str(int((best_MSE_input_time[0][2]))).zfill(2),
-                str(int((best_MSE_input_time[1][1]))).zfill(2) + ':' + str(int((best_MSE_input_time[1][2]))).zfill(2),
-                str(int((best_MSE_input_time[2][1]))).zfill(2) + ':' + str(int((best_MSE_input_time[2][2]))).zfill(2),
-                str(int(best_MSE_time[1].numpy())).zfill(2) + ':' + str(int(best_MSE_time[2].numpy())).zfill(2)
+            best_RMSE_time_list = [
+                str(int((best_RMSE_input_time[0][1]))).zfill(2) + ':' + str(int((best_RMSE_input_time[0][2]))).zfill(2),
+                str(int((best_RMSE_input_time[1][1]))).zfill(2) + ':' + str(int((best_RMSE_input_time[1][2]))).zfill(2),
+                str(int((best_RMSE_input_time[2][1]))).zfill(2) + ':' + str(int((best_RMSE_input_time[2][2]))).zfill(2),
+                str(int(best_RMSE_time[1].numpy())).zfill(2) + ':' + str(int(best_RMSE_time[2].numpy())).zfill(2)
             ]
             
-            best_MSE_images[0:3] = in_frames[0].cpu().numpy()
-            best_MSE_images[3] = out_frames[0,0].cpu().numpy()
-            best_MSE_images[4] = frames_pred[0, 0].cpu().numpy()
+            best_RMSE_images[0:3] = in_frames[0].cpu().numpy()
+            best_RMSE_images[3] = out_frames[0,0].cpu().numpy()
+            best_RMSE_images[4] = frames_pred[0, 0].cpu().numpy()
             
         # PSNR
         if minute < 30:
             minute_key = 0
-            if (MSE_per_hour[(hour,0)][-1] != 0):
+            if (RMSE_per_hour[(hour,0)][-1] != 0):
                 if (hour,0) in PSNR_per_hour.keys():
-                    PSNR_per_hour[(hour,0)].append(10* np.log10(1**2/MSE_per_hour[(hour,0)][-1]))
+                    PSNR_per_hour[(hour,0)].append(10* np.log10(1**2/RMSE_per_hour[(hour,0)][-1]))
                 else:
-                    PSNR_per_hour[(hour,0)] = [10* np.log10(1**2/MSE_per_hour[(hour,0)][-1])]
+                    PSNR_per_hour[(hour,0)] = [10* np.log10(1**2/RMSE_per_hour[(hour,0)][-1])]
             else:
                 if (hour,0) in PSNR_per_hour.keys():
                     PSNR_per_hour[(hour,0)].append(20*np.log10(1))
@@ -284,11 +297,11 @@ with torch.no_grad():
                     PSNR_per_hour[(hour,0)] = [20*np.log10(1)]
         else:
             minute_key = 30
-            if (MSE_per_hour[(hour,30)][-1] != 0):
+            if (RMSE_per_hour[(hour,30)][-1] != 0):
                 if (hour,30) in PSNR_per_hour.keys():
-                    PSNR_per_hour[(hour,30)].append(10* np.log10(1**2/MSE_per_hour[(hour,30)][-1]))
+                    PSNR_per_hour[(hour,30)].append(10* np.log10(1**2/RMSE_per_hour[(hour,30)][-1]))
                 else:
-                    PSNR_per_hour[(hour,30)] = [10* np.log10(1**2/MSE_per_hour[(hour,30)][-1])]
+                    PSNR_per_hour[(hour,30)] = [10* np.log10(1**2/RMSE_per_hour[(hour,30)][-1])]
             else:
                 if (hour,30) in PSNR_per_hour.keys():
                     PSNR_per_hour[(hour,30)].append(20*np.log10(1))
@@ -386,21 +399,44 @@ with torch.no_grad():
         pred_mean.append(torch.mean(frames_pred[0,0]).cpu().numpy())
         pred_std.append(torch.std(frames_pred[0,0]).cpu().numpy())
 
-MAE_error_image = MAE_error_image/len(val_mvd)
+
+mean_image = (mean_image / len(val_dataset)) * 100  # contains the mean value of each pixel independently 
+
+MAE_error_image = (MAE_error_image / len(val_dataset))
+
+MAE_pct_error_image = (MAE_error_image / mean_image) * 100
+
+RMSE_pct_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset)) / mean_image) * 100
+
+
 fig_name = os.path.join(SAVE_IMAGES_PATH,
                         'MAE_error_image.pdf')
 visualization.show_image_w_colorbar(image=MAE_error_image, title=None,
                                     fig_name=fig_name, save_fig=True)
 
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'MAE_pct_error_image.pdf')
+visualization.show_image_w_colorbar(image=MAE_pct_error_image, title=None,
+                                    fig_name=fig_name, save_fig=True)
+
+fig_name = os.path.join(SAVE_IMAGES_PATH,
+                        'RMSE_pct_error_image.pdf')
+visualization.show_image_w_colorbar(image=RMSE_pct_error_image, title=None,
+                                    fig_name=fig_name, save_fig=True)
+
 mean_MAE = []
+mean_MAE_pct = []
 mean_MAE_crop = []
-mean_MSE = []
+mean_RMSE = []
+mean_RMSE_pct = []
 mean_PSNR = []
 mean_SSIM = []
 mean_SSIM_crop = []
 std_MAE = []
+std_MAE_pct = []
 std_MAE_crop = []
-std_MSE = []
+std_RMSE = []
+std_RMSE_pct = []
 std_PSNR = []
 std_SSIM = []
 std_SSIM_crop = []
@@ -412,10 +448,14 @@ for key in sorted_keys:
     hour_list.append(str(key[0]).zfill(2) + ':' + str(key[1]).zfill(2))
     mean_MAE.append(np.mean(MAE_per_hour[key]))
     std_MAE.append(np.std(MAE_per_hour[key]))
+    mean_MAE_pct.append(np.mean(MAE_pct_per_hour[key]))
+    std_MAE_pct.append(np.std(MAE_pct_per_hour[key]))
     mean_MAE_crop.append(np.mean(MAE_per_hour_crop[key]))
     std_MAE_crop.append(np.std(MAE_per_hour_crop[key]))
-    mean_MSE.append(np.mean(MSE_per_hour[key]))
-    std_MSE.append(np.std(MSE_per_hour[key]))
+    mean_RMSE.append(np.mean(RMSE_per_hour[key]))
+    std_RMSE.append(np.std(RMSE_per_hour[key]))
+    mean_RMSE_pct.append(np.mean(RMSE_pct_per_hour[key]))
+    std_RMSE_pct.append(np.std(RMSE_pct_per_hour[key]))
     mean_PSNR.append(np.mean(PSNR_per_hour[key]))
     std_PSNR.append(np.std(PSNR_per_hour[key]))
     mean_SSIM.append(np.mean(SSIM_per_hour[key]))
@@ -433,17 +473,21 @@ if SAVE_VALUES_PATH:
         'hour_list': hour_list,
         'mean_MAE': mean_MAE,
         'std_MAE': std_MAE,
+        'mean_MAE_pct': mean_MAE_pct,
+        'std_MAE_pct': std_MAE_pct,
         'mean_MAE_crop': mean_MAE_crop,
         'std_MAE_crop': std_MAE_crop,
         'mean_SSIM': mean_SSIM,
         'std_SSIM': std_SSIM,
         'mean_SSIM_crop': mean_SSIM_crop,
         'std_SSIM_crop': std_SSIM_crop,
-        'mean_MSE': mean_MSE,
-        'std_MSE': std_MSE,
+        'mean_RMSE': mean_RMSE,
+        'std_RMSE': std_RMSE,
+        'mean_RMSE_pct': mean_RMSE_pct,
+        'std_RMSE_pct': std_RMSE_pct,
         'mean_PSNR': mean_PSNR,
         'std_PSNR': std_PSNR
-        }                                                                                                                      
+    }                                                                                                                      
 
     utils.save_pickle_dict(path=SAVE_VALUES_PATH, name=MODEL_PATH.split('/')[-1][:-9], dict_=dict_values) 
 
@@ -474,7 +518,7 @@ plt.rc('font', family='serif')
 fig = plt.figure()
 fig.set_size_inches(12, 6)
 ax = fig.add_subplot(1, 1, 1)
-ax.plot(mean_MSE, '-o')
+ax.plot(mean_RMSE, '-o')
 plt.xticks(range(len(hour_list)), hour_list)
 plt.gcf().autofmt_xdate()
 ax.set_xlabel('Time of day')
@@ -485,42 +529,6 @@ if SAVE_IMAGES_PATH:
     fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'MSE_p_hour.pdf'))
 plt.show()
 plt.close()
-
-plt.rc('text', usetex=True)
-plt.rc('font', family='serif')
-fig = plt.figure()
-fig.set_size_inches(12, 6)
-ax = fig.add_subplot(1, 1, 1)
-ax.plot(mean_SSIM, '-o', label='Full Window')
-ax.plot(mean_SSIM_crop, '-o', label='Crop')
-plt.legend(loc='upper right', fontsize=fontsize)
-plt.xticks(range(len(hour_list)), hour_list)
-plt.gcf().autofmt_xdate()
-ax.set_xlabel('Time of day')
-ax.set_ylabel('SSIM')
-plt.grid()
-if SAVE_IMAGES_PATH:
-    fig.tight_layout() 
-    fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'SSIM_p_hour.pdf'))
-plt.show()
-plt.close()
-
-plt.rc('text', usetex=True)
-plt.rc('font', family='serif')
-fig = plt.figure()
-fig.set_size_inches(12, 6)
-ax = fig.add_subplot(1, 1, 1)
-ax.plot(mean_PSNR, '-o')
-plt.xticks(range(len(hour_list)), hour_list)
-plt.gcf().autofmt_xdate()
-ax.set_xlabel('Time of day')
-ax.set_ylabel('PSNR')
-ax.grid()
-if SAVE_IMAGES_PATH:
-    fig.tight_layout() 
-    fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'PSNR_p_hour.pdf'))
-plt.show()
-
 
 #SCATTER PLOT
 print('Scatter Plot')
@@ -714,20 +722,20 @@ visualization.show_seq_and_pred(worst_MAE_images,
 plt.close()
 
 fig_name = os.path.join(SAVE_IMAGES_PATH,
-                        'MSE best prediction, day:' + str(int(best_MSE_time[0].numpy())) + \
-                        'hour:'+ str(int(best_MSE_time[1].numpy())).zfill(2) + str(int(best_MSE_time[2].numpy())).zfill(2) + '.pdf')
-visualization.show_seq_and_pred(best_MSE_images,
-                                time_list=best_MSE_time_list,
+                        'MSE best prediction, day:' + str(int(best_RMSE_time[0].numpy())) + \
+                        'hour:'+ str(int(best_RMSE_time[1].numpy())).zfill(2) + str(int(best_RMSE_time[2].numpy())).zfill(2) + '.pdf')
+visualization.show_seq_and_pred(best_RMSE_images,
+                                time_list=best_RMSE_time_list,
                                 prediction_t=FRAME_OUT+1,
                                 fig_name=fig_name,
                                 save_fig=True)
 plt.close()
 
 fig_name = os.path.join(SAVE_IMAGES_PATH,
-                        'MSE worst prediction, day:' + str(int(worst_MSE_time[0].numpy())) + \
-                        'hour:'+ str(int(worst_MSE_time[1].numpy())).zfill(2) + str(int(worst_MSE_time[2].numpy())).zfill(2) + '.pdf')
-visualization.show_seq_and_pred(worst_MSE_images,
-                                time_list=worst_MSE_time_list,
+                        'MSE worst prediction, day:' + str(int(worst_RMSE_time[0].numpy())) + \
+                        'hour:'+ str(int(worst_RMSE_time[1].numpy())).zfill(2) + str(int(worst_RMSE_time[2].numpy())).zfill(2) + '.pdf')
+visualization.show_seq_and_pred(worst_RMSE_images,
+                                time_list=worst_RMSE_time_list,
                                 prediction_t=FRAME_OUT+1,
                                 fig_name=fig_name,
                                 save_fig=True)
