@@ -79,7 +79,7 @@ for model_name in params["model_names"]:
   model_path = os.path.join(params["model_path"], model_name)
   if params['input_cmv']:
     model_Unet = UNet2(n_channels=4, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
-  if params['unet_type'] == 1:
+  elif params['unet_type'] == 1:
     model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
   elif params['unet_type'] == 2:
     model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
