@@ -21,7 +21,7 @@ from src.data import MontevideoFoldersDataset
 
 def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100, 
                    window_pad=0, window_pad_height=0, window_pad_width=0,
-                   dynamic_window=False, evaluate_day_pixels=True, error_percentage=False,
+                   dynamic_window=False, evaluate_day_pixels=False, error_percentage=False,
                    input=None):
     """
     Evaluates the precision of the prediction compared to the gorund truth using different metrics
