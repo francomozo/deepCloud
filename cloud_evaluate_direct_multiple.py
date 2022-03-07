@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from src import data, evaluate, model, preprocessing, visualization
 from src.lib import utils
-from src.data import MontevideoFoldersDataset
+from src.data import MontevideoFoldersDataset, MontevideoFoldersDataset_w_CMV
 from src.dl_models.unet import UNet, UNet2
 
 
@@ -46,6 +46,10 @@ ap.add_argument("--bias", default=False, type=bool,
                 help="bias of unet. Defaults to False.")
 ap.add_argument("--filters", default=64, type=int,
                 help="Amount of filters of unet. Defaults to 64.")
+ap.add_argument("--predict-diff", default=False, type=bool,
+                help="Defaults to False.")
+ap.add_argument("--input-cmv", default=False, type=bool,
+                help="Defaults to False.")
 
 ap.add_argument("--window-pad", default=0, type=int,
                 help="Size of padding for evaluation, eval window is [w_p//2 : M-w_p//2, w_p//2 : N-w_p//2]. Defaults to 0.")
@@ -70,7 +74,9 @@ models = []
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 for i in range(predict_length):
   model_path = os.path.join(params["model_path"], params["model_names"][i])
-  if params['unet_type'] == 1:
+  if params['input_cmv']:
+    model_Unet = UNet2(n_channels=4, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
+  elif params['unet_type'] == 1:
     model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
   elif params['unet_type'] == 2:
     model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
@@ -97,7 +103,17 @@ for metric in metrics:
   error_mean_all_horizons = []
   for i in range(len(models)):
     #DataLoaders
-    val_dataset_Unet = MontevideoFoldersDataset(path = PATH_DATA, 
+    if params['input_cmv']:
+        val_dataset_Unet = MontevideoFoldersDataset_w_CMV(
+                       path=PATH_DATA,  
+                       cmv_path=f"/clusteruy/home03/DeepCloud/deepCloud/data/cmv/cmv_mvd_{out_channels[i]}0min/test/",
+                       in_channel=3, out_channel=out_channels[i],
+                       min_time_diff=5, max_time_diff=15,
+                       csv_path=csv_path_unet,
+                       transform = normalize, output_last=True,
+                       day_pct=1)
+    else:
+        val_dataset_Unet = MontevideoFoldersDataset(path = PATH_DATA, 
                                         in_channel=3, 
                                         out_channel=out_channels[i],
                                         min_time_diff=5, max_time_diff=15,
@@ -114,7 +130,8 @@ for metric in metrics:
                                         error_percentage=error_percentage,
                                         window_pad=params['window_pad'],
                                         window_pad_height=params['window_pad_height'],
-                                        window_pad_width=params['window_pad_width'])
+                                        window_pad_width=params['window_pad_width'],
+                                        predict_diff=params['predict_diff'])
     error_mean = np.mean(error_array, axis=0)
     error_mean_all_horizons.append(error_mean)
   print(f'Error_mean: {error_mean_all_horizons}')
