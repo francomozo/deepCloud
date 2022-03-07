@@ -66,17 +66,20 @@ metrics = [each_string.upper() for each_string in metrics]
 start_horizon = params['start_horizon']
 horizon_step = params['horizon_step']
 predict_length = params['predict_length']
-out_channels = list(range(start_horizon, start_horizon+horizon_step*predict_length, horizon_step))
+if horizon_step == 0:
+  out_channels = start_horizon
+else:
+  out_channels = list(range(start_horizon, start_horizon+horizon_step*predict_length, horizon_step))
 print("out_channels:", out_channels)
 
 #Definition of models
 models = []
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-for i in range(predict_length):
-  model_path = os.path.join(params["model_path"], params["model_names"][i])
+for model_name in params["model_names"]:
+  model_path = os.path.join(params["model_path"], model_name)
   if params['input_cmv']:
     model_Unet = UNet2(n_channels=4, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
-  elif params['unet_type'] == 1:
+  if params['unet_type'] == 1:
     model_Unet = UNet(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
   elif params['unet_type'] == 2:
     model_Unet = UNet2(n_channels=3, n_classes=1, bilinear=True, output_activation=params["output_activation"], bias=params["bias"], filters=params["filters"]).to(device)
@@ -103,23 +106,25 @@ for metric in metrics:
   error_mean_all_horizons = []
   for i in range(len(models)):
     #DataLoaders
+    out_channel = out_channels[i] if type(out_channels)==list else out_channels
     if params['input_cmv']:
         val_dataset_Unet = MontevideoFoldersDataset_w_CMV(
-                       path=PATH_DATA,  
-                       cmv_path=f"/clusteruy/home03/DeepCloud/deepCloud/data/cmv/cmv_mvd_{out_channels[i]}0min/test/",
-                       in_channel=3, out_channel=out_channels[i],
-                       min_time_diff=5, max_time_diff=15,
-                       csv_path=csv_path_unet,
-                       transform = normalize, output_last=True,
-                       day_pct=1)
+                               path=PATH_DATA,  
+                               cmv_path=f"/clusteruy/home03/DeepCloud/deepCloud/data/cmv/cmv_mvd_{out_channels[i]}0min/test/",
+                               in_channel=3, out_channel=out_channel,
+                               min_time_diff=5, max_time_diff=15,
+                               csv_path=csv_path_unet,
+                               transform = normalize, output_last=True,
+                               day_pct=1)
     else:
-        val_dataset_Unet = MontevideoFoldersDataset(path = PATH_DATA, 
-                                        in_channel=3, 
-                                        out_channel=out_channels[i],
-                                        min_time_diff=5, max_time_diff=15,
-                                        transform=normalize, 
-                                        csv_path=csv_path_unet,
-                                        output_last=True)
+        val_dataset_Unet = MontevideoFoldersDataset(
+                                path = PATH_DATA, 
+                                in_channel=3, 
+                                out_channel=out_channel,
+                                min_time_diff=5, max_time_diff=15,
+                                transform=normalize, 
+                                csv_path=csv_path_unet,
+                                output_last=True)
     val_loader_Unet = DataLoader(val_dataset_Unet)
 
     error_array = evaluate.evaluate_model([models[i]], val_loader_Unet, 
@@ -133,7 +138,7 @@ for metric in metrics:
                                         window_pad_width=params['window_pad_width'],
                                         predict_diff=params['predict_diff'])
     error_mean = np.mean(error_array, axis=0)
-    error_mean_all_horizons.append(error_mean)
+    error_mean_all_horizons.append(error_mean[0])
   print(f'Error_mean: {error_mean_all_horizons}')
   print(f'Error_mean_mean: {np.mean(error_mean_all_horizons)}')
   errors_metric["unet_direct"] = error_mean_all_horizons
