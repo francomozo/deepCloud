@@ -58,7 +58,7 @@ for PREDICT_T in PREDICT_T_LIST:
 
     print('Predict Horizon:', PREDICT_HORIZON)
     
-    MODEL_NAME = get_model_name(predict_horizon=PREDICT_HORIZON, predict_diff=PREDICT_DIFF)
+    MODEL_NAME = get_model_name(predict_horizon=PREDICT_HORIZON, architecture='UNET2', predict_diff=PREDICT_DIFF)
     MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/' + REGION + '/' + PREDICT_HORIZON +  '/' + MODEL_NAME 
     
     model = UNet2(
