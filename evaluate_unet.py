@@ -204,7 +204,7 @@ for PREDICT_T in PREDICT_T_LIST:
                     SSIM_per_hour[(hour,30)] = [SSIM_loss.detach().item()]
 
             # MBD and FS
-            MBD_loss = (torch.subtract(frames_pred, out_frames).detach().item() * 100)
+            MBD_loss = (torch.mean(torch.subtract(frames_pred, out_frames)).detach().item() * 100)
             MBD_pct_loss = (MBD_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
             
             persistence_rmse = torch.sqrt(MSE(in_frames[0, 2], out_frames[0, 0])).detach().item() * 100
