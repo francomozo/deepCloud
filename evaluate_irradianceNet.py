@@ -53,7 +53,7 @@ borders = np.linspace(1, 450, 100)
 GEO_DATA = False
 TRAIN_W_LAST = True
     
-PREDICT_T_LIST = [6, 12, 18]:  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
+PREDICT_T_LIST = [6]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
 
 evaluate_test = False
 for PREDICT_T in PREDICT_T_LIST:
@@ -64,10 +64,12 @@ for PREDICT_T in PREDICT_T_LIST:
         PREDICT_HORIZON = '120min'
     if PREDICT_T == 18:
         PREDICT_HORIZON = '180min'
-    
+    if PREDICT_T == 24:
+        PREDICT_HORIZON = '240min'
+
     print('Predict Horizon:', PREDICT_HORIZON)
     
-    MODEL_NAME = get_model_name(PREDICT_HORIZON, architecture='irradianceNet', geo=GEO_DATA)
+    MODEL_NAME = utils.get_model_name(PREDICT_HORIZON, architecture='irradianceNet', geo=GEO_DATA)
     MODEL_PATH = 'checkpoints/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_NAME
 
     if evaluate_test:
