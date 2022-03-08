@@ -356,7 +356,7 @@ def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False, bar_
     ax1 = fig.add_subplot(1, 1, 1)
 
     if bar_max:
-        image_ = ax1.imshow(image, interpolation='none' vmin=0, vmax=bar_max)
+        image_ = ax1.imshow(image, interpolation='none', vmin=0, vmax=bar_max)
     else:
         image_ = ax1.imshow(image, interpolation='none')
 
