@@ -13,7 +13,7 @@ from src import evaluate
 class Persistence:
     """ Class that predicts the next images using naive prediction.
     """    
-    def predict(self, image, predict_horizon, img_timestamp=None):
+    def predict(self, image, predict_horizon, img_timestamp=None, predict_direct=False):
         """Takes an image and predicts the next images on the predict_horizon depending on class instance
             normal: identical image
             noisy: adds gaussanian noise 
@@ -23,6 +23,7 @@ class Persistence:
             image (array): Image used as prediction
             img_timestamp (datetime): time stamp of image
             predict_horizon (int): Length of the prediction horizon.
+            predict_direct (bool): True to return only the last prediction
 
         Returns:
             [Numpy array], [list]: Array containing preditions and list containing timestamps
@@ -30,7 +31,7 @@ class Persistence:
         if torch.is_tensor(image): 
             image = image.numpy()
                 
-        predictions = [image]
+        predictions = []
         M,N = image.shape
 
         for i in range(predict_horizon): 
@@ -48,12 +49,15 @@ class Persistence:
             else:
                 predictions.append(np.array(image))
 
-        if img_timestamp is not None:
-            predict_timestamp = pd.date_range(start = img_timestamp,
-                                        periods= predict_horizon+1, freq = '10min')
-            return np.array(predictions), predict_timestamp
+        if predict_direct:
+            return np.array(predictions[-1])[np.newaxis]
         else:
-            return np.array(predictions)
+            if img_timestamp is not None:
+                predict_timestamp = pd.date_range(start = img_timestamp,
+                                            periods= predict_horizon+1, freq = '10min')
+                return np.array(predictions), predict_timestamp
+            else:
+                return np.array(predictions)
 
 class NoisyPersistence(Persistence):
     """Sub class of Persistence, adds white noise to predictions.
@@ -87,7 +91,7 @@ class Cmv:
         self.kernel_size = kernel_size
         self.kernel_size_list = kernel_size_list
 
-    def predict(self, imgi, imgf,period, delta_t, predict_horizon, imgf_ts=None):
+    def predict(self, imgi, imgf,period, delta_t, predict_horizon, imgf_ts=None, predict_direct=False):
         """Predicts next image using openCV optical Flow
 
         Args:
@@ -96,6 +100,7 @@ class Cmv:
             period (int): time difference between imgi and imgf in seconds
             delta_t (int): time passed between imgf and predicted image in seconds
             predict_horizon (int): Length of the prediction horizon (Cuantity of images returned)
+            predict_direct (bool): True to return only the last prediction
 
         Returns:
             [Numpy array]: Numpy array with predicted images
@@ -130,7 +135,7 @@ class Cmv:
 
         #get_mapping(cmv, delta_t)
         base_img = imgf  #base_img imagen a la que le voy a aplicar el campo
-        predictions = [imgf]
+        predictions = []
 
         for i in range(predict_horizon):
             i_idx, j_idx = np.meshgrid(
@@ -179,12 +184,15 @@ class Cmv:
             if (isinstance(self, Cmv2)):
                 base_img = next_img
 
-        if imgf_ts is not None:
-            predict_timestamp = pd.date_range(start = imgf_ts,
-                                        periods= predict_horizon+1, freq = str(delta_t//60) +'min') 
-            return np.array(predictions), predict_timestamp
+        if predict_direct:
+            return np.array(predictions[-1])[np.newaxis]
         else:
-            return np.array(predictions)
+            if imgf_ts is not None:
+                predict_timestamp = pd.date_range(start = imgf_ts,
+                                            periods= predict_horizon+1, freq = str(delta_t//60) +'min') 
+                return np.array(predictions), predict_timestamp
+            else:
+                return np.array(predictions)
         
     def predict_optimize_blur(self, imgi, imgf,period, delta_t, predict_horizon, imgf_ts=None,
                              start_blur=7, range_blur=75, gt=None, errors_blurred_cmv_dict=None):

@@ -102,7 +102,8 @@ for metric in metrics:
                                           in_channel=2, 
                                           out_channel=out_channel,
                                           min_time_diff=5, max_time_diff=15, 
-                                          csv_path=csv_path_base)
+                                          csv_path=csv_path_base,
+                                          output_last=True)
         val_loader = DataLoader(val_mvd)
 
         error_array = evaluate.evaluate_model(a_model, val_loader, 
@@ -111,7 +112,8 @@ for metric in metrics:
                                               error_percentage=error_percentage,
                                               window_pad=params['window_pad'],
                                               window_pad_height=params['window_pad_height'],
-                                              window_pad_width=params['window_pad_width'])
+                                              window_pad_width=params['window_pad_width'],
+                                              baseline_predict_direct=True)
         error_mean = np.mean(error_array, axis=0)
         error_mean = error_mean/fix
         error_mean_all_horizons.append(error_mean[-1])

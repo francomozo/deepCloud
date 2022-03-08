@@ -215,7 +215,8 @@ def evaluate_pixel(predictions,gt,metric,pixel_max_value =255,pixel= (0,0)):
 
 def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
                    device=None, metric='RMSE', error_percentage=False,
-                   window_pad=0, window_pad_height=0, window_pad_width=0, predict_diff=False):
+                   window_pad=0, window_pad_height=0, window_pad_width=0, 
+                   predict_diff=False, baseline_predict_direct=False):
     """
     Evaluates performance of model_instance on loader data. 
 
@@ -230,6 +231,7 @@ def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
                           Eval window is [w_p//2 : M-w_p//2, w_p//2 : N-w_p//2]
         window_pad_height(int) : If M,N size of image -> eval window is [w_p_h//2 : M - w_p_h//2]
         window_pad_width(int) : If M,N size of image -> eval window is [w_p_w//2 : N - w_p_w//2]
+        baseline_predict_direct (bool): True to return only the last prediction
 
     Returns:
         [np.array]: Array of errors in evaluation with shape (len(loader), predict_horizon)
@@ -264,7 +266,8 @@ def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
                 start = time.time()
                 predictions = model_instance.predict(
                                         image=inputs[1], 
-                                        predict_horizon=predict_horizon)
+                                        predict_horizon=predict_horizon,
+                                        predict_direct=baseline_predict_direct)
                 end = time.time()
                 per_predict_time.append(end-start)
                 dynamic_window = False
@@ -275,7 +278,8 @@ def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
                                         imgi=inputs[0], 
                                         imgf=inputs[1],
                                         period=10*60, delta_t=10*60, 
-                                        predict_horizon=predict_horizon) 
+                                        predict_horizon=predict_horizon,
+                                        predict_direct=baseline_predict_direct) 
                 end = time.time()
                 cmv_predict_time.append(end-start)
                 dynamic_window = False # true for dynamic_window
@@ -302,8 +306,6 @@ def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
                 dynamic_window = False
 
             # evaluate
-            if not (isinstance(model_instance, torch.nn.Module) or isinstance(model_instance, list) or isinstance(model_instance, str)):
-                predictions = predictions[1:]
             start = time.time()
             input = inputs[-1].cpu().numpy() if metric == 'FS' else None
             gt = targets[start_horizon].unsqueeze(0).cpu().detach().numpy() if start_horizon is not None else targets.cpu().detach().numpy()
