@@ -10,7 +10,7 @@ from src.data import MontevideoFoldersDataset, MontevideoFoldersDataset_w_time
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
-from piqa import SSIM , MS_SSIM
+from piqa import SSIM
 from src.dl_models.unet import UNet, UNet2
 from src.dl_models.unet_advanced import R2U_Net, AttU_Net, R2AttU_Net, NestedUNet
 import scipy.stats as st
@@ -45,7 +45,6 @@ if evaluate_test:
 
 else:
     CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv'
-    # CSV_PATH = None
     PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
     SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
     SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON 
@@ -62,7 +61,7 @@ model = UNet2(n_channels=3, n_classes=1, bilinear=True, p=0, output_activation=O
 
 # LATEX CONFIG
 fontsize = 22 # 22 generates the font more like the latex text
-fontSize = 22
+
 save_fig = True
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
@@ -82,15 +81,15 @@ except:
 normalize = preprocessing.normalize_pixels(mean0=False) #values between [0,1]
 
 val_dataset = MontevideoFoldersDataset_w_time(
-                                            path=PATH_DATA,
-                                            in_channel=3,
-                                            out_channel=FRAME_OUT+1,
-                                            min_time_diff=5,
-                                            max_time_diff=15,
-                                            csv_path=CSV_PATH,
-                                            transform=normalize,
-                                            output_last=True
-                                            )
+    path=PATH_DATA,
+    in_channel=3,
+    out_channel=FRAME_OUT+1,
+    min_time_diff=5,
+    max_time_diff=15,
+    csv_path=CSV_PATH,
+    transform=normalize,
+    output_last=True
+)
 
 val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
 in_frames, out_frames, _, _ = next(iter(val_loader))
@@ -112,6 +111,7 @@ best_MAE_time = ''
 best_MAE_images = np.zeros((5, M, N))
 worst_MAE_images = np.zeros((5, M, N))
 MAE_per_hour = {}
+MAE_per_hour_crop = {}
 # MAE PORCENTUAL
 MAE_pct_per_hour = {}
 
@@ -127,13 +127,13 @@ RMSE_per_hour = {}
 # RMSE PORCENTUAL
 RMSE_pct_per_hour = {}
 
-worst_PSNR_error = 100
-worst_PSNR_time = ''
-best_PSNR_error = 0
-best_PSNR_time = ''
-best_PSNR_images = np.zeros((5, M, N))
-worst_PSNR_images = np.zeros((5, M, N))
-PSNR_per_hour = {}
+
+# MBD
+MBD_per_hour = {}
+MBD_pct_per_hour = {}
+
+# FS
+FS_per_hour = {}
 
 try:
     SSIM = SSIM(n_channels=1).to(device)
@@ -281,65 +281,7 @@ with torch.no_grad():
             best_RMSE_images[0:3] = in_frames[0].cpu().numpy()
             best_RMSE_images[3] = out_frames[0,0].cpu().numpy()
             best_RMSE_images[4] = frames_pred[0, 0].cpu().numpy()
-            
-        # PSNR
-        if minute < 30:
-            minute_key = 0
-            if (RMSE_per_hour[(hour,0)][-1] != 0):
-                if (hour,0) in PSNR_per_hour.keys():
-                    PSNR_per_hour[(hour,0)].append(10* np.log10(1**2/RMSE_per_hour[(hour,0)][-1]))
-                else:
-                    PSNR_per_hour[(hour,0)] = [10* np.log10(1**2/RMSE_per_hour[(hour,0)][-1])]
-            else:
-                if (hour,0) in PSNR_per_hour.keys():
-                    PSNR_per_hour[(hour,0)].append(20*np.log10(1))
-                else:
-                    PSNR_per_hour[(hour,0)] = [20*np.log10(1)]
-        else:
-            minute_key = 30
-            if (RMSE_per_hour[(hour,30)][-1] != 0):
-                if (hour,30) in PSNR_per_hour.keys():
-                    PSNR_per_hour[(hour,30)].append(10* np.log10(1**2/RMSE_per_hour[(hour,30)][-1]))
-                else:
-                    PSNR_per_hour[(hour,30)] = [10* np.log10(1**2/RMSE_per_hour[(hour,30)][-1])]
-            else:
-                if (hour,30) in PSNR_per_hour.keys():
-                    PSNR_per_hour[(hour,30)].append(20*np.log10(1))
-                else:
-                    PSNR_per_hour[(hour,30)] = [20*np.log10(1)]
-                    
-        if PSNR_per_hour[(hour, minute_key)][-1] < worst_PSNR_error:
-            worst_PSNR_error = PSNR_per_hour[(hour, minute_key)][-1]
-            worst_PSNR_input_time = in_time[0].numpy()
-            worst_PSNR_time = out_time[0, 0]
-            
-            worst_PSNR_time_list = [
-                str(int((worst_PSNR_input_time[0][1]))).zfill(2) + ':' + str(int((worst_PSNR_input_time[0][2]))).zfill(2),
-                str(int((worst_PSNR_input_time[1][1]))).zfill(2) + ':' + str(int((worst_PSNR_input_time[1][2]))).zfill(2),
-                str(int((worst_PSNR_input_time[2][1]))).zfill(2) + ':' + str(int((worst_PSNR_input_time[2][2]))).zfill(2),
-                str(int(worst_PSNR_time[1].numpy())).zfill(2) + ':' + str(int(worst_PSNR_time[2].numpy())).zfill(2)
-            ] 
-            
-            worst_PSNR_images[0:3] = in_frames[0].cpu().numpy()
-            worst_PSNR_images[3] = out_frames[0,0].cpu().numpy()
-            worst_PSNR_images[4] = frames_pred[0,0].cpu().numpy()
-            
-        if PSNR_per_hour[(hour, minute_key)][-1] > best_PSNR_error:
-            best_PSNR_error = PSNR_per_hour[(hour, minute_key)][-1]
-            best_PSNR_input_time = in_time[0].numpy()
-            best_PSNR_time = out_time[0, 0]
-            
-            best_PSNR_time_list = [
-                str(int((best_PSNR_input_time[0][1]))).zfill(2) + ':' + str(int((best_PSNR_input_time[0][2]))).zfill(2),
-                str(int((best_PSNR_input_time[1][1]))).zfill(2) + ':' + str(int((best_PSNR_input_time[1][2]))).zfill(2),
-                str(int((best_PSNR_input_time[2][1]))).zfill(2) + ':' + str(int((best_PSNR_input_time[2][2]))).zfill(2),
-                str(int(best_PSNR_time[1].numpy())).zfill(2) + ':' + str(int(best_PSNR_time[2].numpy())).zfill(2)
-            ] 
-            
-            best_PSNR_images[0:3] = in_frames[0].cpu().numpy()
-            best_PSNR_images[3] = out_frames[0,0].cpu().numpy()
-            best_PSNR_images[4] = frames_pred[0,0].cpu().numpy()
-        
+
         # SSIM
         SSIM_loss = SSIM(frames_pred, out_frames)
         SSIM_loss_crop = SSIM(frames_pred[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE], out_frames[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE])
@@ -394,6 +336,33 @@ with torch.no_grad():
             best_SSIM_images[3] = out_frames[0,0].cpu().numpy()
             best_SSIM_images[4] = frames_pred[0,0].cpu().numpy()
 
+        # MBD and FS
+        
+        MBD_loss = (torch.subtract(frames_pred, out_frames).detach().item() * 100)
+        MBD_pct_loss = (MBD_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
+        
+        persistence_rmse = torch.sqrt(MSE(in_frames[0, 2], out_frames[0, 0])).detach().item() * 100
+        forecast_skill = RMSE_loss / persistence_rmse
+
+        if minute < 30:
+            if (hour, 0) in MBD_per_hour.keys():
+                MBD_per_hour[(hour, 0)].append(MBD_loss)
+                MBD_pct_per_hour[(hour, 0)].append(MBD_pct_loss)
+                FS_per_hour[(hour, 0)].append(forecast_skill)
+            else:
+                MBD_per_hour[(hour, 0)] = [MBD_loss]
+                MBD_pct_per_hour[(hour, 0)] = [MBD_pct_loss]
+                FS_per_hour[(hour, 0)] = [forecast_skill]
+        else:
+            if (hour, 30) in MBD_per_hour.keys():
+                MBD_per_hour[(hour, 30)].append(MBD_loss)
+                MBD_pct_per_hour[(hour, 30)].append(MBD_pct_loss)
+                FS_per_hour[(hour, 30)].append(forecast_skill)
+            else:
+                MBD_per_hour[(hour, 30)] = [MBD_loss]
+                MBD_pct_per_hour[(hour, 30)] = [MBD_pct_loss]
+                FS_per_hour[(hour, 30)] = [forecast_skill]
+        
         gt_mean.append(torch.mean(out_frames[0,0]).cpu().numpy())
         gt_std.append(torch.std(out_frames[0,0]).cpu().numpy())
         pred_mean.append(torch.mean(frames_pred[0,0]).cpu().numpy())
@@ -407,29 +376,58 @@ MAE_error_image = (MAE_error_image / len(val_dataset))
 MAE_pct_error_image = (MAE_error_image / mean_image) * 100
 
 RMSE_pct_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset)) / mean_image) * 100
+RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) * 100
 
+np.save(os.path.join(SAVE_IMAGES_PATH, 'mean_image.npy'), mean_image)
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'mean_image.pdf')
+visualization.show_image_w_colorbar(
+    image=MAE_error_image,
+    title=None,
+    fig_name=fig_name,
+    save_fig=True
+)
 
-fig_name = os.path.join(SAVE_IMAGES_PATH,
-                        'MAE_error_image.pdf')
-visualization.show_image_w_colorbar(image=MAE_error_image, title=None,
-                                    fig_name=fig_name, save_fig=True)
+np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.npy'), MAE_error_image)
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.pdf')
+visualization.show_image_w_colorbar(
+    image=MAE_error_image,
+    title=None,
+    fig_name=fig_name,
+    save_fig=True
+)
 
-fig_name = os.path.join(SAVE_IMAGES_PATH,
-                        'MAE_pct_error_image.pdf')
-visualization.show_image_w_colorbar(image=MAE_pct_error_image, title=None,
-                                    fig_name=fig_name, save_fig=True)
+np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.npy'), MAE_pct_error_image)
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.pdf')
+visualization.show_image_w_colorbar(
+    image=MAE_pct_error_image,
+    title=None,
+    fig_name=fig_name,
+    save_fig=True
+)
 
-fig_name = os.path.join(SAVE_IMAGES_PATH,
-                        'RMSE_pct_error_image.pdf')
-visualization.show_image_w_colorbar(image=RMSE_pct_error_image, title=None,
-                                    fig_name=fig_name, save_fig=True)
+np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.npy'), RMSE_error_image)
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.pdf')
+visualization.show_image_w_colorbar(
+    image=RMSE_error_image,
+    title=None,
+    fig_name=fig_name,
+    save_fig=True
+)
+
+np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.npy'), RMSE_pct_error_image)
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.pdf')
+visualization.show_image_w_colorbar(
+    image=RMSE_pct_error_image,
+    title=None,
+    fig_name=fig_name,
+    save_fig=True
+)
 
 mean_MAE = []
 mean_MAE_pct = []
 mean_MAE_crop = []
 mean_RMSE = []
 mean_RMSE_pct = []
-mean_PSNR = []
 mean_SSIM = []
 mean_SSIM_crop = []
 std_MAE = []
@@ -437,9 +435,14 @@ std_MAE_pct = []
 std_MAE_crop = []
 std_RMSE = []
 std_RMSE_pct = []
-std_PSNR = []
 std_SSIM = []
 std_SSIM_crop = []
+mean_MBD = []
+mean_MBD_pct = []
+std_MBD = []
+std_MBD_pct = []
+mean_FS = []
+std_FS = []
 
 sorted_keys = sorted(MAE_per_hour.keys(), key=lambda element: (element[0], element[1]))
 hour_list = []
@@ -456,12 +459,16 @@ for key in sorted_keys:
     std_RMSE.append(np.std(RMSE_per_hour[key]))
     mean_RMSE_pct.append(np.mean(RMSE_pct_per_hour[key]))
     std_RMSE_pct.append(np.std(RMSE_pct_per_hour[key]))
-    mean_PSNR.append(np.mean(PSNR_per_hour[key]))
-    std_PSNR.append(np.std(PSNR_per_hour[key]))
     mean_SSIM.append(np.mean(SSIM_per_hour[key]))
     std_SSIM.append(np.std(SSIM_per_hour[key]))
     mean_SSIM_crop.append(np.mean(SSIM_per_hour_crop[key]))
     std_SSIM_crop.append(np.std(SSIM_per_hour_crop[key]))
+    mean_MBD.append(np.mean(MBD_per_hour[key]))
+    std_MBD.append(np.std(MBD_per_hour[key]))
+    mean_MBD_pct.append(np.mean(MBD_pct_per_hour[key]))
+    std_MBD_pct.append(np.std(MBD_pct_per_hour[key]))
+    mean_FS.append(np.mean(FS_per_hour[key]))
+    std_FS.append(np.std(FS_per_hour[key]))
     
 if SAVE_VALUES_PATH:
     dict_values = {
@@ -485,50 +492,17 @@ if SAVE_VALUES_PATH:
         'std_RMSE': std_RMSE,
         'mean_RMSE_pct': mean_RMSE_pct,
         'std_RMSE_pct': std_RMSE_pct,
-        'mean_PSNR': mean_PSNR,
-        'std_PSNR': std_PSNR
+        'mean_MBD': mean_MBD,
+        'std_MBD': std_MBD,
+        'mean_MBD_pct': mean_MBD_pct,
+        'std_MBD_pct': std_MBD_pct,
+        'mean_FS': mean_FS,
+        'std_FS': std_FS
     }                                                                                                                      
 
-    utils.save_pickle_dict(path=SAVE_VALUES_PATH, name=MODEL_PATH.split('/')[-1][:-9], dict_=dict_values) 
+    utils.save_pickle_dict(path=SAVE_VALUES_PATH, name=MODEL_PATH.split('/')[-1][:-12], dict_=dict_values) 
 
 print('Dict with error values saved.')
-
-plt.rc('text', usetex=True)
-plt.rc('font', family='serif')
-fig = plt.figure()
-fig.set_size_inches(12, 6)
-ax = fig.add_subplot(1, 1, 1)
-ax.plot(mean_MAE, '-o', label='Full window')
-ax.plot(mean_MAE_crop, '-o', label='Crop')
-plt.legend(loc='upper right', fontsize=fontsize)
-plt.xticks(range(len(hour_list)), hour_list)
-plt.gcf().autofmt_xdate()
-ax.set_xlabel('Time of day')
-ax.set_ylabel('MAE')
-ax.grid()
-if SAVE_IMAGES_PATH:
-    fig.tight_layout() 
-    fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'MAE_p_hour.pdf'))
-
-plt.show()
-plt.close()
-
-plt.rc('text', usetex=True)
-plt.rc('font', family='serif')
-fig = plt.figure()
-fig.set_size_inches(12, 6)
-ax = fig.add_subplot(1, 1, 1)
-ax.plot(mean_RMSE, '-o')
-plt.xticks(range(len(hour_list)), hour_list)
-plt.gcf().autofmt_xdate()
-ax.set_xlabel('Time of day')
-ax.set_ylabel('MSE')
-ax.grid()
-if SAVE_IMAGES_PATH:
-    fig.tight_layout() 
-    fig.savefig(os.path.join(SAVE_IMAGES_PATH, 'MSE_p_hour.pdf'))
-plt.show()
-plt.close()
 
 #SCATTER PLOT
 print('Scatter Plot')
@@ -539,8 +513,7 @@ m, b = np.polyfit(gt_mean, pred_mean, 1)
 fig = plt.figure()
 fig.set_size_inches(6, 6)
 ax = fig.add_subplot(1, 1, 1)
-ax.xaxis.set_tick_params(labelsize=fontSize)
-ax.yaxis.set_tick_params(labelsize=fontSize)
+
 for axis in ['top','bottom','left','right']:
     ax.spines[axis].set_linewidth(1.0)
 ax.tick_params(direction='out', length=6, width=1, colors='k')
@@ -549,9 +522,7 @@ ax.plot(gt_mean, m*np.array(gt_mean) + b, color=Colors.pomegranate)
 textstr = '\n'.join((
     r'$m=%.2f$' % (m, ),
     r'$n=%.2f$' % (b, )))
-ax.set_xlabel('GT Mean', fontsize=fontSize)
-ax.set_ylabel('Prediction Mean', fontsize=fontSize)
-ax.text(np.min(gt_mean), np.max(pred_mean),textstr, fontsize=fontSize,
+
         va='top', ha='left')
 
 if SAVE_IMAGES_PATH:
@@ -565,8 +536,7 @@ m, b = np.polyfit(gt_std, pred_std, 1)
 fig = plt.figure()
 fig.set_size_inches(6, 6)
 ax = fig.add_subplot(1, 1, 1)
-ax.xaxis.set_tick_params(labelsize=fontSize)
-ax.yaxis.set_tick_params(labelsize=fontSize)
+
 for axis in ['top','bottom','left','right']:
     ax.spines[axis].set_linewidth(1.0)
 ax.tick_params(direction='out', length=6, width=1, colors='k')
@@ -575,9 +545,7 @@ ax.plot(gt_std, m*np.array(gt_std) + b, color=Colors.pomegranate)
 textstr = '\n'.join((
     r'$m=%.2f$' % (m, ),
     r'$n=%.2f$' % (b, )))
-ax.set_xlabel('GT Standard Deviation', fontsize=fontSize)
-ax.set_ylabel('Prediction Standard Deviation', fontsize=fontSize)
-ax.text(np.min(gt_std), np.max(pred_std), textstr, fontsize=fontSize,
+
         va='top', ha='left')
 
 if SAVE_IMAGES_PATH:
@@ -651,10 +619,7 @@ plt.rc('font', family='serif')
 fig = plt.figure()
 fig.set_size_inches(12, 6)
 ax = fig.add_subplot(1, 1, 1)
-ax.set_xlabel(r"Mean Value of Image", fontsize=fontSize)
-ax.set_ylabel(r"Quantity", fontsize=fontSize)
-ax.xaxis.set_tick_params(labelsize=fontSize)
-ax.yaxis.set_tick_params(labelsize=fontSize)
+
 
 ax.grid(alpha=.2)
 for axis in ['top','bottom','left','right']:
@@ -678,10 +643,7 @@ plt.rc('font', family='serif')
 fig = plt.figure()
 fig.set_size_inches(12, 6)
 ax = fig.add_subplot(1, 1, 1)
-ax.set_xlabel(r"STD of Image", fontsize=fontSize)
-ax.set_ylabel(r"Quantity", fontsize=fontSize)
-ax.xaxis.set_tick_params(labelsize=fontSize)
-ax.yaxis.set_tick_params(labelsize=fontSize)
+
 
 ax.grid(alpha=.2)
 for axis in ['top','bottom','left','right']:
@@ -736,26 +698,6 @@ fig_name = os.path.join(SAVE_IMAGES_PATH,
                         'hour:'+ str(int(worst_RMSE_time[1].numpy())).zfill(2) + str(int(worst_RMSE_time[2].numpy())).zfill(2) + '.pdf')
 visualization.show_seq_and_pred(worst_RMSE_images,
                                 time_list=worst_RMSE_time_list,
-                                prediction_t=FRAME_OUT+1,
-                                fig_name=fig_name,
-                                save_fig=True)
-plt.close()
-
-fig_name = os.path.join(SAVE_IMAGES_PATH,
-                        'PSNR best prediction, day:' + str(int(best_PSNR_time[0].numpy())) + \
-                        'hour:'+ str(int(best_PSNR_time[1].numpy())).zfill(2) + str(int(best_PSNR_time[2].numpy())).zfill(2) + '.pdf')
-visualization.show_seq_and_pred(best_PSNR_images,
-                                time_list=best_PSNR_time_list,
-                                prediction_t=FRAME_OUT+1,
-                                fig_name=fig_name,
-                                save_fig=True)
-plt.close()
-
-fig_name = os.path.join(SAVE_IMAGES_PATH,
-                        'PSNR worst prediction, day:'+str(int(worst_PSNR_time[0].numpy())) + \
-                        'hour:' + str(int(worst_PSNR_time[1].numpy())).zfill(2) + str(int(worst_PSNR_time[2].numpy())).zfill(2) + '.pdf')
-visualization.show_seq_and_pred(worst_PSNR_images,
-                                time_list=worst_PSNR_time_list,
                                 prediction_t=FRAME_OUT+1,
                                 fig_name=fig_name,
                                 save_fig=True)
@@ -924,19 +866,3 @@ if not evaluate_test:
     if PREDICT_DIFF:
         fig_name = os.path.join(SAVE_IMAGES_PATH, 'most_moved_sequence_diff_pred.pdf')
         visualization.show_image_w_colorbar(img_diff_pred, fig_name=fig_name, save_fig=True)
-
-# FIRST LAYER OF FILTERS OUTPUT
-if M < 1000:
-    output_list = []
-
-    with torch.no_grad():
-        for m in model.modules():
-            if isinstance(m, nn.Conv2d):
-                for filter_ in m.weight:
-                    output = visualization.use_filter(in_frames.cpu().numpy(), filter_.cpu().numpy()) 
-                    output_list.append(output)
-                break
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'filter_layer_output.png')
-    visualization.show_image_list(output_list, rows=8, fig_name=fig_name, save_fig=True)
-    plt.close()
-print('Done.')

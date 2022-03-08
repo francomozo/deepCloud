@@ -665,33 +665,34 @@ def create_video(source_folder, dest_folder=None, video_name=None, filter=None, 
 
 
 def get_model_name(predict_horizon: str, architecture: str, predict_diff: bool = False, geo: bool = False) -> str:
-    if architecture in ['unet', 'Unet', 'UNet', 'U-Net']:
+    if architecture in ['unet', 'Unet', 'UNet', 'U-Net', 'UNET', 'UNET2', 'Unet2', 'unet2']:
         if predict_horizon == '60min':
             if predict_diff:
                 return '60min_UNET2_region3_mae_filters16_tanh_diffTrue_retrainFalse_25_15-02-2022_08:49_BEST_FINAL.pt'
             else:
                 return '60min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_52_12-02-2022_21:30_BEST_FINAL.pt'
-        if predict_horizon == '120min':
+        elif predict_horizon == '120min':
             if predict_diff:
                 return '120min_UNET2_region3_mae_filters16_tanh_diffTrue_retrainFalse_22_15-02-2022_13:37_BEST_FINAL.pt'
             else:
                 return '120min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_29_12-02-2022_19:40_BEST_FINAL.pt'
-        if predict_horizon == '180min':
+        elif predict_horizon == '180min':
             if predict_diff:
                 return '180min_UNET2_region3_mae_filters16_tanh_diffTrue_retrainFalse_17_15-02-2022_07:45_BEST_FINAL.pt'
             else:
                 return '180min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_20_12-02-2022_07:46_BEST_FINAL.pt'
-        if predict_horizon == '240min':
+        elif predict_horizon == '240min':
             if predict_diff:
                 return '240min_UNET2_region3_mae_filters16_tanh_diffTrue_retrainFalse_13_18-02-2022_00:17_BEST_FINAL.pt'
             else:
                 return '240min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_21_17-02-2022_02:26_BEST_FINAL.pt'
-        if predict_horizon == '300min':
+        elif predict_horizon == '300min':
             if predict_diff:
                 return '300min_UNET2_region3_mae_filters16_tanh_diffTrue_retrainFalse_13_17-02-2022_23:37_BEST_FINAL.pt'
             else:
                 return '300min_UNET2_region3_mae_filters16_sigmoid_diffFalse_retrainFalse_13_14-02-2022_19:05_BEST_FINAL.pt'
-            
+        else:
+            raise ValueError('Wrong Predict Horizon')
     elif architecture in ['irradianceNet', 'irrNet', 'IrradianceNet', 'irradiancenet', 'irradiance']:
         if predict_horizon == '60min':
             return '60min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_90_21-02-2022_20:19_BEST.pt'
@@ -700,10 +701,10 @@ def get_model_name(predict_horizon: str, architecture: str, predict_diff: bool =
         elif predict_horizon == '180min':
             return '180min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_58_26-02-2022_16:03_BEST.pt'
         elif predict_horizon == '240min':
-            # still training
             return '240min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_41_27-02-2022_08:15_BEST.pt'
         elif predict_horizon == '300min':
-            pass
-    
+            return '300min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainFalse_19_21-02-2022_18:55_BEST.pt'
+        else:
+            raise ValueError('Wrong Predict Horizon')
     else:
         raise ValueError('Wrong Architecture')
