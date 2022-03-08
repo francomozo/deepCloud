@@ -152,26 +152,21 @@ for PREDICT_T in PREDICT_T_LIST:
             MAE_pct_loss = (MAE_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
 
             MAE_error_image += torch.abs(torch.multiply(torch.subtract(out_frames[0,0], frames_pred[0,0]), 100)).cpu().numpy()
-            
-            MAE_loss_crop = MAE(frames_pred[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE], out_frames[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE])
+
             if minute < 30:
                 if (hour, 0) in MAE_per_hour.keys():
                     MAE_per_hour[(hour, 0)].append(MAE_loss)
-                    MAE_per_hour_crop[(hour, 0)].append(MAE_loss_crop)
                     MAE_pct_per_hour[(hour, 0)].append(MAE_pct_loss)
                 else:
                     MAE_per_hour[(hour, 0)] = [MAE_loss]
                     MAE_pct_per_hour[(hour, 0)] = [MAE_pct_loss]
-                    MAE_per_hour_crop[(hour, 0)] = [MAE_loss_crop]
             else:
                 if (hour, 30) in MAE_per_hour.keys():
                     MAE_per_hour[(hour, 30)].append(MAE_loss)
                     MAE_pct_per_hour[(hour, 30)].append(MAE_pct_loss)
-                    MAE_per_hour_crop[(hour, 30)].append(MAE_loss_crop)
                 else:
                     MAE_per_hour[(hour, 30)] = [MAE_loss]
                     MAE_pct_per_hour[(hour, 30)] = [MAE_pct_loss]
-                    MAE_per_hour_crop[(hour, 30)] = [MAE_loss_crop]
             
             # RMSE
             RMSE_loss = torch.sqrt(MSE(frames_pred, out_frames)).detach().item() * 100
@@ -196,26 +191,17 @@ for PREDICT_T in PREDICT_T_LIST:
 
             # SSIM
             SSIM_loss = SSIM(frames_pred, out_frames)
-            SSIM_loss_crop = SSIM(frames_pred[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE], out_frames[:, :, CROP_SIZE:M-CROP_SIZE, CROP_SIZE:N-CROP_SIZE])
                         
             if minute<30:
                 if (hour,0) in SSIM_per_hour.keys():
                     SSIM_per_hour[(hour,0)].append(SSIM_loss.detach().item())
-                    SSIM_per_hour_crop[(hour,0)].append(SSIM_loss_crop.detach().item())
                 else:
-                    SSIM_per_hour[(hour,0)] = []
-                    SSIM_per_hour[(hour,0)].append(SSIM_loss.detach().item())
-                    SSIM_per_hour_crop[(hour,0)] = []
-                    SSIM_per_hour_crop[(hour,0)].append(SSIM_loss_crop.detach().item())
+                    SSIM_per_hour[(hour,0)] = [SSIM_loss.detach().item()]
             else:
                 if (hour,30) in SSIM_per_hour.keys():
                     SSIM_per_hour[(hour,30)].append(SSIM_loss.detach().item())
-                    SSIM_per_hour_crop[(hour,30)].append(SSIM_loss_crop.detach().item())
                 else:
-                    SSIM_per_hour[(hour,30)] = []
-                    SSIM_per_hour[(hour,30)].append(SSIM_loss.detach().item())
-                    SSIM_per_hour_crop[(hour,30)] = []
-                    SSIM_per_hour_crop[(hour,30)].append(SSIM_loss_crop.detach().item())
+                    SSIM_per_hour[(hour,30)] = [SSIM_loss.detach().item()]
 
             # MBD and FS
             MBD_loss = (torch.subtract(frames_pred, out_frames).detach().item() * 100)
@@ -305,18 +291,14 @@ for PREDICT_T in PREDICT_T_LIST:
 
     mean_MAE = []
     mean_MAE_pct = []
-    mean_MAE_crop = []
     mean_RMSE = []
     mean_RMSE_pct = []
     mean_SSIM = []
-    mean_SSIM_crop = []
     std_MAE = []
     std_MAE_pct = []
-    std_MAE_crop = []
     std_RMSE = []
     std_RMSE_pct = []
     std_SSIM = []
-    std_SSIM_crop = []
     mean_MBD = []
     mean_MBD_pct = []
     std_MBD = []
@@ -333,16 +315,12 @@ for PREDICT_T in PREDICT_T_LIST:
         std_MAE.append(np.std(MAE_per_hour[key]))
         mean_MAE_pct.append(np.mean(MAE_pct_per_hour[key]))
         std_MAE_pct.append(np.std(MAE_pct_per_hour[key]))
-        mean_MAE_crop.append(np.mean(MAE_per_hour_crop[key]))
-        std_MAE_crop.append(np.std(MAE_per_hour_crop[key]))
         mean_RMSE.append(np.mean(RMSE_per_hour[key]))
         std_RMSE.append(np.std(RMSE_per_hour[key]))
         mean_RMSE_pct.append(np.mean(RMSE_pct_per_hour[key]))
         std_RMSE_pct.append(np.std(RMSE_pct_per_hour[key]))
         mean_SSIM.append(np.mean(SSIM_per_hour[key]))
         std_SSIM.append(np.std(SSIM_per_hour[key]))
-        mean_SSIM_crop.append(np.mean(SSIM_per_hour_crop[key]))
-        std_SSIM_crop.append(np.std(SSIM_per_hour_crop[key]))
         mean_MBD.append(np.mean(MBD_per_hour[key]))
         std_MBD.append(np.std(MBD_per_hour[key]))
         mean_MBD_pct.append(np.mean(MBD_pct_per_hour[key]))
@@ -356,18 +334,13 @@ for PREDICT_T in PREDICT_T_LIST:
             'csv_path': CSV_PATH,
             'frame_out': FRAME_OUT,
             'predict diff': PREDICT_DIFF,
-            'crop_size': CROP_SIZE,
             'hour_list': hour_list,
             'mean_MAE': mean_MAE,
             'std_MAE': std_MAE,
             'mean_MAE_pct': mean_MAE_pct,
             'std_MAE_pct': std_MAE_pct,
-            'mean_MAE_crop': mean_MAE_crop,
-            'std_MAE_crop': std_MAE_crop,
             'mean_SSIM': mean_SSIM,
             'std_SSIM': std_SSIM,
-            'mean_SSIM_crop': mean_SSIM_crop,
-            'std_SSIM_crop': std_SSIM_crop,
             'mean_RMSE': mean_RMSE,
             'std_RMSE': std_RMSE,
             'mean_RMSE_pct': mean_RMSE_pct,
