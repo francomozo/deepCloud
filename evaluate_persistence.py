@@ -26,6 +26,7 @@ print('using device:', device)
 MSE = nn.MSELoss()
 MAE = nn.L1Loss()
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
+borders = np.linspace(1, 450, 100)
 #######################################################################################
 
 REGION = 'R3'  # [URU, R3]
@@ -36,8 +37,6 @@ if REGION == 'URU':
 elif REGION == 'R3':
     dataset = 'region3'
     img_size = 1024
-
-borders = np.linspace(1, 450, 100)
     
 PREDICT_T_LIST = [6, 12, 18, 24, 30]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
 
@@ -61,13 +60,13 @@ for PREDICT_T in PREDICT_T_LIST:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/test_cosangs_region3.csv'
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/test/'
         SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/test/'   
-        SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/test/'
+        SAVE_BORDERS_ERROR = 'reports/borders_cut/' + REGION + '/' + PREDICT_HORIZON + '/test/persistence/'
 
     else:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv'
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
         SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/persistence'
-        SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON
+        SAVE_BORDERS_ERROR = 'reports/borders_cut/' + REGION + '/' + PREDICT_HORIZON
 
     #########################################################################################
 
@@ -77,7 +76,12 @@ for PREDICT_T in PREDICT_T_LIST:
         pass
 
     try:
-        os.mkdir(SAVE_VALUES_PATH)
+        os.mkdir(SAVE_BORDERS_ERROR)
+    except:
+        pass
+    
+    try:
+        os.mkdir(SAVE_BORDERS_ERROR)
     except:
         pass
 
@@ -126,6 +130,7 @@ for PREDICT_T in PREDICT_T_LIST:
         fig_name=fig_name,
         save_fig=True
     )
+    plt.close()
     
     np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.npy'), MAE_error_image)
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.pdf')
@@ -135,7 +140,8 @@ for PREDICT_T in PREDICT_T_LIST:
         fig_name=fig_name,
         save_fig=True
     )
-
+    plt.close()
+    
     np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.npy'), MAE_pct_error_image)
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.pdf')
     visualization.show_image_w_colorbar(
@@ -144,6 +150,7 @@ for PREDICT_T in PREDICT_T_LIST:
         fig_name=fig_name,
         save_fig=True
     )
+    plt.close()
 
     np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.npy'), RMSE_error_image)
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.pdf')
@@ -153,7 +160,8 @@ for PREDICT_T in PREDICT_T_LIST:
         fig_name=fig_name,
         save_fig=True
     )
-    
+    plt.close()
+
     np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.npy'), RMSE_pct_error_image)
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.pdf')
     visualization.show_image_w_colorbar(
@@ -162,6 +170,7 @@ for PREDICT_T in PREDICT_T_LIST:
         fig_name=fig_name,
         save_fig=True
     )
+    plt.close()
 
     mae_errors_borders = []
     r_RMSE_errors_borders = []
@@ -171,7 +180,7 @@ for PREDICT_T in PREDICT_T_LIST:
         mae_errors_borders.append(np.mean(MAE_error_image[p:-p, p:-p]))
         r_RMSE_errors_borders.append(np.mean(RMSE_pct_error_image[p:-p, p:-p]))
         
-    if SAVE_VALUES_PATH:
+    if SAVE_BORDERS_ERROR:
         dict_values = {
             'model_name': 'persistence',
             'test_dataset': evaluate_test,
@@ -182,4 +191,4 @@ for PREDICT_T in PREDICT_T_LIST:
             'r_RMSE_errors_borders': r_RMSE_errors_borders
         }                                                                                                                      
 
-        utils.save_pickle_dict(path=SAVE_VALUES_PATH, name='persistence', dict_=dict_values)
+        utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name='persistence', dict_=dict_values)
