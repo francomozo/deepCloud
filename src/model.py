@@ -8,6 +8,7 @@ import numpy as np
 import cv2 as cv
 import yaml
 import torch
+from src import evaluate
 
 class Persistence:
     """ Class that predicts the next images using naive prediction.
@@ -184,6 +185,107 @@ class Cmv:
             return np.array(predictions), predict_timestamp
         else:
             return np.array(predictions)
+        
+    def predict_optimize_blur(self, imgi, imgf,period, delta_t, predict_horizon, imgf_ts=None,
+                             start_blur=7, range_blur=75, gt=None, errors_blurred_cmv_dict=None):
+        """Optimization of Kernel size for blurring
+
+        Args:
+            imgi (numpy.ndarray): first image used for prediction
+            imgf (numpy.ndarray): last image used for prediction
+            period (int): time difference between imgi and imgf in seconds
+            delta_t (int): time passed between imgf and predicted image in seconds
+            predict_horizon (int): Length of the prediction horizon (Cuantity of images returned)
+            start_blur (int): Kernel size to start optimization
+            range_blur (int): Amount of kernel sizes to test 
+            gt: Grount trtth to evaluate predictions 
+            errors_blurred_cmv_dict (dictionary): Dictionary to save errors for each kernel size
+
+        Returns:
+            [dictionary]: Dictionary with error for each kernel size
+        """    
+
+        if torch.is_tensor(imgi): 
+            imgi = imgi.numpy()
+            imgf = imgf.numpy()
+
+        #get_cmv (dcfg, imgi,imgf, period)
+        cmvcfg = self.dcfg["algorithm"]["cmv"]
+        pyr_scale=cmvcfg["pyr_scale"]
+        levels=cmvcfg["levels"]
+        winsize=cmvcfg["winsize"]
+        iterations=cmvcfg["iterations"]
+        poly_n=cmvcfg["poly_n"]
+        poly_sigma=cmvcfg["poly_sigma"]
+
+        flow = cv.calcOpticalFlowFarneback(
+            imgi,
+            imgf,
+            None,
+            pyr_scale=pyr_scale,
+            levels=levels,
+            winsize=winsize,
+            iterations=iterations,
+            poly_n=poly_n,
+            poly_sigma=poly_sigma,
+            flags=0,
+        )
+        cmv = - flow / period
+
+        #get_mapping(cmv, delta_t)
+        base_img = imgf  #base_img imagen a la que le voy a aplicar el campo
+
+        for i in range(predict_horizon):
+            i_idx, j_idx = np.meshgrid(
+                np.arange(cmv.shape[1]), np.arange(cmv.shape[0])
+            )
+            if (isinstance(self, Cmv1)):
+                # img(t) + k*cmv estático -> img(t+k)
+                map_i = i_idx + cmv[:, :, 0] * (delta_t * (i+1)) #cmv[...] * x , donde x es la cantidad de segundos hacia adelante
+                map_j = j_idx + cmv[:, :, 1] * (delta_t * (i+1))
+            elif (isinstance(self, Cmv2)):
+                # img(t+k) + cmv estático -> img(t+k+1)
+                map_i = i_idx + cmv[:, :, 0] * delta_t 
+                map_j = j_idx + cmv[:, :, 1] * delta_t 
+            map_x, map_y = map_i.astype(np.float32), map_j.astype(np.float32)
+
+            #project_cmv(cmv, base_img, delta_t, show_for_debugging=False)
+            #map_x, map_y = get_mapping(cmv, delta_t)
+            next_img = cv.remap(
+                base_img,
+                map_x,
+                map_y,
+                cv.INTER_LINEAR,
+                borderMode=cv.BORDER_CONSTANT,
+                borderValue=np.nan,  # valor que se agrega al mover los bordes
+                #borderValue=0,
+            )
+            if (isinstance(self, Cmv2)):
+                base_img = next_img
+
+        aux_nans = np.ones_like(next_img)
+        aux_nans[np.isnan(next_img)]=np.nan
+        for i in range(range_blur):
+            j = start_blur+i*8
+            #key = f'{j}x{j}'
+            blurred_pred = np.copy(next_img)
+            blurred_pred[np.isnan(blurred_pred)]=0
+            blurred_pred = cv.GaussianBlur(blurred_pred, (j,j), 0)
+            blurred_pred = blurred_pred * aux_nans
+            predict_errors = evaluate.evaluate_image(
+                                predictions = np.array([blurred_pred]), 
+                                gt = gt, 
+                                gt_ts = None,
+                                metric='RMSE', dynamic_window=False,
+                                evaluate_day_pixels = False, 
+                                error_percentage = True)
+            predict_errors = np.array(predict_errors)
+            if errors_blurred_cmv_dict.get(j) is not None:
+                errors_blurred_cmv_dict[j] += predict_errors[-1]
+            else:
+                errors_blurred_cmv_dict[j] = 0 
+        return errors_blurred_cmv_dict
+
 
 class Cmv1(Cmv):
     pass
