@@ -370,3 +370,5 @@ for PREDICT_T in PREDICT_T_LIST:
         utils.save_pickle_dict(path=SAVE_VALUES_PATH, name=MODEL_PATH.split('/')[-1][:-12], dict_=dict_values) 
 
     print('Dict with error values saved.')
+    del model
+
