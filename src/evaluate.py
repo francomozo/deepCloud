@@ -21,7 +21,7 @@ from src.data import MontevideoFoldersDataset
 
 def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100, 
                    window_pad=0, window_pad_height=0, window_pad_width=0,
-                   dynamic_window=False, evaluate_day_pixels=True, error_percentage=False,
+                   dynamic_window=False, evaluate_day_pixels=False, error_percentage=False,
                    input=None):
     """
     Evaluates the precision of the prediction compared to the gorund truth using different metrics
@@ -215,7 +215,7 @@ def evaluate_pixel(predictions,gt,metric,pixel_max_value =255,pixel= (0,0)):
 
 def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
                    device=None, metric='RMSE', error_percentage=False,
-                   window_pad=0, window_pad_height=0, window_pad_width=0):
+                   window_pad=0, window_pad_height=0, window_pad_width=0, predict_diff=False):
     """
     Evaluates performance of model_instance on loader data. 
 
@@ -253,6 +253,9 @@ def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
                     inputs = inputs.to(device=device)
                     for i in range(predict_horizon):
                         prediction = model_instance[i](inputs.unsqueeze(0))
+                        if predict_diff:
+                            prediction = torch.add(prediction[:,0], inputs[2]).unsqueeze(1)
+                            prediction = torch.clamp(prediction, min=0, max=1)
                         predictions.append(prediction.cpu().detach().numpy().squeeze())
                 predictions = np.array(predictions) 
                 dynamic_window = False
