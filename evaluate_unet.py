@@ -208,7 +208,7 @@ for PREDICT_T in PREDICT_T_LIST:
             MBD_pct_loss = (MBD_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
             
             persistence_rmse = torch.sqrt(MSE(in_frames[0, 2], out_frames[0, 0])).detach().item() * 100
-            forecast_skill = RMSE_loss / persistence_rmse
+            forecast_skill = 1 - (RMSE_loss / persistence_rmse)
 
             if minute < 30:
                 if (hour, 0) in MBD_per_hour.keys():
@@ -332,7 +332,7 @@ for PREDICT_T in PREDICT_T_LIST:
         dict_values = {
             'model_name': MODEL_PATH.split('/')[-1],
             'csv_path': CSV_PATH,
-            'frame_out': FRAME_OUT,
+            'PREDICT_T': PREDICT_T,
             'predict diff': PREDICT_DIFF,
             'hour_list': hour_list,
             'mean_MAE': mean_MAE,

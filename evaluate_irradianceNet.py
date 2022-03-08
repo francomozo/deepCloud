@@ -52,10 +52,10 @@ dim = img_size // patch_size
 
 GEO_DATA = False
 TRAIN_W_LAST = True
+    
+PREDICT_T_LIST = [6, 12, 18, 24, 30]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
 
-PREDICT_T_LIST = [6, 12, 18]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
-
-evaluate_test = False
+evaluate_test = True
 for PREDICT_T in PREDICT_T_LIST:
     
     if PREDICT_T == 6:
@@ -66,7 +66,6 @@ for PREDICT_T in PREDICT_T_LIST:
         PREDICT_HORIZON = '180min'
     if PREDICT_T == 24:
         PREDICT_HORIZON = '240min'
-
     if PREDICT_T == 30:
         PREDICT_HORIZON = '300min'
 
@@ -206,7 +205,7 @@ for PREDICT_T in PREDICT_T_LIST:
             MBD_pct_loss = (MBD_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
 
             persistence_rmse = torch.sqrt(MSE(in_frames[0, -1], out_frames[0, 0])).detach().item() * 100
-            forecast_skill = RMSE_loss / persistence_rmse
+            forecast_skill = 1 - (RMSE_loss / persistence_rmse)
 
             mbd_list.append(MBD_loss)
             mbd_pct_list.append(MBD_pct_loss)
@@ -217,7 +216,15 @@ for PREDICT_T in PREDICT_T_LIST:
             rmse_pct_list.append(RMSE_pct_loss)
             ssim_list.append(SSIM_loss)
 
-
+    print('MAE', np.mean(mae_list))
+    print('MAE%', np.mean(mae_pct_list))
+    print('RMSE', np.mean(rmse_list))
+    print('RMSE%', np.mean(rmse_pct_list))
+    print('SSIM', np.mean(ssim_list))
+    print('MBD', np.mean(MBD_loss))
+    print('MBD%', np.mean(MBD_pct_loss))
+    print('FS', np.mean(forecast_skill))
+    
     mean_image = (mean_image / len(val_dataset)) * 100  # contains the mean value of each pixel independently 
     MAE_error_image = (MAE_error_image / len(val_dataset))
     MAE_pct_error_image = (MAE_error_image / mean_image) * 100
@@ -291,11 +298,14 @@ for PREDICT_T in PREDICT_T_LIST:
             'csv_path': CSV_PATH,
             'predict_t': PREDICT_T,
             'geo_data': GEO_DATA,
-            'MAE:': np.mean(mae_list),
+            'MAE': np.mean(mae_list),
             'MAE%': np.mean(mae_pct_list),
-            'RMSE:': np.mean(rmse_list),
+            'RMSE': np.mean(rmse_list),
             'RMSE%': np.mean(rmse_pct_list),
             'SSIM': np.mean(ssim_list),
+            'MBD': np.mean(MBD_loss),
+            'MBD%': np.mean(MBD_pct_loss),
+            'FS': np.mean(forecast_skill),
             'borders': borders,
             'mae_errors_borders': mae_errors_borders,
             'r_RMSE_errors_borders': r_RMSE_errors_borders
