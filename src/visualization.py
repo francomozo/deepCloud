@@ -344,7 +344,7 @@ def plot_histogram(values,bins, normalize = True):
     plt.show()
 
 
-def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False):
+def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False, bar_max=None):
     """
     Shows the image with a colorbar 
 
@@ -354,8 +354,12 @@ def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False):
     fig = plt.figure()
     fig.set_size_inches(8, 4)
     ax1 = fig.add_subplot(1, 1, 1)
-    
-    image_ = ax1.imshow(image, interpolation='none')
+
+    if bar_max:
+        image_ = ax1.imshow(image, interpolation='none' vmin=0, vmax=bar_max)
+    else:
+        image_ = ax1.imshow(image, interpolation='none')
+
     fig.colorbar(image_, ax=ax1)
     if title:
         ax1.title.set_text('Image')

@@ -79,13 +79,13 @@ for PREDICT_T in PREDICT_T_LIST:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/test_cosangs_region3.csv'
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/test/'
         SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/test/' + MODEL_PATH.split('/')[-1][:-9]  
-        SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/test'
+        SAVE_BORDERS_ERROR = 'reports/eval_per_hour/' + REGION + '/test'
 
     else:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv'
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
         SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
-        SAVE_VALUES_PATH = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON
+        SAVE_BORDERS_ERROR = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON
 
     #########################################################################################
 
@@ -95,7 +95,7 @@ for PREDICT_T in PREDICT_T_LIST:
         pass
 
     try:
-        os.mkdir(SAVE_VALUES_PATH)
+        os.mkdir(SAVE_BORDERS_ERROR)
     except:
         pass
 
@@ -232,6 +232,7 @@ for PREDICT_T in PREDICT_T_LIST:
         fig_name=fig_name,
         save_fig=True
     )
+    plt.close()
 
     np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.npy'), MAE_error_image)
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.pdf')
@@ -241,6 +242,7 @@ for PREDICT_T in PREDICT_T_LIST:
         fig_name=fig_name,
         save_fig=True
     )
+    plt.close()
 
     np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.npy'), MAE_pct_error_image)
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.pdf')
@@ -250,6 +252,7 @@ for PREDICT_T in PREDICT_T_LIST:
         fig_name=fig_name,
         save_fig=True
     )
+    plt.close()
 
     np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.npy'), RMSE_error_image)
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.pdf')
@@ -259,6 +262,7 @@ for PREDICT_T in PREDICT_T_LIST:
         fig_name=fig_name,
         save_fig=True
     )
+    plt.close()
 
     np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.npy'), RMSE_pct_error_image)
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.pdf')
@@ -268,6 +272,7 @@ for PREDICT_T in PREDICT_T_LIST:
         fig_name=fig_name,
         save_fig=True
     )
+    plt.close()
 
     mae_errors_borders = []
     mae_std_borders = []
@@ -279,7 +284,7 @@ for PREDICT_T in PREDICT_T_LIST:
         mae_errors_borders.append(np.mean(MAE_error_image[p:-p, p:-p]))
         r_RMSE_errors_borders.append(np.mean(RMSE_pct_error_image[p:-p, p:-p]))
         
-    if SAVE_VALUES_PATH:
+    if SAVE_BORDERS_ERROR:
         dict_values = {
             'model_name': MODEL_PATH.split('/')[-1],
             'test_dataset': evaluate_test,
@@ -296,6 +301,6 @@ for PREDICT_T in PREDICT_T_LIST:
             'r_RMSE_errors_borders': r_RMSE_errors_borders
         }                                                                                                                      
 
-        utils.save_pickle_dict(path=SAVE_VALUES_PATH, name=MODEL_PATH.split('/')[-1][:-14], dict_=dict_values)
+        utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name=MODEL_PATH.split('/')[-1][:-14], dict_=dict_values)
     
     del model
