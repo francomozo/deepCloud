@@ -344,7 +344,7 @@ def plot_histogram(values,bins, normalize = True):
     plt.show()
 
 
-def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False, bar_max=None):
+def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False, bar_max=None, colormap='viridis'):
     """
     Shows the image with a colorbar 
 
@@ -356,9 +356,9 @@ def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False, bar_
     ax1 = fig.add_subplot(1, 1, 1)
 
     if bar_max:
-        image_ = ax1.imshow(image, interpolation='none', vmin=0, vmax=bar_max)
+        image_ = ax1.imshow(image, cmap=colormap, interpolation='none', vmin=0, vmax=bar_max)
     else:
-        image_ = ax1.imshow(image, interpolation='none')
+        image_ = ax1.imshow(image, cmap=colormap, interpolation='none')
 
     fig.colorbar(image_, ax=ax1)
     if title:
@@ -369,7 +369,7 @@ def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False, bar_
     plt.show()
     
 
-def error_maps_for_5_horizons(error_maps_list, vmax, fig_name=None, save_fig=False):
+def error_maps_for_5_horizons(error_maps_list, vmax, colormap='coolwarm', fig_name=None, save_fig=False):
     """ Shows the images passed in a grid
     Args:
         sequence_array (array)
@@ -386,7 +386,7 @@ def error_maps_for_5_horizons(error_maps_list, vmax, fig_name=None, save_fig=Fal
     plt.subplots_adjust(wspace=0.01)
     for i in range(len(error_maps_list)):
         if i < 4:
-            ax[i].imshow(error_maps_list[i], vmin=0, vmax=vmax)
+            ax[i].imshow(error_maps_list[i], vmin=0, vmax=vmax, cmap=colormap)
             if i == 0:
                 ax[i].set_title(f'1 Hour', fontsize=fontsize)
             else:
@@ -401,7 +401,7 @@ def error_maps_for_5_horizons(error_maps_list, vmax, fig_name=None, save_fig=Fal
                 tic.tick1line.set_visible(False)
 
         elif i == 4:
-            im = ax[i].imshow(error_maps_list[i], vmin=0, vmax=vmax)
+            im = ax[i].imshow(error_maps_list[i], vmin=0, vmax=vmax, cmap=colormap)
             cbar = plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
             cbar.ax.tick_params(labelsize=fontsize)
 
