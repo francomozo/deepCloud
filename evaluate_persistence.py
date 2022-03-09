@@ -41,6 +41,11 @@ elif REGION == 'R3':
 PREDICT_T_LIST = [6, 12, 18, 24, 30]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
 
 evaluate_test = True
+
+RMSE_pct_maps_list = []
+RMSE_maps_list = []
+MAE_maps_list = []
+
 for PREDICT_T in PREDICT_T_LIST:
     
     if PREDICT_T == 6:
@@ -120,15 +125,20 @@ for PREDICT_T in PREDICT_T_LIST:
     MAE_error_image = (MAE_error_image / len(val_dataset))
     MAE_pct_error_image = (MAE_error_image / mean_image) * 100
     RMSE_pct_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset)) / mean_image) * 100
-    RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) * 100
+    RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) / 10000
 
+    RMSE_pct_maps_list.append(RMSE_pct_error_image)
+    RMSE_maps_list.append(RMSE_error_image)
+    MAE_maps_list.append(MAE_error_image)
+    
     np.save(os.path.join(SAVE_IMAGES_PATH, 'mean_image.npy'), mean_image)
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'mean_image.pdf')
     visualization.show_image_w_colorbar(
         image=MAE_error_image,
         title=None,
         fig_name=fig_name,
-        save_fig=True
+        save_fig=True,
+        bar_max=1
     )
     plt.close()
     
@@ -138,7 +148,8 @@ for PREDICT_T in PREDICT_T_LIST:
         image=MAE_error_image,
         title=None,
         fig_name=fig_name,
-        save_fig=True
+        save_fig=True,
+        bar_max=1
     )
     plt.close()
     
@@ -148,7 +159,8 @@ for PREDICT_T in PREDICT_T_LIST:
         image=MAE_pct_error_image,
         title=None,
         fig_name=fig_name,
-        save_fig=True
+        save_fig=True,
+        bar_max=100
     )
     plt.close()
 
@@ -158,7 +170,8 @@ for PREDICT_T in PREDICT_T_LIST:
         image=RMSE_error_image,
         title=None,
         fig_name=fig_name,
-        save_fig=True
+        save_fig=True,
+        bar_max=1
     )
     plt.close()
 
@@ -168,7 +181,8 @@ for PREDICT_T in PREDICT_T_LIST:
         image=RMSE_pct_error_image,
         title=None,
         fig_name=fig_name,
-        save_fig=True
+        save_fig=True,
+        bar_max=100
     )
     plt.close()
 
@@ -192,3 +206,27 @@ for PREDICT_T in PREDICT_T_LIST:
         }                                                                                                                      
 
         utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name='persistence', dict_=dict_values)
+
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_maps_together.pdf')
+visualization.error_maps_for_5_horizons(
+    error_maps_list=RMSE_pct_maps_list,
+    vmax=100,
+    fig_name=fig_name,
+    save_fig=True
+)
+
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_maps_together.pdf')
+visualization.error_maps_for_5_horizons(
+    error_maps_list=MAE_maps_list,
+    vmax=1,
+    fig_name=fig_name,
+    save_fig=True
+)
+
+fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_maps_together.pdf')
+visualization.error_maps_for_5_horizons(
+    error_maps_list=RMSE_maps_list,
+    vmax=1,
+    fig_name=fig_name,
+    save_fig=True
+)
