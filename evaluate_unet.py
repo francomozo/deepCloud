@@ -82,7 +82,7 @@ for PREDICT_T in PREDICT_T_LIST:
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
         SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
         SAVE_PER_HOUR_ERROR = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON
-        SAVE_BORDERS_ERROR = 'reports/borders_cut/' + REGION + '/test'
+        SAVE_BORDERS_ERROR = 'reports/borders_cut/' + REGION + '/validation'
         
     
     try:

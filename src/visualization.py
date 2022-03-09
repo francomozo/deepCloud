@@ -368,7 +368,58 @@ def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False, bar_
         fig.savefig(fig_name)
     plt.show()
     
+
+def error_maps_for_5_horizons(error_maps_list, vmax, fig_name=None, save_fig=False):
+    """ Shows the images passed in a grid
+    Args:
+        sequence_array (array)
+    """
+    if len(error_maps_list) != 5:
+        raise ValueError('Must input 5 Maps')
     
+    fontsize = 22 # 22 generates the font more like the latex text
+    
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    fig, ax = plt.subplots(1, nbof_frames, figsize=(30, 5))
+    plt.subplots_adjust(wspace=0.01)
+    for i in range(len(error_maps_list)):
+        if i < 4:
+            ax[i].imshow(error_maps_list[i], vmin=0, vmax=vmax)
+            if i == 0:
+                ax[i].set_title(f'1 Hour', fontsize=fontsize)
+            else:
+                ax[i].set_title(f'{i + 1} Hours', fontsize=fontsize)
+
+            ax[i].set_xticklabels([])
+            ax[i].set_yticklabels([])
+
+            for tic in ax[i].xaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+            for tic in ax[i].yaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+
+        elif i == 4:
+            im = ax[i].imshow(error_maps_list[i], vmin=0, vmax=vmax)
+            cbar = plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
+            cbar.ax.tick_params(labelsize=fontsize)
+
+            ax[i].set_title(f'5 Hours', fontsize=fontsize)
+
+            ax[i].set_xticklabels([])
+            ax[i].set_yticklabels([])
+            for tic in ax[i].xaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+            for tic in ax[i].yaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+
+    if save_fig:
+        fig.tight_layout() 
+        fig.savefig(fig_name)
+    plt.show()
+
+
 def show_images_diff(img1, img2):
     """
     Shows the difference between two images with a colorbar 
