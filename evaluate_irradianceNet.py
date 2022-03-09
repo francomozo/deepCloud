@@ -204,7 +204,7 @@ for PREDICT_T in PREDICT_T_LIST:
             MBD_loss = (torch.mean(torch.subtract(reconstructed_pred[0, 0], out_frames[0, 0])).detach().item() * 100)
             MBD_pct_loss = (MBD_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
 
-            persistence_rmse = torch.sqrt(MSE(in_frames[0, -1], out_frames[0, 0])).detach().item() * 100
+            persistence_rmse = torch.sqrt(MSE(in_frames[0, -1, 0], out_frames[0, 0])).detach().item() * 100
             forecast_skill = 1 - (RMSE_loss / persistence_rmse)
 
             mbd_list.append(MBD_loss)
