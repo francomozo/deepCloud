@@ -382,7 +382,7 @@ def error_maps_for_5_horizons(error_maps_list, vmax, fig_name=None, save_fig=Fal
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    fig, ax = plt.subplots(1, nbof_frames, figsize=(30, 5))
+    fig, ax = plt.subplots(1, 5, figsize=(30, 5))
     plt.subplots_adjust(wspace=0.01)
     for i in range(len(error_maps_list)):
         if i < 4:
