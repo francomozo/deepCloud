@@ -64,13 +64,13 @@ for PREDICT_T in PREDICT_T_LIST:
     if evaluate_test:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/test_cosangs_region3.csv'
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/test/'
-        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/test/'   
+        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/test/persistence/'   
         SAVE_BORDERS_ERROR = 'reports/borders_cut/' + REGION + '/' + PREDICT_HORIZON + '/test/persistence/'
 
     else:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv'
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
-        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/persistence'
+        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/persistence/'
         SAVE_BORDERS_ERROR = 'reports/borders_cut/' + REGION + '/' + PREDICT_HORIZON
 
     #########################################################################################
@@ -125,7 +125,7 @@ for PREDICT_T in PREDICT_T_LIST:
     MAE_error_image = (MAE_error_image / len(val_dataset))
     MAE_pct_error_image = (MAE_error_image / mean_image) * 100
     RMSE_pct_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset)) / mean_image) * 100
-    RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) / 10000
+    RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) / 100
 
     RMSE_pct_maps_list.append(RMSE_pct_error_image)
     RMSE_maps_list.append(RMSE_error_image)
@@ -134,11 +134,12 @@ for PREDICT_T in PREDICT_T_LIST:
     np.save(os.path.join(SAVE_IMAGES_PATH, 'mean_image.npy'), mean_image)
     fig_name = os.path.join(SAVE_IMAGES_PATH, 'mean_image.pdf')
     visualization.show_image_w_colorbar(
-        image=MAE_error_image,
+        image=mean_image,
         title=None,
         fig_name=fig_name,
         save_fig=True,
-        bar_max=1
+        bar_max=1,
+        colormap='viridis'
     )
     plt.close()
     
@@ -149,7 +150,8 @@ for PREDICT_T in PREDICT_T_LIST:
         title=None,
         fig_name=fig_name,
         save_fig=True,
-        bar_max=1
+        bar_max=1,
+        colormap='coolwarm'
     )
     plt.close()
     
@@ -160,7 +162,8 @@ for PREDICT_T in PREDICT_T_LIST:
         title=None,
         fig_name=fig_name,
         save_fig=True,
-        bar_max=100
+        bar_max=100,
+        colormap='coolwarm'
     )
     plt.close()
 
@@ -171,7 +174,8 @@ for PREDICT_T in PREDICT_T_LIST:
         title=None,
         fig_name=fig_name,
         save_fig=True,
-        bar_max=1
+        bar_max=1,
+        colormap='coolwarm'
     )
     plt.close()
 
@@ -182,7 +186,8 @@ for PREDICT_T in PREDICT_T_LIST:
         title=None,
         fig_name=fig_name,
         save_fig=True,
-        bar_max=100
+        bar_max=100,
+        colormap='coolwarm'
     )
     plt.close()
 
@@ -212,7 +217,8 @@ visualization.error_maps_for_5_horizons(
     error_maps_list=RMSE_pct_maps_list,
     vmax=100,
     fig_name=fig_name,
-    save_fig=True
+    save_fig=True,
+    colormap='coolwarm'
 )
 
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_maps_together.pdf')
@@ -220,7 +226,8 @@ visualization.error_maps_for_5_horizons(
     error_maps_list=MAE_maps_list,
     vmax=1,
     fig_name=fig_name,
-    save_fig=True
+    save_fig=True,
+    colormap='coolwarm'
 )
 
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_maps_together.pdf')
@@ -228,5 +235,6 @@ visualization.error_maps_for_5_horizons(
     error_maps_list=RMSE_maps_list,
     vmax=1,
     fig_name=fig_name,
-    save_fig=True
+    save_fig=True,
+    colormap='coolwarm'
 )
