@@ -41,6 +41,8 @@ ap.add_argument("--window-pad-height", default=0, type=int,
                 help="Size of height padding for evaluation, eval window is [w_p_h//2 : M-w_p_h//2]. Defaults to 0.")
 ap.add_argument("--window-pad-width", default=0, type=int,
                 help="Size of width padding for evaluation, eval window is [w_p_w//2 : N-w_p_w//2]. Defaults to 0.")
+ap.add_argument("--region", default=None, 
+                help="Defaults to region3. Region for cmv blur")
 
 params = vars(ap.parse_args())
 csv_path_base = params['csv_path_base']
@@ -64,7 +66,19 @@ for a_model_name in models_names:
   if "cmv" == a_model_name:
     models.append(model.Cmv2())
   if "bcmv" == a_model_name:
-    models.append(model.Cmv2(kernel_size_list=[(5,5),(17,17),(41,41),(65,65),(89,89),(113,113),(137,137),(157,157),(181,181),(205,205),(225,225),(249,249)]))
+    if params["region"] == "mvd":
+        kernel_size_list_cmv = [(0,0)]*9
+        kernel_size_list_cmv[2]=(31,31)
+        kernel_size_list_cmv[5]=(87,87)
+        kernel_size_list_cmv[8]=(135,135)
+    if params["region"] == "region3":
+        kernel_size_list_cmv = [(0,0)]*30
+        kernel_size_list_cmv[5]=(119,119)
+        kernel_size_list_cmv[11]=(287,287)
+        kernel_size_list_cmv[17]=(463,463)
+        kernel_size_list_cmv[23]=(631,631)
+        kernel_size_list_cmv[29]=(799,799)
+    models.append(model.Cmv2(kernel_size_list=kernel_size_list_cmv))
   if "p" == a_model_name or "persistence" == a_model_name:
     models.append(model.Persistence())
   if "bp" == a_model_name or "blurredpersistence" == a_model_name:
@@ -114,6 +128,8 @@ for metric in metrics:
                                               window_pad_height=params['window_pad_height'],
                                               window_pad_width=params['window_pad_width'],
                                               baseline_predict_direct=True)
+        #print(error_array)
+        print("desviacion", np.std(error_array))
         error_mean = np.mean(error_array, axis=0)
         error_mean = error_mean/fix
         error_mean_all_horizons.append(error_mean[-1])
