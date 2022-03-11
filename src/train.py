@@ -1512,7 +1512,8 @@ def train_irradianceNet(
                     geo_data=False,
                     retrain=False,
                     trained_model_dict=None,
-                    testing_loop=False):
+                    testing_loop=False,
+                    validate_ssim=False):
     """ This train function evaluates on all the validation dataset one time per epoch
 
     Args:
@@ -1684,12 +1685,14 @@ def train_irradianceNet(
                             mse_val_loss_Q += mse_loss(frames_pred_Q,
                                                        out_frames[:, :, :, n:n+patch_size, m:m+patch_size]).detach().item()
                             if direct:
-                                frames_pred_Q = torch.clamp(torch.squeeze(frames_pred_Q, dim=1), min=0, max=1)
-                                
-                                ssim_val_loss_Q += ssim_loss(frames_pred_Q,
-                                                            torch.squeeze(out_frames[:,:,:, n:n+patch_size, m:m+patch_size],
-                                                                          dim=1)
-                                                            ).detach().item()
+                                if validate_ssim:
+                                    frames_pred_Q = torch.clamp(torch.squeeze(frames_pred_Q, dim=1), min=0, max=1)
+                                    ssim_val_loss_Q += ssim_loss(frames_pred_Q,
+                                                                torch.squeeze(out_frames[:,:,:, n:n+patch_size, m:m+patch_size],
+                                                                            dim=1)
+                                                                ).detach().item()
+                                else:
+                                    ssim_val_loss_Q = 0
                             else:    
                                 ssim_val_loss_Q = 0
                         else:
@@ -1700,11 +1703,13 @@ def train_irradianceNet(
                                                        out_frames[:, :, n:n+patch_size, m:m+patch_size]
                                                        ).detach().item()
 
-                            frames_pred_Q = torch.clamp(frames_pred_Q[:, -1, :, :, :], min=0, max=1)
-  
-                            ssim_val_loss_Q += ssim_loss(frames_pred_Q,
+                            if validate_ssim:
+                                frames_pred_Q = torch.clamp(frames_pred_Q[:, -1, :, :, :], min=0, max=1)
+                                ssim_val_loss_Q += ssim_loss(frames_pred_Q,
                                                         out_frames[:, :, n:n+patch_size, m:m+patch_size]
                                                         ).detach().item()
+                            else:
+                                ssim_val_loss_Q = 0
                         
                 mae_val_loss += (mae_val_loss_Q / (dim**2))
                 mse_val_loss += (mse_val_loss_Q / (dim**2))
