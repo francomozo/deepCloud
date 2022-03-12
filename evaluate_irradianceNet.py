@@ -5,7 +5,7 @@ import os
 import cv2 as cv
 import matplotlib.pyplot as plt
 import time
-from piqa import SSIM
+# from piqa import SSIM
 from tqdm import tqdm
 print('import basic')
 
@@ -19,7 +19,7 @@ from src.dl_models.ConvLSTM_large import ConvLSTM_patch
 from src.lib.utils_irradianceNet import convert_to_full_res, interpolate_borders
 
 # DeepCloud
-from src import data, evaluate, model, preprocessing, visualization, train
+from src import data, evaluate, model, preprocessing, visualization
 from src.lib import utils
 from src.lib.latex_options import Colors, Linestyles
 from src.data import PatchesFoldersDataset_w_geodata, PatchesFoldersDataset
@@ -31,7 +31,7 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 print('using device:', device)
 MSE = nn.MSELoss()
 MAE = nn.L1Loss()
-SSIM = SSIM(n_channels=1).cuda()
+# SSIM = SSIM(n_channels=1).cuda()
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
 borders = np.linspace(1, 450, 100)
 #######################################################################################
@@ -53,9 +53,12 @@ dim = img_size // patch_size
 GEO_DATA = False
 TRAIN_W_LAST = True
     
-PREDICT_T_LIST = [6, 12, 18, 24, 30]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
+PREDICT_T_LIST = [18, 24]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
 
 evaluate_test = True
+evaluate_best_model = False
+GENERATE_ERROR_MAP = False
+
 for PREDICT_T in PREDICT_T_LIST:
     
     if PREDICT_T == 6:
@@ -71,8 +74,8 @@ for PREDICT_T in PREDICT_T_LIST:
 
     print('Predict Horizon:', PREDICT_HORIZON)
     
-    MODEL_NAME = get_model_name(PREDICT_HORIZON, architecture='irradianceNet', geo=GEO_DATA)
-    MODEL_PATH = '/clusteruy/home03/DeepCloud/deepCloud/checkpoints/' + REGION + '/' + PREDICT_HORIZON +  '/' + MODEL_NAME
+    MODEL_NAME = get_model_name(PREDICT_HORIZON, architecture='irradianceNet', best_model=evaluate_best_model, geo=GEO_DATA)
+    MODEL_PATH = 'checkpoints/' + REGION + '/' + PREDICT_HORIZON +  '/' + MODEL_NAME
 
     if evaluate_test:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/test_cosangs_region3.csv'
@@ -161,14 +164,15 @@ for PREDICT_T in PREDICT_T_LIST:
     mbd_list = []
     mbd_pct_list = []
     fs_list = []
-    ssim_list = []
+    # ssim_list = []
 
-    mean_image = np.zeros((img_size, img_size))
+    if GENERATE_ERROR_MAP:
+        mean_image = np.zeros((img_size, img_size))
 
-    MAE_error_image = np.zeros((img_size, img_size))
-    MAE_pct_error_image = np.zeros((img_size, img_size))
-    RMSE_pct_error_image = np.zeros((img_size, img_size))
-    RMSE_error_image = np.zeros((img_size, img_size))
+        MAE_error_image = np.zeros((img_size, img_size))
+        MAE_pct_error_image = np.zeros((img_size, img_size))
+        RMSE_pct_error_image = np.zeros((img_size, img_size))
+        RMSE_error_image = np.zeros((img_size, img_size))
 
     with torch.no_grad():
         for val_batch_idx, (in_frames, out_frames) in enumerate(tqdm(val_loader)):
@@ -180,26 +184,21 @@ for PREDICT_T in PREDICT_T_LIST:
             out_frames = out_frames.to(device=device)
             reconstructed_pred = torch.zeros((1, 1, img_size, img_size)).to(device=device)
 
-            mean_image += out_frames[0,0].cpu().numpy()
-
             for i in range(dim):
                 for j in range(dim):
                     n = i * patch_size
                     m = j * patch_size
                     frames_pred_Q = model(in_frames[:, :, :, n:n + patch_size, m:m + patch_size])
-                    reconstructed_pred[0, 0, n:n + patch_size, m:m + patch_size] = torch.clamp(frames_pred_Q[0, 1, 0, :, :], min=0, max=1)
+                    # reconstructed_pred[0, 0, n:n + patch_size, m:m + patch_size] = torch.clamp(frames_pred_Q[0, 1, 0, :, :], min=0, max=1)
+                    reconstructed_pred[0, 0, n:n + patch_size, m:m + patch_size] = frames_pred_Q[0, 1, 0, :, :]
 
             MAE_loss = (MAE(reconstructed_pred[0, 0], out_frames[0, 0]).detach().item() * 100)
             MAE_pct_loss = (MAE_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
 
-            MAE_error_image += torch.abs(torch.subtract(out_frames[0,0], reconstructed_pred[0,0])).cpu().numpy()
-
             RMSE_loss = torch.sqrt(MSE(reconstructed_pred[0, 0], out_frames[0, 0])).detach().item() * 100
             RMSE_pct_loss = (RMSE_loss / (torch.mean(out_frames[0, 0]).cpu().numpy() * 100)) * 100
 
-            RMSE_error_image += torch.square(torch.multiply(torch.subtract(out_frames[0,0], reconstructed_pred[0, 0]), 100)).cpu().numpy()
-
-            SSIM_loss = SSIM(reconstructed_pred, out_frames).detach().item()
+            # SSIM_loss = SSIM(reconstructed_pred, out_frames).detach().item()
 
             MBD_loss = (torch.mean(torch.subtract(reconstructed_pred[0, 0], out_frames[0, 0])).detach().item() * 100)
             MBD_pct_loss = (MBD_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
@@ -214,103 +213,136 @@ for PREDICT_T in PREDICT_T_LIST:
             mae_pct_list.append(MAE_pct_loss)
             rmse_list.append(RMSE_loss)
             rmse_pct_list.append(RMSE_pct_loss)
-            ssim_list.append(SSIM_loss)
-
+            # ssim_list.append(SSIM_loss)
+            
+            if GENERATE_ERROR_MAP:
+                mean_image += out_frames[0,0].cpu().numpy()
+                RMSE_error_image += torch.square(torch.multiply(torch.subtract(out_frames[0,0], reconstructed_pred[0, 0]), 100)).cpu().numpy()
+                MAE_error_image += torch.abs(torch.subtract(out_frames[0,0], reconstructed_pred[0,0])).cpu().numpy()
+    
     print('MAE', np.mean(mae_list))
     print('MAE%', np.mean(mae_pct_list))
     print('RMSE', np.mean(rmse_list))
     print('RMSE%', np.mean(rmse_pct_list))
-    print('SSIM', np.mean(ssim_list))
+    # print('SSIM', np.mean(ssim_list))
     print('MBD', np.mean(MBD_loss))
     print('MBD%', np.mean(MBD_pct_loss))
     print('FS', np.mean(forecast_skill))
     
-    mean_image = (mean_image / len(val_dataset)) * 100  # contains the mean value of each pixel independently 
-    MAE_error_image = (MAE_error_image / len(val_dataset))
-    MAE_pct_error_image = (MAE_error_image / mean_image) * 100
-    RMSE_pct_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset)) / mean_image) * 100
-    RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) * 100
+    if GENERATE_ERROR_MAP:
+        mean_image = (mean_image / len(val_dataset)) * 100  # contains the mean value of each pixel independently 
+        MAE_error_image = (MAE_error_image / len(val_dataset))
+        MAE_pct_error_image = (MAE_error_image / mean_image) * 100
+        RMSE_pct_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset)) / mean_image) * 100
+        RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) * 100
 
-    np.save(os.path.join(SAVE_IMAGES_PATH, 'mean_image.npy'), mean_image)
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'mean_image.pdf')
-    visualization.show_image_w_colorbar(
-        image=MAE_error_image,
-        title=None,
-        fig_name=fig_name,
-        save_fig=True
-    )
-    plt.close()
+        np.save(os.path.join(SAVE_IMAGES_PATH, 'mean_image.npy'), mean_image)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'mean_image.pdf')
+        visualization.show_image_w_colorbar(
+            image=mean_image,
+            title=None,
+            fig_name=fig_name,
+            save_fig=True,
+            bar_max=1,
+            colormap='viridis'
+        )
+        plt.close()
 
-    np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.npy'), MAE_error_image)
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.pdf')
-    visualization.show_image_w_colorbar(
-        image=MAE_error_image,
-        title=None,
-        fig_name=fig_name,
-        save_fig=True
-    )
-    plt.close()
+        np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.npy'), MAE_error_image)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.pdf')
+        visualization.show_image_w_colorbar(
+            image=MAE_error_image,
+            title=None,
+            fig_name=fig_name,
+            save_fig=True,
+            bar_max=0.3,
+            colormap='coolwarm'
+        )
+        plt.close()
 
-    np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.npy'), MAE_pct_error_image)
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.pdf')
-    visualization.show_image_w_colorbar(
-        image=MAE_pct_error_image,
-        title=None,
-        fig_name=fig_name,
-        save_fig=True
-    )
-    plt.close()
+        np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.npy'), MAE_pct_error_image)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.pdf')
+        visualization.show_image_w_colorbar(
+            image=MAE_pct_error_image,
+            title=None,
+            fig_name=fig_name,
+            save_fig=True,
+            bar_max=100,
+            colormap='coolwarm'
+        )
+        plt.close()
 
-    np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.npy'), RMSE_error_image)
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.pdf')
-    visualization.show_image_w_colorbar(
-        image=RMSE_error_image,
-        title=None,
-        fig_name=fig_name,
-        save_fig=True
-    )
-    plt.close()
+        np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.npy'), RMSE_error_image)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.pdf')
+        visualization.show_image_w_colorbar(
+            image=RMSE_error_image,
+            title=None,
+            fig_name=fig_name,
+            save_fig=True,
+            bar_max=0.3,
+            colormap='coolwarm'
+        )
+        plt.close()
 
-    np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.npy'), RMSE_pct_error_image)
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.pdf')
-    visualization.show_image_w_colorbar(
-        image=RMSE_pct_error_image,
-        title=None,
-        fig_name=fig_name,
-        save_fig=True
-    )
-    plt.close()
+        np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.npy'), RMSE_pct_error_image)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.pdf')
+        visualization.show_image_w_colorbar(
+            image=RMSE_pct_error_image,
+            title=None,
+            fig_name=fig_name,
+            save_fig=True,
+            bar_max=100,
+            colormap='coolwarm'
+        )
+        plt.close()
 
-    mae_errors_borders = []
-    mae_std_borders = []
-    r_RMSE_errors_borders = []
-    r_RMSE_std_borders = []
+        mae_errors_borders = []
+        mae_std_borders = []
+        r_RMSE_errors_borders = []
+        r_RMSE_std_borders = []
 
-    for i in borders:
-        p = int(i)
-        mae_errors_borders.append(np.mean(MAE_error_image[p:-p, p:-p]))
-        r_RMSE_errors_borders.append(np.mean(RMSE_pct_error_image[p:-p, p:-p]))
+        for i in borders:
+            p = int(i)
+            mae_errors_borders.append(np.mean(MAE_error_image[p:-p, p:-p]))
+            r_RMSE_errors_borders.append(np.mean(RMSE_pct_error_image[p:-p, p:-p]))
+            
+        if SAVE_BORDERS_ERROR:
+            dict_values = {
+                'model_name': MODEL_PATH.split('/')[-1],
+                'test_dataset': evaluate_test,
+                'csv_path': CSV_PATH,
+                'predict_t': PREDICT_T,
+                'geo_data': GEO_DATA,
+                'MAE': np.mean(mae_list),
+                'MAE%': np.mean(mae_pct_list),
+                'RMSE': np.mean(rmse_list),
+                'RMSE%': np.mean(rmse_pct_list),
+                'MBD': np.mean(MBD_loss),
+                'MBD%': np.mean(MBD_pct_loss),
+                'FS': np.mean(forecast_skill),
+                'borders': borders,
+                'mae_errors_borders': mae_errors_borders,
+                'r_RMSE_errors_borders': r_RMSE_errors_borders
+            }                                                                                                                      
+                # 'SSIM': np.mean(ssim_list),
+            utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name=MODEL_PATH.split('/')[-1][:-14], dict_=dict_values)
+    else:
+        if SAVE_BORDERS_ERROR:
+            dict_values = {
+                'model_name': MODEL_PATH.split('/')[-1],
+                'test_dataset': evaluate_test,
+                'csv_path': CSV_PATH,
+                'predict_t': PREDICT_T,
+                'geo_data': GEO_DATA,
+                'MAE': np.mean(mae_list),
+                'MAE%': np.mean(mae_pct_list),
+                'RMSE': np.mean(rmse_list),
+                'RMSE%': np.mean(rmse_pct_list),
+                'MBD': np.mean(MBD_loss),
+                'MBD%': np.mean(MBD_pct_loss),
+                'FS': np.mean(forecast_skill)
+            }                                                                                                                      
+
+            utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name=MODEL_PATH.split('/')[-1][:-14], dict_=dict_values)
         
-    if SAVE_BORDERS_ERROR:
-        dict_values = {
-            'model_name': MODEL_PATH.split('/')[-1],
-            'test_dataset': evaluate_test,
-            'csv_path': CSV_PATH,
-            'predict_t': PREDICT_T,
-            'geo_data': GEO_DATA,
-            'MAE': np.mean(mae_list),
-            'MAE%': np.mean(mae_pct_list),
-            'RMSE': np.mean(rmse_list),
-            'RMSE%': np.mean(rmse_pct_list),
-            'SSIM': np.mean(ssim_list),
-            'MBD': np.mean(MBD_loss),
-            'MBD%': np.mean(MBD_pct_loss),
-            'FS': np.mean(forecast_skill),
-            'borders': borders,
-            'mae_errors_borders': mae_errors_borders,
-            'r_RMSE_errors_borders': r_RMSE_errors_borders
-        }                                                                                                                      
-
-        utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name=MODEL_PATH.split('/')[-1][:-14], dict_=dict_values)
-    
     del model

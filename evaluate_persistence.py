@@ -150,7 +150,7 @@ for PREDICT_T in PREDICT_T_LIST:
         title=None,
         fig_name=fig_name,
         save_fig=True,
-        bar_max=1,
+        bar_max=0.3,
         colormap='coolwarm'
     )
     plt.close()
@@ -174,7 +174,7 @@ for PREDICT_T in PREDICT_T_LIST:
         title=None,
         fig_name=fig_name,
         save_fig=True,
-        bar_max=1,
+        bar_max=0.3,
         colormap='coolwarm'
     )
     plt.close()
