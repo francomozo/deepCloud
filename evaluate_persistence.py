@@ -119,13 +119,13 @@ for PREDICT_T in PREDICT_T_LIST:
 
         MAE_error_image += torch.abs(torch.subtract(out_frames[0,0], in_frames[0,0])).cpu().numpy()
 
-        RMSE_error_image += torch.square(torch.multiply(torch.subtract(out_frames[0,0], in_frames[0, 0]), 100)).cpu().numpy()
+        RMSE_error_image += torch.square(torch.multiply(torch.subtract(out_frames[0,0], in_frames[0, 0]), 1)).cpu().numpy()
 
-    mean_image = (mean_image / len(val_dataset)) * 100  # contains the mean value of each pixel independently 
+    mean_image = (mean_image / len(val_dataset)) * 1  # contains the mean value of each pixel independently 
     MAE_error_image = (MAE_error_image / len(val_dataset))
     MAE_pct_error_image = (MAE_error_image / mean_image) * 100
     RMSE_pct_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset)) / mean_image) * 100
-    RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) / 100
+    RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) / 1
 
     RMSE_pct_maps_list.append(RMSE_pct_error_image)
     RMSE_maps_list.append(RMSE_error_image)
@@ -150,7 +150,7 @@ for PREDICT_T in PREDICT_T_LIST:
         title=None,
         fig_name=fig_name,
         save_fig=True,
-        bar_max=1,
+        bar_max=0.3,
         colormap='coolwarm'
     )
     plt.close()
@@ -174,7 +174,7 @@ for PREDICT_T in PREDICT_T_LIST:
         title=None,
         fig_name=fig_name,
         save_fig=True,
-        bar_max=1,
+        bar_max=0.3,
         colormap='coolwarm'
     )
     plt.close()
@@ -224,7 +224,7 @@ visualization.error_maps_for_5_horizons(
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_maps_together.pdf')
 visualization.error_maps_for_5_horizons(
     error_maps_list=MAE_maps_list,
-    vmax=1,
+    vmax=0.3,
     fig_name=fig_name,
     save_fig=True,
     colormap='coolwarm'
@@ -233,7 +233,7 @@ visualization.error_maps_for_5_horizons(
 fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_maps_together.pdf')
 visualization.error_maps_for_5_horizons(
     error_maps_list=RMSE_maps_list,
-    vmax=1,
+    vmax=0.3,
     fig_name=fig_name,
     save_fig=True,
     colormap='coolwarm'

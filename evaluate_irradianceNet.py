@@ -53,7 +53,7 @@ dim = img_size // patch_size
 GEO_DATA = False
 TRAIN_W_LAST = True
     
-PREDICT_T_LIST = [6, 12, 18, 24, 30]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
+PREDICT_T_LIST = [30]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
 
 evaluate_test = True
 for PREDICT_T in PREDICT_T_LIST:
