@@ -41,7 +41,8 @@ OUTPUT_ACTIVATION = 'sigmoid'
 FILTERS = 16
 PREDICT_DIFF = False
 
-evaluate_test = True
+evaluate_test = False
+GENERATE_ERROR_MAP = False
 
 for PREDICT_T in PREDICT_T_LIST:
     
@@ -115,6 +116,10 @@ for PREDICT_T in PREDICT_T_LIST:
     in_frames, out_frames, _, _ = next(iter(val_loader))
     M, N = out_frames[0,0].shape[0], out_frames[0,0].shape[1]
 
+    RMSE_pct_list = []
+    RMSE_list = []
+    MAE_list = []
+    
     MAE_per_hour = {}  # MAE
     MAE_pct_per_hour = {}
     RMSE_per_hour = {}  # RMSE
@@ -124,11 +129,12 @@ for PREDICT_T in PREDICT_T_LIST:
     FS_per_hour = {}  # FS
     SSIM_per_hour = {}  # SSIM
 
-    mean_image = np.zeros((M,N))
-    MAE_error_image = np.zeros((M,N))
-    MAE_pct_error_image = np.zeros((M,N))
-    RMSE_pct_error_image = np.zeros((M,N))
-    RMSE_error_image = np.zeros((M,N))
+    if GENERATE_ERROR_MAP:
+        mean_image = np.zeros((M,N))
+        MAE_error_image = np.zeros((M,N))
+        MAE_pct_error_image = np.zeros((M,N))
+        RMSE_pct_error_image = np.zeros((M,N))
+        RMSE_error_image = np.zeros((M,N))
 
     model.eval()
     with torch.no_grad():
@@ -137,7 +143,6 @@ for PREDICT_T in PREDICT_T_LIST:
             out_frames = out_frames.to(device=device)
             day, hour, minute  = int(out_time[0, 0, 0]), int(out_time[0, 0, 1]), int(out_time[0, 0, 2])
 
-            mean_image += out_frames[0,0].cpu().numpy()
 
             if not PREDICT_DIFF:
                 frames_pred = model(in_frames)
@@ -150,8 +155,8 @@ for PREDICT_T in PREDICT_T_LIST:
             # MAE
             MAE_loss = (MAE(frames_pred, out_frames).detach().item() * 100)
             MAE_pct_loss = (MAE_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
-
-            MAE_error_image += torch.abs(torch.multiply(torch.subtract(out_frames[0,0], frames_pred[0,0]), 100)).cpu().numpy()
+            
+            MAE_list.append(MAE_loss)
 
             if minute < 30:
                 if (hour, 0) in MAE_per_hour.keys():
@@ -172,7 +177,13 @@ for PREDICT_T in PREDICT_T_LIST:
             RMSE_loss = torch.sqrt(MSE(frames_pred, out_frames)).detach().item() * 100
             RMSE_pct_loss = (RMSE_loss / (torch.mean(out_frames[0, 0]).cpu().numpy() * 100)) * 100
             
-            RMSE_error_image += torch.square(torch.multiply(torch.subtract(out_frames[0,0], frames_pred[0,0]), 100)).cpu().numpy()
+            RMSE_list.append(RMSE_loss)
+            RMSE_pct_list.append(RMSE_pct_loss)
+            
+            if GENERATE_ERROR_MAP:
+                mean_image += out_frames[0,0].cpu().numpy()
+                MAE_error_image += torch.abs(torch.multiply(torch.subtract(out_frames[0,0], frames_pred[0,0]), 100)).cpu().numpy()
+                RMSE_error_image += torch.square(torch.multiply(torch.subtract(out_frames[0,0], frames_pred[0,0]), 100)).cpu().numpy()
         
             if minute<30:
                 if (hour, 0) in RMSE_per_hour.keys():
@@ -230,64 +241,65 @@ for PREDICT_T in PREDICT_T_LIST:
                     FS_per_hour[(hour, 30)] = [forecast_skill]
 
     # GENERATE ERROR IMAGES
-    mean_image = (mean_image / len(val_dataset)) * 100  # contains the mean value of each pixel independently 
+    if GENERATE_ERROR_MAP:
+        mean_image = (mean_image / len(val_dataset)) * 100  # contains the mean value of each pixel independently 
 
-    MAE_error_image = (MAE_error_image / len(val_dataset))
+        MAE_error_image = (MAE_error_image / len(val_dataset))
 
-    MAE_pct_error_image = (MAE_error_image / mean_image) * 100
+        MAE_pct_error_image = (MAE_error_image / mean_image) * 100
 
-    RMSE_pct_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset)) / mean_image) * 100
-    RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) * 100
+        RMSE_pct_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset)) / mean_image) * 100
+        RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) * 100
 
-    np.save(os.path.join(SAVE_IMAGES_PATH, 'mean_image.npy'), mean_image)
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'mean_image.pdf')
-    visualization.show_image_w_colorbar(
-        image=MAE_error_image,
-        title=None,
-        fig_name=fig_name,
-        save_fig=True
-    )
-    plt.close()
+        np.save(os.path.join(SAVE_IMAGES_PATH, 'mean_image.npy'), mean_image)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'mean_image.pdf')
+        visualization.show_image_w_colorbar(
+            image=mean_image,
+            title=None,
+            fig_name=fig_name,
+            save_fig=True
+        )
+        plt.close()
 
-    np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.npy'), MAE_error_image)
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.pdf')
-    visualization.show_image_w_colorbar(
-        image=MAE_error_image,
-        title=None,
-        fig_name=fig_name,
-        save_fig=True
-    )
-    plt.close()
+        np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.npy'), MAE_error_image)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.pdf')
+        visualization.show_image_w_colorbar(
+            image=MAE_error_image,
+            title=None,
+            fig_name=fig_name,
+            save_fig=True
+        )
+        plt.close()
 
-    np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.npy'), MAE_pct_error_image)
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.pdf')
-    visualization.show_image_w_colorbar(
-        image=MAE_pct_error_image,
-        title=None,
-        fig_name=fig_name,
-        save_fig=True
-    )
-    plt.close()
+        np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.npy'), MAE_pct_error_image)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.pdf')
+        visualization.show_image_w_colorbar(
+            image=MAE_pct_error_image,
+            title=None,
+            fig_name=fig_name,
+            save_fig=True
+        )
+        plt.close()
 
-    np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.npy'), RMSE_error_image)
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.pdf')
-    visualization.show_image_w_colorbar(
-        image=RMSE_error_image,
-        title=None,
-        fig_name=fig_name,
-        save_fig=True
-    )
-    plt.close()
+        np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.npy'), RMSE_error_image)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_error_image.pdf')
+        visualization.show_image_w_colorbar(
+            image=RMSE_error_image,
+            title=None,
+            fig_name=fig_name,
+            save_fig=True
+        )
+        plt.close()
 
-    np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.npy'), RMSE_pct_error_image)
-    fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.pdf')
-    visualization.show_image_w_colorbar(
-        image=RMSE_pct_error_image,
-        title=None,
-        fig_name=fig_name,
-        save_fig=True
-    )
-    plt.close()
+        np.save(os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.npy'), RMSE_pct_error_image)
+        fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_error_image.pdf')
+        visualization.show_image_w_colorbar(
+            image=RMSE_pct_error_image,
+            title=None,
+            fig_name=fig_name,
+            save_fig=True
+        )
+        plt.close()
 
     mean_MAE = []
     mean_MAE_pct = []
@@ -350,31 +362,35 @@ for PREDICT_T in PREDICT_T_LIST:
             'mean_MBD_pct': mean_MBD_pct,
             'std_MBD_pct': std_MBD_pct,
             'mean_FS': mean_FS,
-            'std_FS': std_FS
+            'std_FS': std_FS,
+            'mean_total_MAE': np.mean(MAE_list),
+            'mean_total_RMSE': np.mean(RMSE_list),
+            'mean_total_RMSE_pct': np.mean(RMSE_pct_list)
         }                                                                                                                      
 
         utils.save_pickle_dict(path=SAVE_PER_HOUR_ERROR, name=MODEL_PATH.split('/')[-1][:-12], dict_=dict_values) 
 
-        mae_errors_borders = []
-        r_RMSE_errors_borders = []
+        if GENERATE_ERROR_MAP:
+            mae_errors_borders = []
+            r_RMSE_errors_borders = []
 
-        for i in borders:
-            p = int(i)
-            mae_errors_borders.append(np.mean(MAE_error_image[p:-p, p:-p]))
-            r_RMSE_errors_borders.append(np.mean(RMSE_pct_error_image[p:-p, p:-p]))
-            
-        if SAVE_BORDERS_ERROR:
-            dict_values = {
-                'model_name': MODEL_PATH.split('/')[-1],
-                'test_dataset': evaluate_test,
-                'csv_path': CSV_PATH,
-                'predict_t': PREDICT_T,
-                'borders': borders,
-                'mae_errors_borders': mae_errors_borders,
-                'r_RMSE_errors_borders': r_RMSE_errors_borders
-            }                                                                                                                      
+            for i in borders:
+                p = int(i)
+                mae_errors_borders.append(np.mean(MAE_error_image[p:-p, p:-p]))
+                r_RMSE_errors_borders.append(np.mean(RMSE_pct_error_image[p:-p, p:-p]))
+                
+            if SAVE_BORDERS_ERROR:
+                dict_values = {
+                    'model_name': MODEL_PATH.split('/')[-1],
+                    'test_dataset': evaluate_test,
+                    'csv_path': CSV_PATH,
+                    'predict_t': PREDICT_T,
+                    'borders': borders,
+                    'mae_errors_borders': mae_errors_borders,
+                    'r_RMSE_errors_borders': r_RMSE_errors_borders
+                }                                                                                                                      
 
-            utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name=MODEL_PATH.split('/')[-1][:-12], dict_=dict_values)
+                utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name=MODEL_PATH.split('/')[-1][:-12], dict_=dict_values)
         
     print('Dict with error values saved.')
     del model
