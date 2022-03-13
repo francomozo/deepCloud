@@ -10,10 +10,7 @@ from src.data import MontevideoFoldersDataset, MontevideoFoldersDataset_w_time
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
-from piqa import SSIM
 from src.dl_models.unet import UNet, UNet2
-from src.dl_models.unet_advanced import R2U_Net, AttU_Net, R2AttU_Net, NestedUNet
-import scipy.stats as st
 from src.lib.latex_options import Colors, Linestyles
 from src.lib.utils import get_model_name
 
@@ -22,7 +19,6 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 print('using device:', device)
 MSE = nn.MSELoss()
 MAE = nn.L1Loss()
-SSIM = SSIM(n_channels=1).cuda()
 normalize = preprocessing.normalize_pixels(mean0 = False) #values between [0,1]
 fontsize = 22 # 22 generates the font more like the latex text
 borders = np.linspace(1, 450, 100)
@@ -41,8 +37,13 @@ OUTPUT_ACTIVATION = 'sigmoid'
 FILTERS = 16
 PREDICT_DIFF = False
 
-evaluate_test = False
-GENERATE_ERROR_MAP = False
+evaluate_test = True
+GENERATE_ERROR_MAP = True
+
+if GENERATE_ERROR_MAP:
+    RMSE_pct_maps_list = []
+    RMSE_maps_list = []
+    MAE_maps_list = []
 
 for PREDICT_T in PREDICT_T_LIST:
     
@@ -74,14 +75,14 @@ for PREDICT_T in PREDICT_T_LIST:
     if evaluate_test:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/test_cosangs_region3.csv'
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/test/'
-        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/test/' + MODEL_PATH.split('/')[-1][:-9]  
+        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/test/' + MODEL_PATH.split('/')[-1][:-16]
         SAVE_PER_HOUR_ERROR = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON + '/test'
         SAVE_BORDERS_ERROR = 'reports/borders_cut/' + REGION + '/' + PREDICT_HORIZON + '/test'
 
     else:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv'
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
-        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-9]  
+        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-16]  
         SAVE_PER_HOUR_ERROR = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON
         SAVE_BORDERS_ERROR = 'reports/borders_cut/' + REGION + '/validation'
         
@@ -127,7 +128,6 @@ for PREDICT_T in PREDICT_T_LIST:
     MBD_per_hour = {}  # MBD
     MBD_pct_per_hour = {}
     FS_per_hour = {}  # FS
-    SSIM_per_hour = {}  # SSIM
 
     if GENERATE_ERROR_MAP:
         mean_image = np.zeros((M,N))
@@ -142,7 +142,6 @@ for PREDICT_T in PREDICT_T_LIST:
             in_frames = in_frames.to(device=device)
             out_frames = out_frames.to(device=device)
             day, hour, minute  = int(out_time[0, 0, 0]), int(out_time[0, 0, 1]), int(out_time[0, 0, 2])
-
 
             if not PREDICT_DIFF:
                 frames_pred = model(in_frames)
@@ -182,8 +181,8 @@ for PREDICT_T in PREDICT_T_LIST:
             
             if GENERATE_ERROR_MAP:
                 mean_image += out_frames[0,0].cpu().numpy()
-                MAE_error_image += torch.abs(torch.multiply(torch.subtract(out_frames[0,0], frames_pred[0,0]), 100)).cpu().numpy()
-                RMSE_error_image += torch.square(torch.multiply(torch.subtract(out_frames[0,0], frames_pred[0,0]), 100)).cpu().numpy()
+                MAE_error_image += torch.abs(torch.subtract(out_frames[0,0], frames_pred[0,0])).cpu().numpy()
+                RMSE_error_image += torch.square(torch.subtract(out_frames[0,0], frames_pred[0,0])).cpu().numpy()
         
             if minute<30:
                 if (hour, 0) in RMSE_per_hour.keys():
@@ -199,20 +198,6 @@ for PREDICT_T in PREDICT_T_LIST:
                 else:
                     RMSE_per_hour[(hour, 30)] = [RMSE_loss]
                     RMSE_pct_per_hour[(hour, 30)] = [RMSE_pct_loss]
-
-            # SSIM
-            SSIM_loss = SSIM(frames_pred, out_frames)
-                        
-            if minute<30:
-                if (hour,0) in SSIM_per_hour.keys():
-                    SSIM_per_hour[(hour,0)].append(SSIM_loss.detach().item())
-                else:
-                    SSIM_per_hour[(hour,0)] = [SSIM_loss.detach().item()]
-            else:
-                if (hour,30) in SSIM_per_hour.keys():
-                    SSIM_per_hour[(hour,30)].append(SSIM_loss.detach().item())
-                else:
-                    SSIM_per_hour[(hour,30)] = [SSIM_loss.detach().item()]
 
             # MBD and FS
             MBD_loss = (torch.mean(torch.subtract(frames_pred, out_frames)).detach().item() * 100)
@@ -242,42 +227,50 @@ for PREDICT_T in PREDICT_T_LIST:
 
     # GENERATE ERROR IMAGES
     if GENERATE_ERROR_MAP:
-        mean_image = (mean_image / len(val_dataset)) * 100  # contains the mean value of each pixel independently 
 
+        mean_image = (mean_image / len(val_dataset)) * 1  # contains the mean value of each pixel independently
         MAE_error_image = (MAE_error_image / len(val_dataset))
-
         MAE_pct_error_image = (MAE_error_image / mean_image) * 100
-
         RMSE_pct_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset)) / mean_image) * 100
-        RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) * 100
-
+        RMSE_error_image = (np.sqrt((RMSE_error_image) / len(val_dataset))) / 1
+        
+        RMSE_pct_maps_list.append(RMSE_pct_error_image)
+        RMSE_maps_list.append(RMSE_error_image)
+        MAE_maps_list.append(MAE_error_image)
+        
         np.save(os.path.join(SAVE_IMAGES_PATH, 'mean_image.npy'), mean_image)
         fig_name = os.path.join(SAVE_IMAGES_PATH, 'mean_image.pdf')
         visualization.show_image_w_colorbar(
             image=mean_image,
             title=None,
             fig_name=fig_name,
-            save_fig=True
+            save_fig=True,
+            bar_max=1,
+            colormap='viridis'
         )
         plt.close()
-
+        
         np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.npy'), MAE_error_image)
         fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_error_image.pdf')
         visualization.show_image_w_colorbar(
             image=MAE_error_image,
             title=None,
             fig_name=fig_name,
-            save_fig=True
+            save_fig=True,
+            bar_max=0.3,
+            colormap='coolwarm'
         )
         plt.close()
-
+        
         np.save(os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.npy'), MAE_pct_error_image)
         fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_pct_error_image.pdf')
         visualization.show_image_w_colorbar(
             image=MAE_pct_error_image,
             title=None,
             fig_name=fig_name,
-            save_fig=True
+            save_fig=True,
+            bar_max=100,
+            colormap='coolwarm'
         )
         plt.close()
 
@@ -287,7 +280,9 @@ for PREDICT_T in PREDICT_T_LIST:
             image=RMSE_error_image,
             title=None,
             fig_name=fig_name,
-            save_fig=True
+            save_fig=True,
+            bar_max=0.3,
+            colormap='coolwarm'
         )
         plt.close()
 
@@ -297,7 +292,9 @@ for PREDICT_T in PREDICT_T_LIST:
             image=RMSE_pct_error_image,
             title=None,
             fig_name=fig_name,
-            save_fig=True
+            save_fig=True,
+            bar_max=100,
+            colormap='coolwarm'
         )
         plt.close()
 
@@ -305,12 +302,10 @@ for PREDICT_T in PREDICT_T_LIST:
     mean_MAE_pct = []
     mean_RMSE = []
     mean_RMSE_pct = []
-    mean_SSIM = []
     std_MAE = []
     std_MAE_pct = []
     std_RMSE = []
     std_RMSE_pct = []
-    std_SSIM = []
     mean_MBD = []
     mean_MBD_pct = []
     std_MBD = []
@@ -331,8 +326,6 @@ for PREDICT_T in PREDICT_T_LIST:
         std_RMSE.append(np.std(RMSE_per_hour[key]))
         mean_RMSE_pct.append(np.mean(RMSE_pct_per_hour[key]))
         std_RMSE_pct.append(np.std(RMSE_pct_per_hour[key]))
-        mean_SSIM.append(np.mean(SSIM_per_hour[key]))
-        std_SSIM.append(np.std(SSIM_per_hour[key]))
         mean_MBD.append(np.mean(MBD_per_hour[key]))
         std_MBD.append(np.std(MBD_per_hour[key]))
         mean_MBD_pct.append(np.mean(MBD_pct_per_hour[key]))
@@ -351,8 +344,6 @@ for PREDICT_T in PREDICT_T_LIST:
             'std_MAE': std_MAE,
             'mean_MAE_pct': mean_MAE_pct,
             'std_MAE_pct': std_MAE_pct,
-            'mean_SSIM': mean_SSIM,
-            'std_SSIM': std_SSIM,
             'mean_RMSE': mean_RMSE,
             'std_RMSE': std_RMSE,
             'mean_RMSE_pct': mean_RMSE_pct,
@@ -368,7 +359,7 @@ for PREDICT_T in PREDICT_T_LIST:
             'mean_total_RMSE_pct': np.mean(RMSE_pct_list)
         }                                                                                                                      
 
-        utils.save_pickle_dict(path=SAVE_PER_HOUR_ERROR, name=MODEL_PATH.split('/')[-1][:-12], dict_=dict_values) 
+        utils.save_pickle_dict(path=SAVE_PER_HOUR_ERROR, name=MODEL_PATH.split('/')[-1][:-16], dict_=dict_values) 
 
         if GENERATE_ERROR_MAP:
             mae_errors_borders = []
@@ -390,8 +381,35 @@ for PREDICT_T in PREDICT_T_LIST:
                     'r_RMSE_errors_borders': r_RMSE_errors_borders
                 }                                                                                                                      
 
-                utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name=MODEL_PATH.split('/')[-1][:-12], dict_=dict_values)
+                utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name=MODEL_PATH.split('/')[-1][:-16], dict_=dict_values)
         
     print('Dict with error values saved.')
     del model
 
+if GENERATE_ERROR_MAP:
+    fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_pct_maps_together.pdf')
+    visualization.error_maps_for_5_horizons(
+        error_maps_list=RMSE_pct_maps_list,
+        vmax=100,
+        fig_name=fig_name,
+        save_fig=True,
+        colormap='coolwarm'
+    )
+
+    fig_name = os.path.join(SAVE_IMAGES_PATH, 'MAE_maps_together.pdf')
+    visualization.error_maps_for_5_horizons(
+        error_maps_list=MAE_maps_list,
+        vmax=0.3,
+        fig_name=fig_name,
+        save_fig=True,
+        colormap='coolwarm'
+    )
+
+    fig_name = os.path.join(SAVE_IMAGES_PATH, 'RMSE_maps_together.pdf')
+    visualization.error_maps_for_5_horizons(
+        error_maps_list=RMSE_maps_list,
+        vmax=0.3,
+        fig_name=fig_name,
+        save_fig=True,
+        colormap='coolwarm'
+    )
