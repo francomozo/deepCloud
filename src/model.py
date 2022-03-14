@@ -162,7 +162,8 @@ class Cmv:
                 borderValue=np.nan,  # valor que se agrega al mover los bordes
                 #borderValue=0,
             )
-            if self.kernel_size[0] == 0 and self.kernel_size[1] == 0 and not self.kernel_size_list:
+            if (self.kernel_size[0] == 0 and self.kernel_size[1] == 0 and 
+                    (not self.kernel_size_list or self.kernel_size_list[i] == (0,0))):
                 predictions.append(next_img)
             else: #add blur to prediction
                 next_img_aux = np.copy(next_img)
