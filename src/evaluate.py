@@ -216,7 +216,8 @@ def evaluate_pixel(predictions,gt,metric,pixel_max_value =255,pixel= (0,0)):
 def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
                    device=None, metric='RMSE', error_percentage=False,
                    window_pad=0, window_pad_height=0, window_pad_width=0, 
-                   predict_diff=False, baseline_predict_direct=False):
+                   predict_diff=False, baseline_predict_direct=False,
+                   input_cmv=False):
     """
     Evaluates performance of model_instance on loader data. 
 
@@ -307,7 +308,8 @@ def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
 
             # evaluate
             start = time.time()
-            input = inputs[-1].cpu().numpy() if metric == 'FS' else None
+            input_index = -2 if input_cmv else -1
+            input = inputs[input_index].cpu().numpy() if metric == 'FS' else None
             gt = targets[start_horizon].unsqueeze(0).cpu().detach().numpy() if start_horizon is not None else targets.cpu().detach().numpy()
             predict_errors = evaluate_image(
                                         predictions = predictions, 

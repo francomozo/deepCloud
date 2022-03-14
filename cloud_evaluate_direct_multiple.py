@@ -136,7 +136,8 @@ for metric in metrics:
                                         window_pad=params['window_pad'],
                                         window_pad_height=params['window_pad_height'],
                                         window_pad_width=params['window_pad_width'],
-                                        predict_diff=params['predict_diff'])
+                                        predict_diff=params['predict_diff'],
+                                        input_cmv=params['input_cmv'])
     error_mean = np.mean(error_array, axis=0)
     error_mean_all_horizons.append(error_mean[0])
   print(f'Error_mean: {error_mean_all_horizons}')
