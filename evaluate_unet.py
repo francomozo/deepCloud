@@ -75,14 +75,14 @@ for PREDICT_T in PREDICT_T_LIST:
     if evaluate_test:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/test_cosangs_region3.csv'
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/test/'
-        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/test/' + MODEL_PATH.split('/')[-1][:-16]
+        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/test/' + MODEL_PATH.split('/')[-1][:-17]
         SAVE_PER_HOUR_ERROR = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON + '/test'
         SAVE_BORDERS_ERROR = 'reports/borders_cut/' + REGION + '/' + PREDICT_HORIZON + '/test'
 
     else:
         CSV_PATH = '/clusteruy/home03/DeepCloud/deepCloud/data/region3/val_cosangs_region3.csv'
         PATH_DATA = '/clusteruy/home03/DeepCloud/deepCloud/data/' + dataset + '/validation/'
-        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-16]
+        SAVE_IMAGES_PATH = 'graphs/' + REGION + '/' + PREDICT_HORIZON + '/' + MODEL_PATH.split('/')[-1][:-17]
         SAVE_PER_HOUR_ERROR = 'reports/eval_per_hour/' + REGION + '/' + PREDICT_HORIZON
         SAVE_BORDERS_ERROR = 'reports/borders_cut/' + REGION + '/validation'
     
@@ -358,7 +358,7 @@ for PREDICT_T in PREDICT_T_LIST:
             'mean_total_RMSE_pct': np.mean(RMSE_pct_list)
         }                                                                                                                      
 
-        utils.save_pickle_dict(path=SAVE_PER_HOUR_ERROR, name=MODEL_PATH.split('/')[-1][:-16], dict_=dict_values) 
+        utils.save_pickle_dict(path=SAVE_PER_HOUR_ERROR, name=MODEL_PATH.split('/')[-1][:-17], dict_=dict_values) 
 
         if GENERATE_ERROR_MAP:
             mae_errors_borders = []
@@ -380,7 +380,7 @@ for PREDICT_T in PREDICT_T_LIST:
                     'r_RMSE_errors_borders': r_RMSE_errors_borders
                 }                                                                                                                      
 
-                utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name=MODEL_PATH.split('/')[-1][:-16], dict_=dict_values)
+                utils.save_pickle_dict(path=SAVE_BORDERS_ERROR, name=MODEL_PATH.split('/')[-1][:-17], dict_=dict_values)
         
     print('Dict with error values saved.')
     del model

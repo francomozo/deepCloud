@@ -1498,7 +1498,7 @@ def train_irradianceNet(
                     train_loader,
                     val_loader,
                     epochs,
-                    img_size=512,
+                    img_size=1024,
                     patch_size=128,
                     checkpoint_every=None,
                     verbose=True,
