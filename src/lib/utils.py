@@ -695,9 +695,15 @@ def get_model_name(predict_horizon: str, architecture: str, predict_diff: bool =
             raise ValueError('Wrong Predict Horizon')
     elif architecture in ['irradianceNet', 'irrNet', 'IrradianceNet', 'irradiancenet', 'irradiance']:
         if predict_horizon == '60min':
-            return '60min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_90_21-02-2022_20:19_BEST.pt'
+            if geo:
+                return '60min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue4_geodata_85_12-03-2022_20:01_BEST.pt'
+            else:
+                return '60min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_90_21-02-2022_20:19_BEST.pt'
         elif predict_horizon == '120min':
-            return '120min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_45_21-02-2022_18:06_BEST.pt'
+            if geo:
+                return '120min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_geodata_59_14-03-2022_00:14_BEST.pt'
+            else:
+                return '120min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_45_21-02-2022_18:06_BEST.pt'
         elif predict_horizon == '180min':
             if best_model:
                 return '180min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_58_26-02-2022_16:03_BEST.pt'
