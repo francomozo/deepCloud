@@ -72,7 +72,8 @@ for PREDICT_T in PREDICT_T_LIST:
     elif PREDICT_T == 30:
         PREDICT_HORIZON = '300min'
     else:
-        raise ValueError('Wrong Predcit Time Index')
+        raise ValueError('Wrong Predict Time')
+
     print('Predict Horizon:', PREDICT_HORIZON)
     
     MODEL_NAME = get_model_name(PREDICT_HORIZON, architecture='irradianceNet', best_model=evaluate_best_model, geo=GEO_DATA)
