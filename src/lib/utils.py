@@ -705,15 +705,12 @@ def get_model_name(predict_horizon: str, architecture: str, predict_diff: bool =
             else:
                 return '120min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_45_21-02-2022_18:06_BEST.pt'
         elif predict_horizon == '180min':
-            if best_model:
+            if geo:
+                return '180min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue2_geodata_65_18-03-2022_04:19_BEST.pt'
+            else:    
                 return '180min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_58_26-02-2022_16:03_BEST.pt'
-            else:
-                return '180min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue2_100_05-03-2022_11:40.pt'
         elif predict_horizon == '240min':
-            if best_model:
-                return '240min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_41_27-02-2022_08:15_BEST.pt'
-            else:
-                return '240min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue2_100_06-03-2022_13:18.pt'
+            return '240min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_41_27-02-2022_08:15_BEST.pt'
         elif predict_horizon == '300min':
             return '300min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainFalse_19_21-02-2022_18:55_BEST.pt'
         else:

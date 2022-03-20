@@ -63,14 +63,16 @@ for PREDICT_T in PREDICT_T_LIST:
     
     if PREDICT_T == 6:
         PREDICT_HORIZON = '60min'
-    if PREDICT_T == 12:
+    elif PREDICT_T == 12:
         PREDICT_HORIZON = '120min'
-    if PREDICT_T == 18:
+    elif PREDICT_T == 18:
         PREDICT_HORIZON = '180min'
-    if PREDICT_T == 24:
+    elif PREDICT_T == 24:
         PREDICT_HORIZON = '240min'
-    if PREDICT_T == 30:
+    elif PREDICT_T == 30:
         PREDICT_HORIZON = '300min'
+    else:
+        raise ValueError('Wrong Predict Time')
 
     print('Predict Horizon:', PREDICT_HORIZON)
     
