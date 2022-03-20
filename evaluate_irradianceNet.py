@@ -53,25 +53,26 @@ dim = img_size // patch_size
 GEO_DATA = False
 TRAIN_W_LAST = True
     
-PREDICT_T_LIST = [18, 24]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
+PREDICT_T_LIST = [12, 18, 24, 30]  # 1->10min, 2->20min, 3->30min... [1,6] U [12] U [18] U [24] U [30]
 
-evaluate_test = True
-evaluate_best_model = False
+evaluate_test = False
+evaluate_best_model = True
 GENERATE_ERROR_MAP = False
 
 for PREDICT_T in PREDICT_T_LIST:
     
     if PREDICT_T == 6:
         PREDICT_HORIZON = '60min'
-    if PREDICT_T == 12:
+    elif PREDICT_T == 12:
         PREDICT_HORIZON = '120min'
-    if PREDICT_T == 18:
+    elif PREDICT_T == 18:
         PREDICT_HORIZON = '180min'
-    if PREDICT_T == 24:
+    elif PREDICT_T == 24:
         PREDICT_HORIZON = '240min'
-    if PREDICT_T == 30:
+    elif PREDICT_T == 30:
         PREDICT_HORIZON = '300min'
-
+    else:
+        raise ValueError('Wrong Predcit Time Index')
     print('Predict Horizon:', PREDICT_HORIZON)
     
     MODEL_NAME = get_model_name(PREDICT_HORIZON, architecture='irradianceNet', best_model=evaluate_best_model, geo=GEO_DATA)
@@ -175,7 +176,7 @@ for PREDICT_T in PREDICT_T_LIST:
         RMSE_error_image = np.zeros((img_size, img_size))
 
     with torch.no_grad():
-        for val_batch_idx, (in_frames, out_frames) in enumerate(tqdm(val_loader)):
+        for val_batch_idx, (in_frames, out_frames) in enumerate(val_loader):
 
             if not GEO_DATA:
                 in_frames = torch.unsqueeze(in_frames, dim=2)
@@ -189,8 +190,8 @@ for PREDICT_T in PREDICT_T_LIST:
                     n = i * patch_size
                     m = j * patch_size
                     frames_pred_Q = model(in_frames[:, :, :, n:n + patch_size, m:m + patch_size])
-                    # reconstructed_pred[0, 0, n:n + patch_size, m:m + patch_size] = torch.clamp(frames_pred_Q[0, 1, 0, :, :], min=0, max=1)
-                    reconstructed_pred[0, 0, n:n + patch_size, m:m + patch_size] = frames_pred_Q[0, 1, 0, :, :]
+                    # reconstructed_pred[0, 0, n:n + patch_size, m:m + patch_size] = torch.clamp(frames_pred_Q[0, -1, 0, :, :], min=0, max=1)
+                    reconstructed_pred[0, 0, n:n + patch_size, m:m + patch_size] = frames_pred_Q[0, -1, 0, :, :]
 
             MAE_loss = (MAE(reconstructed_pred[0, 0], out_frames[0, 0]).detach().item() * 100)
             MAE_pct_loss = (MAE_loss / (torch.mean(out_frames[0,0]).cpu().numpy() * 100)) * 100
