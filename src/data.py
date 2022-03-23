@@ -4,6 +4,7 @@
 #
 
 import datetime
+import yaml
 import os
 import random
 import re
@@ -1532,6 +1533,112 @@ class MontevideoFoldersDataset_output_time(Dataset):
             out_frames = rotate(out_frames, angle=rot_angle, axes=(1,2))
 
         in_frames = np.concatenate((in_frames, out_frames_times), axis=0)
+        return in_frames, out_frames
+
+    def __len__(self):
+        return (len(self.sequence_df))
+
+class MontevideoFoldersDataset_CMV_vector(Dataset):
+    """Dataset for Montevideo Dataset separated by folders named 2020XXX
+    """    
+    def __init__(self, path, in_channel=3, out_channel=1, min_time_diff=5, max_time_diff=15,
+                 csv_path=None, transform=None, output_last=False, data_aug=False, day_pct=1):
+        super(MontevideoFoldersDataset_CMV_vector, self).__init__()
+
+        self.path = path
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.min_time_diff = min_time_diff
+        self.max_time_diff = max_time_diff
+        self.transform = transform
+        self.output_last = output_last
+        self.day_pct = day_pct
+
+        if csv_path:
+            cosangs_df = pd.read_csv(csv_path, header=None)
+            cosangs_df = cosangs_df.loc[cosangs_df[1] >= self.day_pct]
+            self.sequence_df = utils.sequence_df_generator_w_cosangs_folders(path=path,
+                                                                             in_channel=in_channel,
+                                                                             out_channel=out_channel, 
+                                                                             min_time_diff=min_time_diff, 
+                                                                             max_time_diff=max_time_diff,
+                                                                             cosangs_df=cosangs_df
+                                                                             )
+        else:
+            self.sequence_df = utils.sequence_df_generator_folders(path=path,
+                                                                   in_channel=in_channel,
+                                                                   out_channel=out_channel, 
+                                                                   min_time_diff=min_time_diff, 
+                                                                   max_time_diff=max_time_diff)
+        
+        self.data_aug = data_aug
+    def __getitem__(self, index):
+
+        # images loading 
+        
+        for i in range(self.in_channel + self.out_channel):
+            if i == 0:  # first image in in_frames
+                in_frames = np.load(os.path.join(
+                    self.path,self.sequence_df.values[index][i][4:11] ,self.sequence_df.values[index][i]))
+                in_frames = in_frames[np.newaxis]
+            if i > 0 and i < self.in_channel:  # next images in in_frames
+                aux = np.load(os.path.join(
+                    self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                aux = aux[np.newaxis]
+                in_frames = np.concatenate((in_frames, aux), axis=0)
+            if self.output_last:
+                if i == (self.in_channel + self.out_channel -1):  # first image in out_frames
+                    out_frames = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    out_frames = out_frames[np.newaxis]
+            else: 
+                if i == self.in_channel:  # first image in out_frames
+                    out_frames = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    out_frames = out_frames[np.newaxis]
+                if i > self.in_channel:
+                    aux = np.load(os.path.join(
+                        self.path,self.sequence_df.values[index][i][4:11] , self.sequence_df.values[index][i]))
+                    aux = aux[np.newaxis]
+                    out_frames = np.concatenate((out_frames, aux), axis=0)
+
+        if self.transform:
+            if type(self.transform) == list:
+                for function in self.transform:
+                    in_frames, out_frames = function(in_frames,out_frames) 
+            else:
+                in_frames, out_frames = self.transform(in_frames,out_frames) 
+        
+        if self.data_aug:
+            rot_angle = np.random.randint(0,4) * 90
+            in_frames = rotate(in_frames, angle=rot_angle, axes=(1,2))
+            out_frames = rotate(out_frames, angle=rot_angle, axes=(1,2))
+        
+        stream = open("les-prono/admin_scripts/config.yaml", 'r')
+        dcfg = yaml.load(stream, yaml.FullLoader)  # dict
+        cmvcfg = dcfg["algorithm"]["cmv"]
+        pyr_scale=cmvcfg["pyr_scale"]
+        levels=cmvcfg["levels"]
+        winsize=cmvcfg["winsize"]
+        iterations=cmvcfg["iterations"]
+        poly_n=cmvcfg["poly_n"]
+        poly_sigma=cmvcfg["poly_sigma"]
+ 
+        flow = cv.calcOpticalFlowFarneback(
+            in_frames[-2],
+            in_frames[-1],
+            None,
+            pyr_scale=pyr_scale,
+            levels=levels,
+            winsize=winsize,
+            iterations=iterations,
+            poly_n=poly_n,
+            poly_sigma=poly_sigma,
+            flags=0,
+        )
+        cmv = - flow / (10*60)
+        in_frames = np.concatenate((in_frames, np.reshape(cmv, (2, 256, 256))), axis=0)
+        
         return in_frames, out_frames
 
     def __len__(self):
