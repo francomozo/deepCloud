@@ -710,9 +710,15 @@ def get_model_name(predict_horizon: str, architecture: str, predict_diff: bool =
             else:    
                 return '180min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_58_26-02-2022_16:03_BEST.pt'
         elif predict_horizon == '240min':
-            return '240min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_41_27-02-2022_08:15_BEST.pt'
+            if geo:
+                return '240min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_geodata_45_21-03-2022_17:17_BEST.pt' 
+            else:
+                return '240min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_41_27-02-2022_08:15_BEST.pt'
         elif predict_horizon == '300min':
-            return '300min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainFalse_19_21-02-2022_18:55_BEST.pt'
+            if geo:
+                return '300min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainTrue_geodata_61_24-03-2022_17:51_BEST.pt'
+            else:
+                return '300min_IrradianceNet_30mininterval_last_image_True_region3_daypct_1_mse_retrainFalse_19_21-02-2022_18:55_BEST.pt'
         else:
             raise ValueError('Wrong Predict Horizon')
     else:
