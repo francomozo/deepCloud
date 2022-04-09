@@ -27,6 +27,7 @@ nb-outlier-finder.ipynb
 exp_gan_gs_a[a-z]*.py
 exp_gan_gs_b[a-z]*.py
 exp_gan_gs_c[a-z]*.py
+exp_gan_gs_x[a-z]*.py
 exp_gan_gs_xaaa.py
 
 misc/images/img_example.png
