@@ -35,3 +35,4 @@ misc/images/img_example.png
 train_UNet2_*.py
 reports/gan_exp_outputs/*
 reports/gan_exp_outputs/static_sequences/*
+reports/doc_images
