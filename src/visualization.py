@@ -509,3 +509,61 @@ def make_plots_from_dict(load_paths, save_folder=None):
         else:
             save_file = None
         plot_graph_multiple(error_list, models, error_metric=metric, save_file=save_file)
+        
+        
+def error_maps_for_3_horizons(error_maps_list, vmax=None, colormap='coolwarm', fig_name=None, save_fig=False):
+    """ Shows the images passed in a grid
+    Args:
+        sequence_array (array)
+    """
+    if len(error_maps_list) != 3:
+        raise ValueError('Must input 3 Maps')
+    
+    fontsize = 22 # 22 generates the font more like the latex text
+    
+    text = {0:'30min', 1:'60min', 2:'90min'}
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    fig, ax = plt.subplots(1, 3, figsize=(18, 5))
+    plt.subplots_adjust(wspace=0.01)
+    for i in range(len(error_maps_list)):
+        if i < 2:
+            if vmax:
+                ax[i].imshow(error_maps_list[i], vmin=0, vmax=vmax, cmap=colormap)
+            else:
+                ax[i].imshow(error_maps_list[i], cmap=colormap)
+            if i == 0:
+                ax[i].set_title(text[i], fontsize=fontsize)
+            else:
+                ax[i].set_title(text[i], fontsize=fontsize)
+
+            ax[i].set_xticklabels([])
+            ax[i].set_yticklabels([])
+
+            for tic in ax[i].xaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+            for tic in ax[i].yaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+
+        elif i == 2:
+            if vmax:
+                im = ax[i].imshow(error_maps_list[i], vmin=0, vmax=vmax, cmap=colormap)
+            else:
+                im = ax[i].imshow(error_maps_list[i], cmap=colormap)
+            cbar = plt.colorbar(im, ax=ax[i], fraction=0.046, pad=0.04)
+            cbar.ax.tick_params(labelsize=fontsize)
+
+            ax[i].set_title(text[i], fontsize=fontsize)
+
+            ax[i].set_xticklabels([])
+            ax[i].set_yticklabels([])
+            for tic in ax[i].xaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+            for tic in ax[i].yaxis.get_major_ticks():
+                tic.tick1line.set_visible(False)
+
+    if save_fig:
+        fig.tight_layout() 
+        fig.savefig(fig_name)
+    plt.show()
