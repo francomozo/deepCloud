@@ -350,19 +350,30 @@ def show_image_w_colorbar(image, title=None, fig_name=None, save_fig=False, bar_
 
     Args:
         image (array): Array containing the values of the image
-    """ 
+    """
+    fontsize = 16
     fig = plt.figure()
-    fig.set_size_inches(8, 4)
-    ax1 = fig.add_subplot(1, 1, 1)
+    fig.set_size_inches(6, 6)
+    ax = fig.add_subplot(1, 1, 1)
 
     if bar_max:
-        image_ = ax1.imshow(image, cmap=colormap, interpolation='none', vmin=0, vmax=bar_max)
+        image_ = ax.imshow(image, cmap=colormap, interpolation='none', vmin=0, vmax=bar_max)
     else:
-        image_ = ax1.imshow(image, cmap=colormap, interpolation='none')
+        image_ = ax.imshow(image, cmap=colormap, interpolation='none')
 
-    fig.colorbar(image_, ax=ax1)
+    cbar = plt.colorbar(image_, ax=ax, fraction=0.046, pad=0.04)
+    cbar.ax.tick_params(labelsize=fontsize)
+    
     if title:
-        ax1.title.set_text('Image')
+        ax.title.set_text('Image')
+     # Thicknes and axis colors
+    for axis in ['top','bottom','left','right']:
+        ax.spines[axis].set_linewidth(1.0)
+    ax.tick_params(direction='out', length=6, width=1, colors='k')
+    
+    ax.xaxis.set_tick_params(labelsize=fontsize)
+    ax.yaxis.set_tick_params(labelsize=fontsize)
+
     if save_fig:
         fig.tight_layout() 
         fig.savefig(fig_name)
