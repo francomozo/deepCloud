@@ -2,13 +2,16 @@
 #   ML Models, Persistence, State of the Art models implementations.
 #
 
-import pandas as pd
 import datetime as datetime
-import numpy as np
+
 import cv2 as cv
-import yaml
+import numpy as np
+import pandas as pd
 import torch
+import yaml
+
 from src import evaluate
+
 
 class Persistence:
     """ Class that predicts the next images using naive prediction.
@@ -59,16 +62,6 @@ class Persistence:
             else:
                 return np.array(predictions)
 
-class NoisyPersistence(Persistence):
-    """Sub class of Persistence, adds white noise to predictions.
-
-    Args:
-        Persistence ([type]): [description]
-    """    
-    def __init__(self, sigma):
-        #sigma (int): standard deviation of the gauss noise
-        self.sigma = sigma
-        
 class BlurredPersistence(Persistence):
     """Sub class of Persistence, returns predictions after passign through a gauss filter.
 
@@ -84,7 +77,7 @@ class Cmv:
     def __init__(self, kernel_size = (0,0), kernel_size_list = None, dcfg=None):
         # Load configuration
         if dcfg is None:
-            stream = open("les-prono/admin_scripts/config.yaml", 'r')
+            stream = open("config.yaml", 'r')
             self.dcfg = yaml.load(stream, yaml.FullLoader)  # dict
         else:
             self.dcfg = dcfg
@@ -303,76 +296,7 @@ class Cmv2(Cmv):
     pass
 
 
-def persistence(image, img_timestamp, predict_horizon):
-    """Takes an image and uses it as the prediction for the next time stamps
-
-    Args:
-        image (array): Image used as prediction
-        predict_horizon (int): Length of the prediction horizon. 
-
-    Returns:
-        [list]: list containing precitions
-    """    
-    
-    predictions = [np.array(image) for i in range(predict_horizon)]
-    predict_timestamp = pd.date_range(start = img_timestamp+datetime.timedelta(minutes = 10),
-                                      periods= predict_horizon, freq = '10min')
-
-    return predictions , predict_timestamp
-
-def noisy_persistence(image, img_timestamp, predict_horizon, sigma):
-    """Takes an image adds gaussanian noise and uses it as the prediction for the next time stamps. 
-    Used only to have another model for the bar chart in visualization. 
-
-    Args:
-        image (array): Image used as prediction
-        predict_horizon (int): Length of the prediction horizon. 
-        sigma (int): standard deviation of the gauss noise
-
-    Returns:
-        [list]: list containing predictions
-    """    
-    M,N = image.shape
-    
-    predictions = []
-    
-    for _ in range(predict_horizon): 
-        noisy_pred = np.clip(image + np.random.normal(0,sigma,(M,N)), 0,255)
-        predictions.append(noisy_pred)
-        
-    predict_timestamp = pd.date_range(start = img_timestamp+datetime.timedelta(minutes = 10),
-                                      periods= predict_horizon, freq = '10min')
-
-    return predictions , predict_timestamp
-
-def blurred_persistence(image, img_timestamp, predict_horizon, kernel_size = (5,5)):
-    """Takes an image and blurs it with a gaussanian window and uses it as 
-    the prediction for the next time stamps. 
-
-    Args:
-        image (array): Image used as prediction
-        predict_horizon (int): Length of the prediction horizon. 
-        kernel_size (tuple): size of kernel
-
-    Returns:
-        [list]: list containing predictions
-    """    
-
-    predictions = []
-    
-    for _ in range(predict_horizon): 
-        blurred_pred = cv.GaussianBlur(image,kernel_size, 0 )
-        predictions.append(blurred_pred)
-        image = blurred_pred
-        
-    predict_timestamp = pd.date_range(start = img_timestamp+datetime.timedelta(minutes = 10),
-                                      periods= predict_horizon, freq = '10min')
-
-    return predictions , predict_timestamp
-
-
 # img(t) + k*cmv estático -> img(t+k)
-
 def cmv1(dcfg, imgi,imgf, period,delta_t, predict_horizon):
     """Predicts next image using openCV optical Flow
 
@@ -441,10 +365,7 @@ def cmv1(dcfg, imgi,imgf, period,delta_t, predict_horizon):
     return predictions
 
 
-
-
 # img(t+k) + cmv estático -> img(t+k+1)
-
 def cmv2(dcfg, imgi,imgf, period,delta_t, predict_horizon):
     """Predicts next image using openCV optical Flow
 

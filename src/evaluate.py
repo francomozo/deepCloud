@@ -165,54 +165,6 @@ def evaluate_image(predictions, gt, gt_ts, metric, pixel_max_value=100,
 
     return error
 
-def evaluate_pixel(predictions,gt,metric,pixel_max_value =255,pixel= (0,0)):
-    """
-     Measures the error of the prediction compared to the gorund truth for 
-     a specific pixel
-
-    Args:
-        predictions (list): list containing the predicted images
-        gt (list): list containing the ground truth images corresponding to the predicted ones
-        metric (string): RMSE, MSE, PSNR
-        pixel_max_value (int): Maximum value a pixel can take (used for PSNR). Defaults to 255.
-        pixel (tuple): Coordinates of the pixel to compare. Defaults to (0,0).
-
-    Raises:
-        ValueError: Predictions and Ground truth must have the same length.
-
-    Returns:
-        [list]: list containing the erorrs of each predicted pixel
-        compared to the according ground truth pixel
-    """    
-    
-    #length must be the same
-    len_pred = len(predictions)
-    len_gt = len(gt)
-    if (len_pred != len_gt):
-        raise ValueError('Predictions and Ground truth must have the same length.')
-    
-    n,m = pixel
-    
-    if type(predictions) == np.ndarray : #case the prediction input is an array instead of a list
-        len_pred=1
-    
-    error= []  
-    for i in range (len_pred):
-
-        if(metric == 'RMSE'):
-            error.append(abs(predictions[i][n,m]-gt[i][n,m]))     
-        elif (metric == 'MSE' ):
-            error.append((predictions[i][n,m]-gt[i][n,m])**2) 
-        elif (metric == 'PSNR'):
-            mse = np.mean((predictions[i][n,m]-gt[i][n,m])**2)
-            if (mse != 0 ):
-                error.append(10* np.log10(pixel_max_value**2/mse)) 
-            else:
-                error.append(20*np.log10(pixel_max_value))
-            
-    return error
-
-
 def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
                    device=None, metric='RMSE', error_percentage=False,
                    window_pad=0, window_pad_height=0, window_pad_width=0, 
@@ -333,7 +285,6 @@ def evaluate_model(model_instance, loader, predict_horizon, start_horizon=None,
     print(f'Evaluation time: {np.sum(eval_time):.2f} seconds.')
     return np.array(error_list)
 
-
 def evaluate_gan_val(model_instance, 
                     loader, 
                     predict_horizon, 
@@ -403,7 +354,6 @@ def evaluate_gan_val(model_instance,
         eval_time.append(end-start)
     
     return np.array(error_list)
-
 
 def make_val_grid(model, 
                   sequences=1,

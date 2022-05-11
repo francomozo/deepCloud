@@ -6,17 +6,19 @@
 import csv
 import datetime
 import os
-import cv2
-import sys
+import pickle
 import shutil
+import sys
 from datetime import datetime, timedelta
 from os import listdir
 from os.path import isfile, join
-import pickle
+
+import cv2
 import numpy as np
 import pandas as pd
 import src.lib.preprocessing_functions as pf
 import torch
+
 
 def save_checkpoint(gen_dict, disc_dict, expId, sub_expId=None, obs=None):
 
@@ -92,28 +94,6 @@ def gradient_penalty(disc, real, fake, device="cpu"):
     gradient_norm = gradient.norm(2, dim=1)
     gradient_penalty = torch.mean((gradient_norm - 1) ** 2)
     return gradient_penalty
-
-
-def datetime2str(datetime_obj):
-    """ 
-        Receives a datetime object and returns a string
-        in format 'day/month/year hr:mins:secs' 
-    """
-
-    return datetime_obj.strftime('%d/%m/%Y %H:%M:%S')
-
-
-def str2datetime(date_str):
-    """
-        Receives a string with format 'day/month/year hr:mins:secs'
-        and returns a datetime object
-    """
-    date, time = date_str.split()
-    day, month, year = date.split('/')
-    hr, mins, secs = time.split(':')
-    return datetime.datetime(int(year), int(month), int(day),
-                             int(hr), int(mins), int(secs)
-                             )
 
 
 def find_inner_image(image):
