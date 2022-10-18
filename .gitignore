@@ -34,3 +34,14 @@ misc/images/img_example.png
 train_UNet2_*.py
 reports/gan_exp_outputs/*
 reports/gan_exp_outputs/static_sequences/*
+.ipynb_checkpoints/
+video/
+
+if args.dataset == 'region3':
+	dataset_folder = 'R3'
+
+
+if args.dataset == 'region3':
+	dataset_folder = 'R3'
+
+
